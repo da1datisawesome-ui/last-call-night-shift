@@ -130,6 +130,8 @@ const music=document.getElementById("music"),ambience=document.getElementById("a
 let W=0,H=0,playing=false,role="Receptionist",money=1280,rep=50,audioOn=true,px=.582,py=.527,gx=.60,gy=.34,drag=false,target=null,pendingInteraction=null,lastStep=0;
 let unlock={Receptionist:true,Porter:false,Cleaner:false,Maintenance:false};
 let worldW=0,worldH=0,worldLeft=0,worldTop=0;
+const camera={x:px,y:py};
+let worldTransform={x:0,y:0,zoom:1};
 const CAMERA_ZOOM=0.72;
 function resize(){
  W=innerWidth;H=innerHeight;
