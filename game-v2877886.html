@@ -231,9 +231,9 @@ function buildLevel(seed){
  const safe=(room,ox,oy)=>({x:(room.x+room.w*ox)/ART_W,y:(room.y+room.h*oy)/ART_H});
  GENERATED_POINTS.reception=safe(reception,.80,.52);
  GENERATED_POINTS.guest=safe(reception,.55,.78);
- GENERATED_POINTS.room101=safe(rooms[2],.90,.78);
- GENERATED_POINTS.room102=safe(rooms[3],.90,.78);
- GENERATED_POINTS.room103=safe(rooms[4],.90,.78);
+ GENERATED_POINTS.room101=safe(rooms[2],.28,.72);
+ GENERATED_POINTS.room102=safe(rooms[3],.28,.72);
+ GENERATED_POINTS.room103=safe(rooms[4],.28,.72);
  GENERATED_POINTS.lounge=center(rooms[5]);GENERATED_POINTS.housekeeping=center(rooms[5]);
  GENERATED_POINTS.kitchen=safe(rooms[6],.50,.55);GENERATED_POINTS.maintenance=center(rooms[7]);
  GENERATED_POINTS.staff=center(rooms[8]);GENERATED_POINTS.garden=safe(rooms[8],.50,.50);
@@ -287,16 +287,44 @@ function updateActorAnimation(){
   ns.style.backgroundImage='url("'+fr[(n.el.classList.contains("walking")?actorAnimFrame:0)]+'")';
  }
 }
+const heldKeys=new Set();
+const MOVE_SPEED=.00011;
+let lastAudioX=px,lastAudioY=py;
+function updatePlayerInput(dt){
+ let dx=0,dy=0;
+ if(heldKeys.has("arrowup")||heldKeys.has("w"))dy-=1;
+ if(heldKeys.has("arrowdown")||heldKeys.has("s"))dy+=1;
+ if(heldKeys.has("arrowleft")||heldKeys.has("a"))dx-=1;
+ if(heldKeys.has("arrowright")||heldKeys.has("d"))dx+=1;
+ if(padDX||padDY){dx+=padDX;dy+=padDY;}
+ const len=Math.hypot(dx,dy);
+ let moved=false;
+ if(len){dx/=len;dy/=len;moved=moveClamped(px+dx*MOVE_SPEED*dt,py+dy*MOVE_SPEED*dt);}
+ if(!touchDrag)player.classList.toggle("walking",moved);
+ return moved;
+}
 function loop(){
  if(!playing)return;
+ const dt=16.67;
+ updatePlayerInput(dt);
  camera.x+=(px-camera.x)*.10;camera.y+=(py-camera.y)*.10;
- updateWorld();updateNpcs();positionActors();updateActorAnimation();requestAnimationFrame(loop);
+ updateWorld();updateNpcs();positionActors();updateActorAnimation();
+ const movedSinceSound=Math.hypot(px-lastAudioX,py-lastAudioY)>.00035;
+ if(player.classList.contains("walking")&&movedSinceSound)playStepSound();
+ lastAudioX=px;lastAudioY=py;
+ requestAnimationFrame(loop);
 }
 // Collision geometry lives in the same 1672x940 coordinate system as the hotel artwork.
 // Rectangles are physical solid areas on the actual world surface, not screen-space overlays.
 const COLLIDERS=GENERATED_COLLIDERS;
 const PLAYER_RADIUS_X=34/ART_W;
 const PLAYER_RADIUS_Y=18/ART_H;
+const NPC_RADIUS_X=18/ART_W;
+const NPC_RADIUS_Y=10/ART_H;
+function npcBlocked(x,y){
+ const cx=x*ART_W,cy=y*ART_H;
+ return COLLIDERS.some(r=>cx+NPC_RADIUS_X*ART_W>r.x&&cx-NPC_RADIUS_X*ART_W<r.x+r.w&&cy+NPC_RADIUS_Y*ART_H>r.y&&cy-NPC_RADIUS_Y*ART_H<r.y+r.h);
+}
 function blocked(x,y){
  const cx=x*ART_W,cy=y*ART_H;
  return COLLIDERS.some(r=>
@@ -464,10 +492,10 @@ function updateNpcs(){
        }
      }else{
        const nx=n.x+dx/d*step,ny=n.y+dy/d*step;
-       if(!blocked(nx,ny)){n.x=nx;n.y=ny}
+       if(!npcBlocked(nx,ny)){n.x=nx;n.y=ny}
        else{
          const ax=n.x+dx/d*step,ay=n.y,bx=n.x,by=n.y+dy/d*step;
-         if(!blocked(ax,ay))n.x=ax;else if(!blocked(bx,by))n.y=by;
+         if(!npcBlocked(ax,ay))n.x=ax;else if(!npcBlocked(bx,by))n.y=by;
        }
      }
      continue;
@@ -533,7 +561,7 @@ function deliverLuggage(rm){
  const receptionDoorX=(70+350-18)/ART_W;
  const receptionDoorY=(650+60)/ART_H;
  const corridorY=(455+45)/ART_H;
- const roomDoorY=(rm.y+rm.h-28)/ART_H;
+ const roomDoorY=(rm.y+rm.h-9)/ART_H;
  g.npc.x=GENERATED_POINTS.guest.x;g.npc.y=GENERATED_POINTS.guest.y;
  g.npc.path=[
   {x:g.npc.x,y:g.npc.y},
@@ -606,7 +634,6 @@ function walkTo(x,y,onArrive=null){
    const tick=now=>{
      const t=Math.min(1,(now-st)/dur);
      moveClamped(sx+(dest.x-sx)*t,sy+(dest.y-sy)*t);positionActors();
-     if(now-lastStep>260){lastStep=now;if(audioOn){step.currentTime=0;step.volume=.16;step.play().catch(()=>{})}}
      if(t<1)requestAnimationFrame(tick);else nextSegment();
    };
    requestAnimationFrame(tick);
@@ -664,17 +691,16 @@ function pointer(e){
  return{x:e.clientX-r.left,y:e.clientY-r.top};
 }
 let lastStepSound=0;
-function playStepSound(){if(!audioOn)return;const now=performance.now();if(now-lastStepSound<240)return;lastStepSound=now;step.currentTime=0;step.volume=.16;step.play().catch(()=>{})}
+function playStepSound(){if(!audioOn)return;const now=performance.now();if(now-lastStepSound<320)return;lastStepSound=now;step.volume=.10;step.play().catch(()=>{})}
 function nudge(dx,dy){if(!playing)return;const moved=moveClamped(px+dx,py+dy);if(moved)player.classList.add("walking");positionActors()}
 addEventListener("keydown",e=>{
+ const k=e.key.toLowerCase();
  if(!playing)return;
- const k=e.key.toLowerCase(),stepSize=.018;
- if(["arrowup","w"].includes(k)){e.preventDefault();nudge(0,-stepSize)}
- if(["arrowdown","s"].includes(k)){e.preventDefault();nudge(0,stepSize)}
- if(["arrowleft","a"].includes(k)){e.preventDefault();nudge(-stepSize,0)}
- if(["arrowright","d"].includes(k)){e.preventDefault();nudge(stepSize,0)}
+ if(["arrowup","arrowdown","arrowleft","arrowright","w","a","s","d"].includes(k)){e.preventDefault();heldKeys.add(k)}
  if(k==="e")interactAt(px,py);
 });
+addEventListener("keyup",e=>{heldKeys.delete(e.key.toLowerCase())});
+addEventListener("blur",()=>heldKeys.clear());
 function screenToWorld(p){
  return{
   x:Math.max(0,Math.min(1,((p.x-worldTransform.x)/worldTransform.zoom-worldLeft)/worldW)),
@@ -685,12 +711,11 @@ let touchDrag=false,touchLastX=0,touchLastY=0,touchMoved=false,touchLastTime=0;
 const movePad=document.getElementById("movePad");
 const moveButtons=movePad?[...movePad.querySelectorAll("button")]:[];
 let padDX=0,padDY=0,padTimer=0;
-function stopPad(){padDX=0;padDY=0;if(padTimer){clearInterval(padTimer);padTimer=0;}player.classList.remove("walking");}
+function stopPad(){padDX=0;padDY=0;padTimer=0;if(!touchDrag&&!heldKeys.size)player.classList.remove("walking")}
 function startPad(btn){
  stopPad();
  padDX=Number(btn.dataset.dx||0);padDY=Number(btn.dataset.dy||0);
- const step=()=>{if(!playing)return;player.classList.add("walking");moveClamped(px+padDX*.012,py+padDY*.012);positionActors();};
- step();padTimer=setInterval(step,35);
+ padTimer=1;
 }
 moveButtons.forEach(btn=>{
  btn.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();btn.setPointerCapture?.(e.pointerId);startPad(btn)},{passive:false});
@@ -710,10 +735,10 @@ world.addEventListener("pointermove",e=>{
  touchLastX=e.clientX;touchLastY=e.clientY;touchLastTime=now;
  if(Math.abs(dx)+Math.abs(dy)>1)touchMoved=true;
  const zoom=worldTransform.zoom||1;
- const maxWorldStep=0.035*(dt/16.67);
+ const maxWorldStep=0.005*(dt/16.67);
  const wx=Math.max(-maxWorldStep,Math.min(maxWorldStep,dx/(zoom*worldW)));
  const wy=Math.max(-maxWorldStep,Math.min(maxWorldStep,dy/(zoom*worldH)));
- if(wx||wy){player.classList.add("walking");moveClamped(px+wx,py+wy);positionActors();}
+ if(wx||wy){const moved=moveClamped(px+wx,py+wy);if(moved)player.classList.add("walking");positionActors();}
 });
 world.addEventListener("pointerup",e=>{
  if(!touchDrag)return;
@@ -740,6 +765,7 @@ window.beginGame=function(){
   setHotelTask("Guest waiting at reception");
   px=GENERATED_POINTS.reception.x;py=GENERATED_POINTS.reception.y;
   camera.x=px;camera.y=py;
+  lastAudioX=px;lastAudioY=py;lastStepSound=0;
   playing=true;
   positionActors();
   updateWorld();
