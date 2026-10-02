@@ -271,7 +271,11 @@ const npcs=[
 function resetGeneratedActors(){
  const p=GENERATED_POINTS;
  const routes=[[p.guest,p.reception,p.lounge],[p.staff,p.reception,p.garden],[p.housekeeping,p.lounge,p.kitchen],[p.maintenance,p.kitchen,p.maintenance],[p.reception,p.guest,p.reception],[p.lounge,p.bar,p.lounge],[p.conference,p.garden,p.conference]];
- npcs.forEach((n,i)=>{const route=routes[i]||routes[0];n.x=route[0].x;n.y=route[0].y;n.path=route.map(q=>[q.x,q.y]);n.i=0;n.route=null;n.ri=1;n.el.style.display=(i===0||i===5||i===6)?"block":"none";});
+ npcs.forEach((n,i)=>{
+  const route=i===0?[p.guest,p.reception,p.reception]:routes[i]||routes[0];
+  n.x=route[0].x;n.y=route[0].y;n.path=route.map(q=>[q.x,q.y]);n.i=0;n.route=null;n.ri=1;
+  n.el.style.display=(i===0||i===5||i===6)?"block":"none";
+});
  gx=p.guest.x;gy=p.guest.y;guest.style.display="block";
 }
 for(const n of npcs){
@@ -282,11 +286,17 @@ function positionActors(){
  player.style.left=(px*100)+"%";player.style.top=(py*100)+"%";
  player.querySelector(".sprite").style.backgroundImage='url("'+SPRITES[role]+'")';player.querySelector(".sprite").style.backgroundSize="100% 100%";
  for(const n of npcs){n.el.style.left=(n.x*100)+"%";n.el.style.top=(n.y*100)+"%";}
- const q=nearestInteractable(px,py);
- if(q&&Math.hypot(px-q.x,py-q.y)<=.12){
-   interact.style.display="block";interact.style.left=(px*100)+"%";interact.style.top=((py*100)-8)+"%";
-   interact.textContent=q.type==="guest"?"🔑 CHECK IN GUEST":"INTERACT";
- }else interact.style.display="none";
+ const activeGuest=npcs[0];
+ const gd=Math.hypot(px-activeGuest.x,py-activeGuest.y);
+ if(activeGuest.el.style.display!=="none"&&gd<=.16){
+   interact.style.display="block";interact.style.left=(activeGuest.x*100)+"%";interact.style.top=((activeGuest.y*100)-10)+"%";
+   interact.textContent="🔑 CHECK IN GUEST";
+ }else{
+   const q=nearestInteractable(px,py);
+   if(q&&q.type!=="guest"&&Math.hypot(px-q.x,py-q.y)<=.12){
+     interact.style.display="block";interact.style.left=(px*100)+"%";interact.style.top=((py*100)-8)+"%";interact.textContent="INTERACT";
+   }else interact.style.display="none";
+ }
 }
 function updateNpcs(){
  for(const n of npcs){
@@ -357,14 +367,23 @@ function nearestInteractable(x,y){
  return best;
 }
 function interactAt(x,y){
- const q=nearestInteractable(x,y);
- if(!q||Math.hypot(px-q.x,py-q.y)>.11){showToast("Move closer to interact");return false} if(!canReach(q.x,q.y)){showToast("That area is blocked");return false}
- if(q.type==="guest"&&role==="Receptionist"){
+ const activeGuest=npcs[0];
+ const gd=Math.hypot(px-activeGuest.x,py-activeGuest.y);
+ if(activeGuest.el.style.display!=="none"&&gd<=.18&&role==="Receptionist"){
    money+=20;rep++;moneyEl.textContent="$"+money.toLocaleString();taskEl.textContent="Guest checked in ✓";showToast("+$20  Guest checked in");
-   guest.style.display="none";
-   setTimeout(()=>{gx=.62;gy=.37;guest.style.display="block";taskEl.textContent="New guest waiting at reception"},1300);
+   activeGuest.el.style.display="none";guest.style.display="none";
+   setTimeout(()=>{
+     if(!playing)return;
+     activeGuest.el.style.display="block";
+     activeGuest.x=GENERATED_POINTS.reception.x;activeGuest.y=GENERATED_POINTS.reception.y;
+     activeGuest.path=[[activeGuest.x,activeGuest.y],[activeGuest.x,activeGuest.y]];
+     activeGuest.route=null;activeGuest.i=0;activeGuest.ri=1;
+     taskEl.textContent="New guest waiting at reception";positionActors();
+   },1300);
    return true;
  }
+ const q=nearestInteractable(x,y);
+ if(!q||Math.hypot(px-q.x,py-q.y)>.11){showToast("Move closer to interact");return false}
  if(q.reward){
    money+=q.reward;moneyEl.textContent="$"+money.toLocaleString();taskEl.textContent=q.type+" job complete ✓";showToast(q.type+" job complete  +$"+q.reward);
    setTimeout(()=>{if(playing)setTask()},1400);return true;
