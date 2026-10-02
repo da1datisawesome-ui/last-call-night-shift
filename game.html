@@ -129,10 +129,24 @@ function blocked(x,y){
 function moveClamped(nx,ny){
  nx=Math.max(.04,Math.min(.96,nx));
  ny=Math.max(.08,Math.min(.92,ny));
- // Resolve each axis separately so the player slides along walls/furniture
- // instead of getting stuck when approaching a solid corner.
- if(!blocked(nx,py)) px=nx;
- if(!blocked(px,ny)) py=ny;
+ // Test the requested destination and then resolve each axis separately.
+ // This keeps the actor on the walkable side of the hotel's physical geometry.
+ const oldX=px,oldY=py;
+ if(!blocked(nx,ny)){px=nx;py=ny;return true}
+ let moved=false;
+ if(!blocked(nx,oldY)){px=nx;moved=true}
+ if(!blocked(px,ny)){py=ny;moved=true}
+ return moved;
+}
+function canReach(x,y){
+ // A destination is reachable only if it is clear and a few points along
+ // the straight approach are also clear. This prevents interacting through walls.
+ const sx=px,sy=py,steps=12;
+ for(let i=1;i<=steps;i++){
+   const t=i/steps;
+   if(blocked(sx+(x-sx)*t,sy+(y-sy)*t))return false;
+ }
+ return !blocked(x,y);
 }
 const npcs=[
  {el:guest,role:"Guest1",x:.60,y:.34,path:[[.60,.34],[.57,.30],[.61,.34]],i:0,t:0,speed:.00032},
@@ -164,11 +178,22 @@ function startAudio(){if(!audioOn)return;music.volume=.34;ambience.volume=.2;Pro
 function toggleAudio(){audioOn=!audioOn;if(audioOn)startAudio();else{music.pause();ambience.pause()}document.getElementById("sound").textContent=audioOn?"🔊":"🔇"}
 function setTask(){taskEl.textContent=role==="Receptionist"?"Guest waiting at reception":role==="Porter"?"Collect luggage":"Complete your current hotel job"}
 function walkTo(x,y,onArrive=null){
+ const startX=px,startY=py;
+ if(!canReach(x,y)){
+   // Move toward the requested point until the first blocked segment, then stop.
+   let lo=0,hi=1;
+   for(let i=0;i<10;i++){
+     const mid=(lo+hi)/2;
+     if(canReach(startX+(x-startX)*mid,startY+(y-startY)*mid))lo=mid;else hi=mid;
+   }
+   x=startX+(x-startX)*Math.max(0,lo-.025);
+   y=startY+(y-startY)*Math.max(0,lo-.025);
+ }
  const dx=x-px,dy=y-py,d=Math.hypot(dx,dy);if(d<.01){onArrive?.();return}
  const dur=Math.min(1100,Math.max(180,d*1200)),sx=px,sy=py,st=performance.now();player.classList.add("walking");
  const tick=now=>{
    const t=Math.min(1,(now-st)/dur);
-   moveClamped(sx+dx*t,sy+dy*t);positionActors();
+   moveClamped(sx+(x-sx)*t,sy+(y-sy)*t);positionActors();
    if(now-lastStep>260){lastStep=now;if(audioOn){step.currentTime=0;step.volume=.16;step.play().catch(()=>{})}}
    if(t<1)requestAnimationFrame(tick);else{player.classList.remove("walking");onArrive?.()}
  };
@@ -188,7 +213,7 @@ function nearestInteractable(x,y){
 }
 function interactAt(x,y){
  const q=nearestInteractable(x,y);
- if(!q||Math.hypot(px-q.x,py-q.y)>.11){showToast("Move closer to interact");return false}
+ if(!q||Math.hypot(px-q.x,py-q.y)>.11){showToast("Move closer to interact");return false} if(!canReach(q.x,q.y)){showToast("That area is blocked");return false}
  if(q.type==="guest"&&role==="Receptionist"){
    money+=20;rep++;moneyEl.textContent="$"+money.toLocaleString();taskEl.textContent="Guest checked in ✓";showToast("+$20  Guest checked in");
    guest.style.display="none";
