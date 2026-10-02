@@ -61,7 +61,22 @@ function draw(){
  patch(1000,130,160,220,1120,130,160,220);
  requestAnimationFrame(()=>{if(playing)draw()});
 }
-function worldToScreen(x,y){return {x:x*W,y:y*H}}
+const camera={x:.52,y:.51};
+function worldToScreen(x,y){return {x:W*.5+(x-camera.x)*W,y:H*.5+(y-camera.y)*H}}
+function blocked(x,y){
+  // Reception desk, key cabinet/wall, and service-room walls are solid physical zones.
+  const zones=[
+    [.20,.28,.55,.40], // reception desk
+    [.68,.12,.82,.28], // corridor wall/rooms
+    [.67,.58,.92,.82]  // service counters/walls
+  ];
+  return zones.some(([x1,y1,x2,y2])=>x>x1&&x<x2&&y>y1&&y<y2);
+}
+function moveClamped(nx,ny){
+  nx=Math.max(.06,Math.min(.94,nx));ny=Math.max(.10,Math.min(.90,ny));
+  if(!blocked(nx,ny)){px=nx;py=ny;}
+  camera.x+=(px-camera.x)*.14;camera.y+=(py-camera.y)*.14;
+}
 function positionActors(){
  const p=worldToScreen(px,py);player.style.left=p.x+"px";player.style.top=p.y+"px";player.querySelector(".sprite").style.backgroundImage='url("'+SPRITES[role]+'")';
  const g=worldToScreen(gx,gy);guest.style.left=g.x+"px";guest.style.top=g.y+"px";
@@ -73,7 +88,7 @@ function setTask(){taskEl.textContent=role==="Receptionist"?"Guest waiting at re
 function walkTo(x,y){
  const dx=x-px,dy=y-py,d=Math.hypot(dx,dy); if(d<.01)return;
  const dur=Math.min(850,Math.max(180,d*1100)); const sx=px,sy=py,st=performance.now();player.classList.add("walking");
- const tick=now=>{const t=Math.min(1,(now-st)/dur);px=sx+dx*t;py=sy+dy*t;positionActors();if(now-lastStep>260){lastStep=now;if(audioOn){step.currentTime=0;step.volume=.16;step.play().catch(()=>{})}}if(t<1)requestAnimationFrame(tick);else player.classList.remove("walking")};requestAnimationFrame(tick)
+ const tick=now=>{const t=Math.min(1,(now-st)/dur);moveClamped(sx+dx*t,sy+dy*t);positionActors();if(now-lastStep>260){lastStep=now;if(audioOn){step.currentTime=0;step.volume=.16;step.play().catch(()=>{})}}if(t<1)requestAnimationFrame(tick);else player.classList.remove("walking")};requestAnimationFrame(tick)
 }
 function hit(x,y){return x>.42&&x<.58&&y>.36&&y<.60}
 function interactAt(x,y){
