@@ -91,12 +91,15 @@ function resize(){
  updateWorld();positionActors()
 } addEventListener("resize",resize);
 const camera={x:px,y:py};
-const CAMERA_ZOOM=1.18;
+const CAMERA_ZOOM=1.34;
 let worldTransform={x:0,y:0,zoom:CAMERA_ZOOM};
 function updateWorld(){
  const zoom=CAMERA_ZOOM;
- const tx=W/2-(worldLeft+camera.x*worldW)*zoom;
- const ty=H/2-(worldTop+camera.y*worldH)*zoom;
+ let tx=W/2-(worldLeft+camera.x*worldW)*zoom;
+ let ty=H/2-(worldTop+camera.y*worldH)*zoom;
+ const scaledW=worldW*zoom,scaledH=worldH*zoom;
+ tx=Math.min(0,Math.max(W-scaledW,tx));
+ ty=Math.min(0,Math.max(H-scaledH,ty));
  worldTransform={x:tx,y:ty,zoom};
  world.style.transform="translate3d("+tx+"px,"+ty+"px,0) scale("+zoom+")";
 }
