@@ -150,6 +150,9 @@ let W=0,H=0,playing=false,role="Receptionist",money=1280,rep=50,earned=0,audioOn
 let unlock={Receptionist:true,Porter:false,RoomService:false,Cleaner:false,Maintenance:false};
 let roomCapacity=3,occupiedRooms=0,checkIns=0,upgradeRooms=0;
 const ROOM_UPGRADE_COSTS=[2000,3500,5000];
+const GUEST_STAY_MS=90000,ROOM_SERVICE_DELAY_MS=25000;
+const guestRooms=[{id:101,state:"available",guest:null,marker:null},{id:102,state:"available",guest:null,marker:null},{id:103,state:"available",guest:null,marker:null}];
+let luggageState=null,carrying=null,taskState="waiting";
 let worldW=0,worldH=0,worldLeft=0,worldTop=0;
 const camera={x:px,y:py};
 let actorAnimFrame=0,actorAnimClock=0;
@@ -295,35 +298,30 @@ function canReachFrom(a,b){
 const npcs=[
  {el:guest,role:"Guest1",x:.2,y:.2,path:[],i:0,t:0,speed:.00032},{el:porterNpc,role:"Porter",x:.2,y:.2,path:[],i:0,t:0,speed:.00024},{el:cleanerNpc,role:"Cleaner",x:.2,y:.2,path:[],i:0,t:0,speed:.00022},{el:maintenanceNpc,role:"Maintenance",x:.2,y:.2,path:[],i:0,t:0,speed:.0002},{el:receptionNpc,role:"Receptionist",x:.2,y:.2,path:[],i:0,t:0,speed:.00016},{el:loungeNpc1,role:"Guest2",x:.2,y:.2,path:[],i:0,t:0,speed:.00014},{el:loungeNpc2,role:"Guest3",x:.2,y:.2,path:[],i:0,t:0,speed:.00013}
 ];
+const hotelGuests=npcs.filter((n,i)=>i===0||i===5||i===6).map((n,i)=>({npc:n,id:i+1,status:i===0?"waiting":"idle",room:null,serviceRequested:false,serviceDone:false}));
+function updateRoomMarker(i){const rm=guestRooms[i],el=rm.marker;if(!el)return;const label=rm.state==="occupied"?"OCCUPIED":rm.state==="dirty"?"DIRTY":rm.state==="reserved"?"READY":"AVAILABLE";el.className="roomStatus "+rm.state;el.textContent="ROOM "+rm.id+" • "+label}
+function roomPoint(rm){return GENERATED_POINTS["room"+rm.id]}
+function firstAvailableRoom(){return guestRooms.find(r=>r.state==="available")}
+function spawnWaitingGuest(){const g=hotelGuests.find(h=>h.status==="idle");if(!g||!firstAvailableRoom())return;g.status="waiting";g.room=null;g.serviceRequested=false;g.serviceDone=false;g.npc.x=GENERATED_POINTS.guest.x;g.npc.y=GENERATED_POINTS.guest.y;g.npc.path=[[g.npc.x,g.npc.y],[g.npc.x,g.npc.y]];g.npc.route=null;g.npc.i=0;g.npc.ri=1;g.npc.el.style.display="block";g.npc.el.classList.remove("walking");taskState="waiting";taskEl.textContent="Guest waiting at reception"}
 function resetGeneratedActors(){
  const p=GENERATED_POINTS;
- const routes=[[p.guest,p.reception,p.lounge],[p.staff,p.reception,p.garden],[p.housekeeping,p.lounge,p.kitchen],[p.maintenance,p.kitchen,p.maintenance],[p.reception,p.guest,p.reception],[p.lounge,p.bar,p.lounge],[p.conference,p.garden,p.conference]];
- npcs.forEach((n,i)=>{
-  const route=i===0?[p.guest,p.reception,p.reception]:routes[i]||routes[0];
-  n.x=route[0].x;n.y=route[0].y;n.path=route.map(q=>[q.x,q.y]);n.i=0;n.route=null;n.ri=1;
-  n.el.style.display=(i===0||i===5||i===6)?"block":"none";
-});
- gx=p.guest.x;gy=p.guest.y;guest.style.display="block";
+ npcs.forEach(n=>{n.x=p.guest.x;n.y=p.guest.y;n.path=[[n.x,n.y],[n.x,n.y]];n.i=0;n.route=null;n.ri=1;n.el.style.display="none";n.el.classList.remove("walking")});
+ guestRooms.forEach((rm,i)=>{rm.state="available";rm.guest=null;rm.marker=document.getElementById("roomStatus"+i);updateRoomMarker(i)});
+ hotelGuests.forEach((g,i)=>{g.status=i===0?"waiting":"idle";g.room=null;g.serviceRequested=false;g.serviceDone=false;g.npc.el.style.display=i===0?"block":"none";g.npc.x=p.guest.x;g.npc.y=p.guest.y;g.npc.path=[[g.npc.x,g.npc.y],[g.npc.x,g.npc.y]]});
+ occupiedRooms=0;checkIns=0;luggageState=null;carrying=null;taskState="waiting";const cb=player.querySelector(".carryBadge");if(cb)cb.style.display="none";
 }
 for(const n of npcs){
  n.el.querySelector(".sprite").style.backgroundImage='url("'+SPRITES[n.role]+'")';n.el.querySelector(".sprite").style.backgroundSize="100% 100%";
  n.route=null;n.ri=1;
 }
 function positionActors(){
- player.style.left=(px*100)+"%";player.style.top=(py*100)+"%";
- player.querySelector(".sprite").style.backgroundSize="100% 100%";
+ player.style.left=(px*100)+"%";player.style.top=(py*100)+"%";player.querySelector(".sprite").style.backgroundSize="100% 100%";const cb=player.querySelector(".carryBadge");if(cb)cb.style.display=carrying?"block":"none";
  for(const n of npcs){n.el.style.left=(n.x*100)+"%";n.el.style.top=(n.y*100)+"%";}
- const activeGuest=npcs[0];
- const gd=Math.hypot(px-activeGuest.x,py-activeGuest.y);
- if(activeGuest.el.style.display!=="none"&&gd<=.16){
-   interact.style.display="block";interact.style.left=(activeGuest.x*100)+"%";interact.style.top=((activeGuest.y*100)-10)+"%";
-   interact.textContent="🔑 CHECK IN GUEST";
- }else{
-   const q=nearestInteractable(px,py);
-   if(q&&q.type!=="guest"&&Math.hypot(px-q.x,py-q.y)<=.12){
-     interact.style.display="block";interact.style.left=(px*100)+"%";interact.style.top=((py*100)-8)+"%";interact.textContent="INTERACT";
-   }else interact.style.display="none";
- }
+ let action=null,ad=.19;const consider=(x,y,label,type,obj)=>{const d=Math.hypot(px-x,py-y);if(d<ad){ad=d;action={x,y,label,type,obj}}};
+ hotelGuests.forEach(g=>{if(g.npc.el.style.display!=="none"){if(g.status==="waiting")consider(g.npc.x,g.npc.y,"🔑 CHECK IN GUEST","checkin",g);if(g.status==="staying"&&g.serviceRequested)consider(g.npc.x,g.npc.y,"🍽️ DELIVER ROOM SERVICE","service",g)}});
+ if(luggageState&&luggageState.active)consider(luggageState.x,luggageState.y,carrying?"🧳 DELIVER LUGGAGE":"🧳 PICK UP LUGGAGE","luggage",luggageState);
+ guestRooms.forEach(rm=>{if(rm.state==="dirty")consider(roomPoint(rm).x,roomPoint(rm).y,"🧹 CLEAN ROOM "+rm.id,"clean",rm);if(carrying==="luggage"&&luggageState&&luggageState.room===rm.id)consider(roomPoint(rm).x,roomPoint(rm).y,"🧳 DELIVER TO ROOM "+rm.id,"deliver",rm)});
+ if(action){interact.style.display="block";interact.style.left=(action.x*100)+"%";interact.style.top=((action.y*100)-9)+"%";interact.textContent=action.label}else interact.style.display="none";
 }
 function updateNpcs(){
  for(const n of npcs){
