@@ -66,14 +66,25 @@ function draw(){
  const scale=baseScale*CAMERA_ZOOM;
  const srcW=W/scale,srcH=H/scale;
  const cx=cropX+camera.x*cropW,cy=cropY+camera.y*cropH;
- let sx=cx-srcW/2,sy=cy-srcH/2;
- sx=Math.max(cropX,Math.min(cropX+cropW-srcW,sx)); sy=Math.max(cropY,Math.min(cropY+cropH-srcH,sy));
- ctx.clearRect(0,0,W,H);ctx.drawImage(img,sx,sy,srcW,srcH,0,0,W,H);
+ const sx=Math.max(cropX,Math.min(cropX+cropW-srcW,cx-srcW/2));
+ const sy=Math.max(cropY,Math.min(cropY+cropH-srcH,cy-srcH/2));
+ render={sx,sy,scale,srcW,srcH};
+ ctx.clearRect(0,0,W,H);
+ ctx.drawImage(img,sx,sy,srcW,srcH,0,0,W,H);
+ positionActors();
  requestAnimationFrame(()=>{if(playing)draw()});
 }
 const camera={x:.52,y:.51};
 const CAMERA_ZOOM=1.18;
-function worldToScreen(x,y){return {x:W*.5+(x-camera.x)*W*CAMERA_ZOOM,y:H*.5+(y-camera.y)*H*CAMERA_ZOOM}}
+let render={sx:180,sy:55,scale:1,srcW:1,srcH:1};
+function worldSource(x,y){
+ const iw=img.naturalWidth||1536,ih=img.naturalHeight||1024;
+ return {x:180+x*(iw-360),y:55+y*(ih-125)};
+}
+function worldToScreen(x,y){
+ const p=worldSource(x,y);
+ return {x:(p.x-render.sx)*render.scale,y:(p.y-render.sy)*render.scale};
+}
 function blocked(x,y){
   // Reception desk, key cabinet/wall, and service-room walls are solid physical zones.
   const zones=[
@@ -86,8 +97,8 @@ function blocked(x,y){
 function moveClamped(nx,ny){
  nx=Math.max(.06,Math.min(.94,nx));ny=Math.max(.10,Math.min(.90,ny));
  if(!blocked(nx,ny)){px=nx;py=ny;}
- camera.x+=(px-camera.x)*.22;camera.y+=(py-camera.y)*.22;
- draw();positionActors();
+ camera.x+=(px-camera.x)*.22;
+ camera.y+=(py-camera.y)*.22;
 }
 function positionActors(){
  const p=worldToScreen(px,py);player.style.left=p.x+"px";player.style.top=p.y+"px";player.querySelector(".sprite").style.backgroundImage='url("'+SPRITES[role]+'")';
