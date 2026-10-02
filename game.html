@@ -390,7 +390,6 @@ world.addEventListener("pointermove",e=>{if(drag){const p=screenToWorld(pointer(
 addEventListener("pointerup",()=>drag=false);
 world.addEventListener("click",e=>{if(!playing)return;const p=screenToWorld(pointer(e));const q=nearestInteractable(p.x,p.y);if(q){pendingInteraction=q;walkTo(q.x,q.y,()=>{if(pendingInteraction===q){interactAt(q.x,q.y);pendingInteraction=null}})}else{pendingInteraction=null;walkTo(p.x,p.y)}});
 function beginGame(){playing=true;document.getElementById("title").style.display="none";guest.style.display="block";hint.classList.add("show");setTimeout(()=>hint.classList.remove("show"),3500);startAudio();positionActors();updateWorld();requestAnimationFrame(loop)}
-document.getElementById("play").onclick=beginGame;
 addEventListener("lastcall-play",beginGame);
 document.getElementById("sound").onclick=toggleAudio;
 function openPanel(type){
