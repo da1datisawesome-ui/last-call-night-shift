@@ -145,8 +145,10 @@ interact.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation
 interact.addEventListener("pointerup",e=>{e.preventDefault();e.stopPropagation();interactAt(px,py);})
 const moneyEl=document.getElementById("money"),taskEl=document.getElementById("task"),toast=document.getElementById("toast"),hint=document.getElementById("hint");
 const music=document.getElementById("music"),ambience=document.getElementById("ambience"),step=document.getElementById("step");
-let W=0,H=0,playing=false,role="Receptionist",money=1280,rep=50,audioOn=true,px=.582,py=.527,gx=.60,gy=.34,drag=false,target=null,pendingInteraction=null,lastStep=0;
+let W=0,H=0,playing=false,role="Receptionist",money=1280,rep=50,earned=0,audioOn=true,px=.582,py=.527,gx=.60,gy=.34,drag=false,target=null,pendingInteraction=null,lastStep=0;
 let unlock={Receptionist:true,Porter:false,Cleaner:false,Maintenance:false};
+let roomCapacity=3,occupiedRooms=0,checkIns=0,upgradeRooms=0;
+const ROOM_UPGRADE_COSTS=[2000,3500,5000];
 let worldW=0,worldH=0,worldLeft=0,worldTop=0;
 const camera={x:px,y:py};
 let actorAnimFrame=0,actorAnimClock=0;
@@ -354,6 +356,25 @@ function updateNpcs(){
    n.el.classList.toggle("walking",d>.01);
  }
 }
+function updateProgression(){
+ const newly=[];
+ if(!unlock.Porter&&earned>=400){unlock.Porter=true;newly.push("Porter");}
+ if(!unlock.Cleaner&&earned>=900){unlock.Cleaner=true;newly.push("Cleaner");}
+ if(!unlock.Maintenance&&earned>=1500){unlock.Maintenance=true;newly.push("Maintenance");}
+ if(newly.length)showToast("Staff unlocked: "+newly.join(", "));
+ if(taskEl)taskEl.textContent="Guest waiting at reception  •  Rooms "+occupiedRooms+"/"+roomCapacity;
+}
+function roomUpgrade(){
+ const cost=ROOM_UPGRADE_COSTS[upgradeRooms];
+ if(cost===undefined){showToast("All room upgrades purchased");return false}
+ if(money<cost){showToast("Need $"+cost.toLocaleString()+" for the next room upgrade");return false}
+ money-=cost;moneyEl.textContent="$"+money.toLocaleString();upgradeRooms++;roomCapacity+=2;
+ showToast("Hotel expanded: +2 guest rooms");return true;
+}
+function facilityUpgrade(kind,cost){
+ if(money<cost){showToast("Need $"+cost.toLocaleString()+" for "+kind);return false}
+ money-=cost;moneyEl.textContent="$"+money.toLocaleString();showToast(kind+" upgraded ✓");return true;
+}
 function showToast(t){toast.textContent=t;toast.style.display="block";clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.style.display="none",1800)}
 function startAudio(){if(!audioOn)return;music.volume=.34;ambience.volume=.2;Promise.allSettled([music.play(),ambience.play()]);document.getElementById("sound").textContent="🔊"}
 function toggleAudio(){audioOn=!audioOn;if(audioOn)startAudio();else{music.pause();ambience.pause()}document.getElementById("sound").textContent=audioOn?"🔊":"🔇"}
@@ -394,16 +415,20 @@ function interactAt(x,y){
  const activeGuest=npcs[0];
  const gd=Math.hypot(px-activeGuest.x,py-activeGuest.y);
  if(activeGuest.el.style.display!=="none"&&gd<=.18&&role==="Receptionist"){
-   money+=20;rep++;moneyEl.textContent="$"+money.toLocaleString();taskEl.textContent="Guest checked in ✓";showToast("+$20  Guest checked in");
-   activeGuest.el.style.display="none";guest.style.display="none";
+   if(occupiedRooms>=roomCapacity){showToast("No rooms available — upgrade the hotel or wait for checkout");return false}
+   occupiedRooms++;checkIns++;money+=20;earned+=20;rep++;
+   moneyEl.textContent="$"+money.toLocaleString();taskEl.textContent="Guest checked in ✓  •  Rooms "+occupiedRooms+"/"+roomCapacity;showToast("+$20  Guest checked in");
+   updateProgression();
+   activeGuest.el.style.display="none";guest.style.display="none";interact.style.display="none";
    setTimeout(()=>{
      if(!playing)return;
+     occupiedRooms=Math.max(0,occupiedRooms-1);
      activeGuest.el.style.display="block";
-     activeGuest.x=GENERATED_POINTS.reception.x;activeGuest.y=GENERATED_POINTS.reception.y;
+     activeGuest.x=GENERATED_POINTS.guest.x;activeGuest.y=GENERATED_POINTS.guest.y;
      activeGuest.path=[[activeGuest.x,activeGuest.y],[activeGuest.x,activeGuest.y]];
      activeGuest.route=null;activeGuest.i=0;activeGuest.ri=1;
-     taskEl.textContent="New guest waiting at reception";positionActors();
-   },1300);
+     taskEl.textContent="New guest waiting at reception  •  Rooms "+occupiedRooms+"/"+roomCapacity;positionActors();
+   },12000);
    return true;
  }
  const q=nearestInteractable(x,y);
@@ -486,11 +511,12 @@ function openPanel(type){
  const panel=document.getElementById("panel"),card=document.getElementById("panelCard");panel.style.display="flex";
  if(type==="menu")card.innerHTML='<h2>Menu</h2><p>Keep the shift simple.</p><button class="btn" id="resume">Back to Game</button><button class="btn alt" id="staff">Staff</button><button class="btn alt" id="upgrades">Hotel Upgrades</button><button class="btn alt" id="settings">Settings</button>';
  if(type==="settings")card.innerHTML='<h2>Settings</h2><div class="row"><span>Music</span><input id="mv" class="range" type="range" min="0" max="1" step=".05" value="'+music.volume+'"></div><div class="row"><span>Ambience</span><input id="av" class="range" type="range" min="0" max="1" step=".05" value="'+ambience.volume+'"></div><button class="btn close" id="close">Back</button>';
- if(type==="staff")card.innerHTML='<h2>Staff</h2><div class="staffGrid">'+Object.entries(unlock).map(([n,v])=>'<div class="staff '+(v?'':'locked')+'"><b>'+n+'</b><div class="mini">'+(v?'Available':'Unlock through hotel progress')+'</div></div>').join("")+'</div><button class="btn close" id="close">Back</button>';
- if(type==="upgrades")card.innerHTML='<h2>Hotel Upgrades</h2><p>Spend hotel earnings to unlock more of the property.</p><div class="staff">Guest Rooms <b>$2,000</b></div><div class="staff">Kitchen & Room Service <b>$3,500</b></div><div class="staff">Maintenance Wing <b>$5,000</b></div><button class="btn close" id="close">Back</button>';
+ if(type==="staff")card.innerHTML='<h2>Staff</h2><p>Earn money from hotel work to unlock new staff roles.</p><div class="staffGrid">'+Object.entries(unlock).map(([n,v])=>'<div class="staff '+(v?'':'locked')+'"><b>'+n+'</b><div class="mini">'+(v?'Unlocked':'Locked — earn more hotel income')+'</div></div>').join("")+'</div><button class="btn close" id="close">Back</button>';
+ if(type==="upgrades")card.innerHTML='<h2>Hotel Upgrades</h2><p>Starting capacity: 3 rooms. Each Guest Rooms purchase adds 2 rooms.</p><div class="staff"><b>Guest Rooms</b><div class="mini">Capacity '+roomCapacity+' rooms</div><button class="btn alt" id="buyRooms">'+(ROOM_UPGRADE_COSTS[upgradeRooms]!==undefined?"Expand +2 rooms  •  $"+ROOM_UPGRADE_COSTS[upgradeRooms].toLocaleString():"Fully upgraded")+'</button></div><div class="staff"><b>Kitchen & Room Service</b><div class="mini">Unlocks room-service work</div><button class="btn alt" id="buyKitchen">$3,500</button></div><div class="staff"><b>Maintenance Wing</b><div class="mini">Unlocks maintenance work</div><button class="btn alt" id="buyMaintenance">$5,000</button></div><button class="btn close" id="close">Back</button>';
  if(type==="menu"){document.getElementById("resume").onclick=()=>panel.style.display="none";document.getElementById("staff").onclick=()=>openPanel("staff");document.getElementById("upgrades").onclick=()=>openPanel("upgrades");document.getElementById("settings").onclick=()=>openPanel("settings")}
  if(type==="settings"){document.getElementById("close").onclick=()=>panel.style.display="none";document.getElementById("mv").oninput=e=>music.volume=+e.target.value;document.getElementById("av").oninput=e=>ambience.volume=+e.target.value}
  if(type==="staff"||type==="upgrades")document.getElementById("close").onclick=()=>openPanel("menu");
+ if(type==="upgrades"){document.getElementById("buyRooms").onclick=()=>{if(roomUpgrade())openPanel("upgrades")};document.getElementById("buyKitchen").onclick=()=>{if(facilityUpgrade("Kitchen & Room Service",3500))openPanel("upgrades")};document.getElementById("buyMaintenance").onclick=()=>{if(facilityUpgrade("Maintenance Wing",5000))openPanel("upgrades")}}
 }
 document.getElementById("menu").onclick=()=>openPanel("menu");
 document.getElementById("titleSettings").onclick=()=>openPanel("settings");
