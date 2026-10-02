@@ -440,7 +440,7 @@ function positionActors(){
  player.style.left=(px*100)+"%";player.style.top=(py*100)+"%";player.querySelector(".sprite").style.backgroundSize="100% 100%";const cb=player.querySelector(".carryBadge");if(cb){cb.style.display=carrying?"block":"none";cb.textContent=carrying==="luggage"?"🧳":carrying==="roomservice"?"🍽️":"🧹";}
  for(const n of npcs){n.el.style.left=(n.x*100)+"%";n.el.style.top=(n.y*100)+"%";}
  let action=null,ad=.19;const consider=(x,y,label,type,obj)=>{const d=Math.hypot(px-x,py-y);if(d<ad){ad=d;action={x,y,label,type,obj}}};
- hotelGuests.forEach(g=>{if(g.npc.el.style.display!=="none"){if(g.status==="waiting")consider(g.npc.x,g.npc.y,"🔑 CHECK IN GUEST","checkin",g);if(g.status==="staying"&&g.serviceRequested)consider(g.npc.x,g.npc.y,serviceTarget===g&&carrying==="roomservice"?"🍽️ DELIVER ROOM SERVICE":"🍽️ SEND TO KITCHEN","service",g)}});
+ hotelGuests.forEach(g=>{if(g.npc.el.style.display!=="none"){if(g.status==="waiting")consider(g.npc.x,g.npc.y,"🔑 CHECK IN GUEST","checkin",g);if(g.status==="staying"&&g.serviceRequested)consider(g.npc.x,g.npc.y,serviceTarget===g&&carrying==="roomservice"?"🍽️ DELIVER ROOM SERVICE":"🍽️ GO TO KITCHEN","service",g)}});
  if(luggageState&&luggageState.active)consider(luggageState.x,luggageState.y,carrying?"🧳 DELIVER LUGGAGE":"🧳 PICK UP LUGGAGE","luggage",luggageState);
  if(serviceTarget&&serviceTarget.status==="staying"&&serviceTarget.serviceRequested&&!carrying)consider(GENERATED_POINTS.kitchen.x,GENERATED_POINTS.kitchen.y,"🍽️ COLLECT ROOM SERVICE","kitchen",serviceTarget);
  if(cleaningTarget&&cleaningTarget.state==="dirty"&&carrying!=="cleaning")consider(GENERATED_POINTS.housekeeping.x,GENERATED_POINTS.housekeeping.y,"🧹 COLLECT CLEANING SUPPLIES","housekeeping",cleaningTarget);
@@ -450,36 +450,29 @@ function positionActors(){
 function updateNpcs(){
  for(const n of npcs){
    const hg=hotelGuests.find(g=>g.npc===n);
-   if(hg && hg.status!=="walkingToRoom"){n.el.classList.remove("walking");continue;}
-   const target=n.path[(n.i+1)%n.path.length];
-   if(!n.route){
-     n.route=findPath(n.x,n.y,target[0],target[1]);
-     n.ri=1;
-     if(!n.route){
-       n.i=(n.i+1)%n.path.length;
-       n.el.classList.remove("walking");
-       continue;
+   if(hg){
+     if(hg.status!=="walkingToRoom"){n.el.classList.remove("walking");continue;}
+     const dest=n.path[n.ri];
+     if(!dest){n.el.classList.remove("walking");continue;}
+     const dx=dest.x-n.x,dy=dest.y-n.y,d=Math.hypot(dx,dy),step=.0026;
+     n.el.classList.add("walking");
+     if(d<=step){
+       n.x=dest.x;n.y=dest.y;n.ri++;
+       if(n.ri>=n.path.length){
+         n.el.classList.remove("walking");
+         if(hg.onRoomArrival){const cb=hg.onRoomArrival;hg.onRoomArrival=null;cb();}
+       }
+     }else{
+       const nx=n.x+dx/d*step,ny=n.y+dy/d*step;
+       if(!blocked(nx,ny)){n.x=nx;n.y=ny}
+       else{
+         const ax=n.x+dx/d*step,ay=n.y,bx=n.x,by=n.y+dy/d*step;
+         if(!blocked(ax,ay))n.x=ax;else if(!blocked(bx,by))n.y=by;
+       }
      }
+     continue;
    }
-   const dest=n.route[n.ri]||target;
-   const dx=dest.x-n.x,dy=dest.y-n.y,d=Math.hypot(dx,dy),step=n.speed*16;
-   if(d<=Math.max(step,.004)){
-     n.x=dest.x;n.y=dest.y;n.ri++;
-     if(n.ri>=n.route.length){
-       n.i=(n.i+1)%n.path.length;
-       n.route=null;n.ri=1;
-       if(hg&&hg.status==="walkingToRoom"&&hg.onRoomArrival){const cb=hg.onRoomArrival;hg.onRoomArrival=null;cb();}
-     }
-   }else{
-     const nx=n.x+dx/d*step,ny=n.y+dy/d*step;
-     if(blocked(nx,ny)){
-       n.route=null;
-       n.el.classList.remove("walking");
-       continue;
-     }
-     n.x=nx;n.y=ny;
-   }
-   n.el.classList.toggle("walking",d>.01);
+   n.el.classList.remove("walking");
  }
 }
 function updateProgression(){
@@ -535,10 +528,16 @@ function deliverLuggage(rm){
  if(!carrying||carrying!=="luggage"||!luggageState||luggageState.room!==rm.id)return false;
  const g=rm.guest;carrying=null;removeLuggage();
  g.status="walkingToRoom";
+ const rp=roomPoint(rm),roomX=rp.x,corridorY=.55,doorY=(rm.y-28)/ART_H;
  g.npc.x=GENERATED_POINTS.guest.x;g.npc.y=GENERATED_POINTS.guest.y;
- const path=findPath(g.npc.x,g.npc.y,roomPoint(rm).x,roomPoint(rm).y);
- g.npc.path=path||[[g.npc.x,g.npc.y],[roomPoint(rm).x,roomPoint(rm).y]];
- g.npc.i=0;g.npc.route=null;g.npc.ri=1;g.npc.el.style.display="block";g.npc.el.classList.add("walking");
+ g.npc.path=[
+  {x:g.npc.x,y:g.npc.y},
+  {x:g.npc.x,y:corridorY},
+  {x:roomX,y:corridorY},
+  {x:roomX,y:Math.min(corridorY,doorY)},
+  {x:rp.x,y:rp.y}
+ ];
+ g.npc.ri=1;g.npc.route=null;g.npc.el.style.display="block";g.npc.el.classList.add("walking");
  setHotelTask("Guest walking to Room "+rm.id);
  showToast("Guest is heading to Room "+rm.id);
  const finish=()=>{
@@ -546,7 +545,7 @@ function deliverLuggage(rm){
  };
  g.onRoomArrival=finish;
  // If path has only a start point, arrive immediately; otherwise updateNpcs calls the callback.
- if(g.npc.path.length<2)finish();
+ // Guest must complete the visible corridor route; no teleport fallback.
  setTimeout(()=>{
    if(!playing||g.status!=="staying")return;
    g.status="idle";g.serviceRequested=false;g.npc.el.style.display="none";occupiedRooms=Math.max(0,occupiedRooms-1);
@@ -657,7 +656,9 @@ function pointer(e){
  const r=world.parentElement.getBoundingClientRect();
  return{x:e.clientX-r.left,y:e.clientY-r.top};
 }
-function nudge(dx,dy){if(!playing)return;moveClamped(px+dx,py+dy);positionActors()}
+let lastStepSound=0;
+function playStepSound(){if(!audioOn)return;const now=performance.now();if(now-lastStepSound<240)return;lastStepSound=now;step.currentTime=0;step.volume=.16;step.play().catch(()=>{})}
+function nudge(dx,dy){if(!playing)return;const moved=moveClamped(px+dx,py+dy);if(moved){player.classList.add("walking");playStepSound()}positionActors()}
 addEventListener("keydown",e=>{
  if(!playing)return;
  const k=e.key.toLowerCase(),stepSize=.018;
@@ -705,7 +706,7 @@ world.addEventListener("pointermove",e=>{
  const maxWorldStep=0.035*(dt/16.67);
  const wx=Math.max(-maxWorldStep,Math.min(maxWorldStep,dx/(zoom*worldW)));
  const wy=Math.max(-maxWorldStep,Math.min(maxWorldStep,dy/(zoom*worldH)));
- if(wx||wy){player.classList.add("walking");moveClamped(px+wx,py+wy);positionActors();}
+ if(wx||wy){player.classList.add("walking");if(moveClamped(px+wx,py+wy))playStepSound();positionActors();}
 });
 world.addEventListener("pointerup",e=>{
  if(!touchDrag)return;
