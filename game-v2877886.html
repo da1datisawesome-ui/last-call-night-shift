@@ -81,7 +81,7 @@ const CHARACTER_DESIGNS={
 };
 function spriteFor(kind,pose=0){
  const c=CHARACTER_DESIGNS[kind]||CHARACTER_DESIGNS.guest1;
- const svg='<svg xmlns="http://www.w3.org/2000/svg" width="140" height="180" viewBox="0 0 140 180">'
+ let svg='<svg xmlns="http://www.w3.org/2000/svg" width="140" height="180" viewBox="0 0 140 180">'
   +'<defs><linearGradient id="coat" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c.coat+'"/><stop offset="1" stop-color="#17202a"/></linearGradient><linearGradient id="skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c.skin+'"/><stop offset="1" stop-color="#b97860"/></linearGradient></defs>'
   +'<ellipse cx="70" cy="170" rx="38" ry="9" fill="#000" opacity=".18"/>'
   +'<path d="M49 116 Q41 140 44 158 L59 158 L65 133 L75 133 L81 158 L96 158 Q99 139 91 116Z" fill="url(#coat)" stroke="#18212b" stroke-width="3"/>'
