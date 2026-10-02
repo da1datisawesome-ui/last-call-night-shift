@@ -79,18 +79,31 @@ function loop(){
  camera.x+=(px-camera.x)*.10;camera.y+=(py-camera.y)*.10;
  updateWorld();positionActors();requestAnimationFrame(loop);
 }
+// Collision geometry lives in the same 1672x940 coordinate system as the hotel artwork.
+// Rectangles are physical solid areas on the actual world surface, not screen-space overlays.
+const COLLIDERS=[
+ {x:330,y:265,w:585,h:125},   // reception counter / desk
+ {x:1135,y:115,w:235,h:155},  // upper corridor / room wall
+ {x:1115,y:545,w:405,h:230}   // service counters / back-of-house wall
+];
+const PLAYER_RADIUS_X=34/ART_W;
+const PLAYER_RADIUS_Y=18/ART_H;
 function blocked(x,y){
-  // Reception desk, key cabinet/wall, and service-room walls are solid physical zones.
-  const zones=[
-    [.20,.28,.55,.40], // reception desk
-    [.68,.12,.82,.28], // corridor wall/rooms
-    [.67,.58,.92,.82]  // service counters/walls
-  ];
-  return zones.some(([x1,y1,x2,y2])=>x>x1&&x<x2&&y>y1&&y<y2);
+ const cx=x*ART_W,cy=y*ART_H;
+ return COLLIDERS.some(r=>
+   cx+PLAYER_RADIUS_X*ART_W>r.x &&
+   cx-PLAYER_RADIUS_X*ART_W<r.x+r.w &&
+   cy+PLAYER_RADIUS_Y*ART_H>r.y &&
+   cy-PLAYER_RADIUS_Y*ART_H<r.y+r.h
+ );
 }
 function moveClamped(nx,ny){
- nx=Math.max(.06,Math.min(.94,nx));ny=Math.max(.10,Math.min(.90,ny));
- if(!blocked(nx,ny)){px=nx;py=ny;}
+ nx=Math.max(.04,Math.min(.96,nx));
+ ny=Math.max(.08,Math.min(.92,ny));
+ // Resolve each axis separately so the player slides along walls/furniture
+ // instead of getting stuck when approaching a solid corner.
+ if(!blocked(nx,py)) px=nx;
+ if(!blocked(px,ny)) py=ny;
 }
 function positionActors(){
  player.style.left=(px*100)+"%";player.style.top=(py*100)+"%";
