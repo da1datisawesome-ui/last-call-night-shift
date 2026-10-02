@@ -62,7 +62,8 @@ function draw(){
  requestAnimationFrame(()=>{if(playing)draw()});
 }
 const camera={x:.52,y:.51};
-function worldToScreen(x,y){return {x:W*.5+(x-camera.x)*W,y:H*.5+(y-camera.y)*H}}
+const CAMERA_ZOOM=1.28;
+function worldToScreen(x,y){return {x:W*.5+(x-camera.x)*W*CAMERA_ZOOM,y:H*.5+(y-camera.y)*H*CAMERA_ZOOM}}
 function blocked(x,y){
   // Reception desk, key cabinet/wall, and service-room walls are solid physical zones.
   const zones=[
@@ -99,9 +100,10 @@ function interactAt(x,y){
 function pointer(e){
  const r=cvs.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height}
 }
-cvs.addEventListener("pointerdown",e=>{if(!playing)return;drag=true;target=pointer(e);walkTo(target.x,target.y)});
-cvs.addEventListener("pointermove",e=>{if(drag){const p=pointer(e);walkTo(p.x,p.y)}});addEventListener("pointerup",()=>drag=false);
-cvs.addEventListener("click",e=>{if(!playing)return;const p=pointer(e);interactAt(p.x,p.y)});
+function screenToWorld(p){return{x:camera.x+(p.x-.5),y:camera.y+(p.y-.5)}}
+cvs.addEventListener("pointerdown",e=>{if(!playing)return;drag=true;target=screenToWorld(pointer(e));walkTo(target.x,target.y)});
+cvs.addEventListener("pointermove",e=>{if(drag){const p=screenToWorld(pointer(e));walkTo(p.x,p.y)}});addEventListener("pointerup",()=>drag=false);
+cvs.addEventListener("click",e=>{if(!playing)return;const p=screenToWorld(pointer(e));interactAt(p.x,p.y)});
 document.getElementById("play").onclick=()=>{playing=true;document.getElementById("title").style.display="none";guest.style.display="block";hint.classList.add("show");setTimeout(()=>hint.classList.remove("show"),3500);startAudio();positionActors();draw()};
 document.getElementById("sound").onclick=toggleAudio;
 function openPanel(type){
