@@ -122,7 +122,74 @@ const hotelLevels=[
  {id:'vip',name:'VIP Lounge',cost:15000,rep:190,desc:'Unlocks VIP guests and premium rewards.'}
 ];
 function isUnlocked(role){const u=unlocks[role];return !u||(rep>=u.rep&&money>=u.cash)}
-function lockedText(role){const u=unlocks[role];return 'Unlocks at Rep '+u.rep+' and 
+function lockedText(role){const u=unlocks[role];return 'Unlocks at Rep '+u.rep+' and '<button class="small close danger" data-subclose>✕ CLOSE</button>';
+ if(type==='jobs')h+='<h2>Jobs</h2><div class="row"><span>Check-in guest</span><button class="small primary" onclick="job(\'checkin\')">START</button></div><div class="row"><span>Room service</span><button class="small primary" onclick="job(\'service\')">START</button></div><div class="row"><span>Cleaning</span><button class="small primary" onclick="job(\'cleaning\')">START</button></div><div class="row"><span>Maintenance</span><button class="small primary" onclick="job(\'maintenance\')">START</button></div><div class="row"><span>Security patrol</span><button class="small primary" onclick="job(\'security\')">START</button></div>';
+ if(type==='staff'){h+='<h2>Staff & Skills</h2><p class="stat">'+progressionMessage()+'</p>';const people=[['Porter','porter',650,55],['Cleaner','cleaner',650,70],['Maintenance','maintenance',1100,90],['Security Guard','security',900,115],['Night Manager','manager',2500,150]];people.forEach(x=>{const [n,k,c,r]=x;const ok=isUnlocked(n==='Security Guard'?'Security':n);h+='<div class="row"><span>'+n+'<br><span class="stat">$'+c+' • unlock Rep '+r+'</span></span><button class="small primary" '+(state.hired[k]?'disabled':(!ok?'disabled':''))+' onclick="hire(\''+k+'\','+c+')">'+(state.hired[k]?'HIRED':(ok?'UNLOCK / HIRE':'LOCKED'))+'</button></div>'});h+='<hr><h3>Skills</h3><div class="row"><span>Guest Service I<br><span class="stat">Unlocks at Rep 60</span></span><button class="small primary" '+(rep<60?'disabled':'')+'> '+(rep<60?'LOCKED':'ACTIVE')+'</button></div><div class="row"><span>Guest Service II<br><span class="stat">Unlocks at Rep 120</span></span><button class="small primary" '+(rep<120?'disabled':'')+'>'+ (rep<120?'LOCKED':'ACTIVE')+'</button></div>'}if(type==='upgrades'){h+='<h2>Hotel Expansion</h2><p class="stat">Build rooms and facilities as your reputation grows.</p>';hotelLevels.forEach(x=>{const owned=state.upgrades[x.id];h+='<div class="row"><span>'+x.name+'<br><span class="stat">$'+x.cost+' • Rep '+x.rep+'<br>'+x.desc+'</span></span><button class="small primary" '+(owned?'disabled':(rep<x.rep||money<x.cost?'disabled':''))+' onclick="buyHotel(\''+x.id+'\','+x.cost+','+x.rep+',5)">'+(owned?'BUILT':(rep<x.rep?'LOCKED':money<x.cost?'NEED CASH':'BUILD'))+'</button></div>'});h+=upgrade('key','Better Key System',800,'Faster guest service')+upgrade('security','Security Upgrade',1200,'Improves reputation from incidents')+upgrade('reception','Premium Reception',1800,'Raises guest rewards')}if(type==='store')h+='<h2>Store</h2><p class="stat">Purchases are simulated — no real charges.</p><div class="row"><span>⭐ Reputation boost</span><button class="small primary" onclick="store(\'rep\',300)">BUY $300</button></div><div class="row"><span>⚡ Night boost</span><button class="small primary" onclick="store(\'cash\',200)">BUY $200</button></div><div class="row"><span>🎨 Seasonal theme</span><button class="small primary" onclick="store(\'theme\',450)">BUY $450</button></div>';
+ if(type==='settings'){renderSettings();return}
+ $('#subPanel').innerHTML=h;$('#subPanel [data-subclose]').onclick=()=>$('#subOverlay').style.display='none'
+}
+let activeActor=null;
+function getActiveActor(){return activeActor||$('#player')}
+function syncActor(a){if(!a)return;a.style.left=px+'%';a.style.top=py+'%'}
+function moveActive(dx,dy){
+ px=Math.max(10,Math.min(90,px+dx));py=Math.max(30,Math.min(88,py+dy));
+ const a=getActiveActor();syncActor(a);
+ camX=Math.max(-5,Math.min(5,(50-px)*.18));camY=Math.max(-4,Math.min(4,(52-py)*.14));
+ $('#world').style.transform='translate('+camX+'%,'+camY+'%) scale(1.04)';
+}
+function setActiveActor(role){
+ if(role!=='Receptionist'&&!isUnlocked(role)){toast(lockedText(role));$('#role').value=activeActor?.dataset.role||'Receptionist';return}
+ const hireKey={Porter:'porter',Cleaner:'cleaner',Maintenance:'maintenance',Security:'security',NightManager:'manager'}[role];
+ if(role!=='Receptionist'&&!state.hired[hireKey]){toast('Hire '+role+' first');$('#role').value=activeActor?.dataset.role||'Receptionist';return}
+ $('#role').value=role;
+ const target=role==='Receptionist'?$('#player'):$$('.staffActor').find(a=>a.dataset.role===role);
+ if(!target)return;
+ if(activeActor&&activeActor!==target){activeActor.classList.remove('activeStaff');activeActor.classList.remove('walking')}
+ activeActor=target;activeActor.classList.add('activeStaff');activeActor.innerHTML=finalAvatar(role)+'<span class="tag">'+(role==='Receptionist'?'YOU':role.toUpperCase())+'</span>';
+ activeActor.style.display='block';syncActor(activeActor);
+ $('.staffActor').forEach(a=>{if(a!==activeActor)a.classList.remove('activeStaff')});
+ $('#player').style.display=activeActor===$('#player')?'block':'none';
+ setTask(role+' selected — drag to move');toast('Now playing: '+role);sfx('click');
+}
+function finalAvatar(role){
+ const c={Receptionist:['#234d79','#f5f5f5','#c94e5f','#30211c','#d79a70'],Porter:['#3d698d','#eef3f6','#d9aa52','#3a271e','#c98c67'],Cleaner:['#248a8c','#eef6f3','#d6e9e2','#5a3427','#cc916b'],Maintenance:['#87633b','#edf1f2','#456579','#29211d','#d19a70'],Security:['#3d4e69','#eef1f5','#cf4b56','#29211f','#cb8f6a'],NightManager:['#624c78','#f2eef4','#d5a85a','#30221f','#d49a70']}[role]||['#234d79','#fff','#c94e5f','#30211c','#d79a70'];
+ const [coat,shirt,tie,hair,skin]=c;
+ let prop=role==='Cleaner'?'<path d="M10 73L1 102" stroke="#896b42" stroke-width="4"/><path d="M0 101h9" stroke="#e6bd68" stroke-width="4"/>':role==='Maintenance'?'<path d="M66 69l13 10" stroke="#cbd7dc" stroke-width="4"/><circle cx="80" cy="80" r="5" fill="#e1ac49"/>':role==='Porter'?'<rect x="57" y="59" width="16" height="24" rx="3" fill="#704329"/>':'';
+ return '<svg class="finalAvatar" viewBox="0 0 90 125"><ellipse cx="45" cy="120" rx="25" ry="5" fill="#000" opacity=".28"/><path class="legL" d="M29 84L25 114h14l5-28" fill="#202a35"/><path class="legR" d="M61 84l5 30H52l-7-28" fill="#202a35"/><path d="M24 114h16M51 114h16" stroke="#151b21" stroke-width="4" stroke-linecap="round"/><path class="armL" d="M27 51C17 59 14 70 12 80" fill="none" stroke="'+coat+'" stroke-width="11" stroke-linecap="round"/><path class="armR" d="M63 51c9 8 12 19 14 29" fill="none" stroke="'+coat+'" stroke-width="11" stroke-linecap="round"/><circle cx="11" cy="81" r="5" fill="'+skin+'"/><circle cx="79" cy="81" r="5" fill="'+skin+'"/><path d="M25 47Q45 38 65 47L62 88Q45 96 28 88Z" fill="'+coat+'" stroke="#172534" stroke-width="1.5"/><path d="M37 47L45 59L53 47L51 84L39 84Z" fill="'+shirt+'"/><path d="M42 49L45 57L48 49L47 70L43 70Z" fill="'+tie+'"/>'+prop+'<ellipse cx="45" cy="29" rx="17" ry="20" fill="'+skin+'"/><path d="M28 28Q28 7 46 8Q64 8 63 28Q57 18 47 19Q37 18 28 28Z" fill="'+hair+'"/><circle cx="39" cy="31" r="1.7"/><circle cx="52" cy="31" r="1.7"/><path d="M40 39Q45 42 50 39" fill="none" stroke="#7c4038" stroke-width="1.5" stroke-linecap="round"/></svg>';
+}
+function installCharacters(){
+ const p=$('#player');if(p){p.classList.add('spriteActor');p.innerHTML=finalAvatar('Receptionist')+'<span class="tag">YOU</span>'}
+ $$('.staffActor').forEach(a=>{a.classList.add('spriteActor');a.innerHTML=finalAvatar(a.dataset.role)+'<span class="tag">'+a.dataset.role.toUpperCase()+'</span>'});
+}
+function setup(){
+ load();
+ installCharacters();
+ const actors=$$('.staffActor');
+ actors.forEach(a=>a.addEventListener('pointerdown',e=>{e.stopPropagation();if(active)setRole(a.dataset.role)}));
+ $('#play').onclick=()=>{active=true;$('#title').style.display='none';setActiveActor('Receptionist');audioStart();sfx('bell');toast('Night shift started')};
+ $('#soundBtn').onclick=e=>{e.stopPropagation();if(musicTimer){stopAudio();toast('Music off')}else{audioStart();sfx('bell');toast('Music on')}};
+ $('#menuBtn').onclick=()=>openOverlay('#menuOverlay');
+ $$('[data-close]').forEach(b=>b.onclick=closeAll);
+ $('#titleBtn').onclick=()=>{closeAll();$('#title').style.display='flex';active=false;stopAudio()};
+ $('#titleSettings').onclick=()=>{openOverlay('#subOverlay');renderSettings()};
+ $$('[data-panel]').forEach(b=>b.onclick=()=>{openOverlay('#subOverlay');renderPanel(b.dataset.panel)});
+ $('#scene').addEventListener('pointerdown',e=>{
+   if(!active||e.target.closest('.hot')||e.target.closest('.staffActor')||e.target.closest('button')||e.target.closest('select'))return;
+   drag=true;last={x:e.clientX,y:e.clientY};
+   const a=getActiveActor();a?.classList.add('walking');
+ });
+ window.addEventListener('pointermove',e=>{
+   if(!drag||!active)return;
+   const dx=e.clientX-last.x,dy=e.clientY-last.y;last={x:e.clientX,y:e.clientY};
+   moveActive(dx/8,dy/8);
+ });
+ window.addEventListener('pointerup',()=>{drag=false;const a=getActiveActor();a?.classList.remove('walking')});
+ $('#role').onchange=e=>setRole(e.target.value);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){if(audioCtx&&audioCtx.state==='running')audioCtx.suspend()}else if(active&&musicTimer){audioStart()}});
+ setActiveActor('Receptionist');
+}
+setup();
+</script></body></html>+u.cash+' cash';}
  let h='<button class="small close danger" data-subclose>✕ CLOSE</button>';
  if(type==='jobs')h+='<h2>Jobs</h2><div class="row"><span>Check-in guest</span><button class="small primary" onclick="job(\'checkin\')">START</button></div><div class="row"><span>Room service</span><button class="small primary" onclick="job(\'service\')">START</button></div><div class="row"><span>Cleaning</span><button class="small primary" onclick="job(\'cleaning\')">START</button></div><div class="row"><span>Maintenance</span><button class="small primary" onclick="job(\'maintenance\')">START</button></div><div class="row"><span>Security patrol</span><button class="small primary" onclick="job(\'security\')">START</button></div>';
  if(type==='staff'){h+='<h2>Staff & Skills</h2><p class="stat">'+progressionMessage()+'</p>';const people=[['Porter','porter',650,55],['Cleaner','cleaner',650,70],['Maintenance','maintenance',1100,90],['Security Guard','security',900,115],['Night Manager','manager',2500,150]];people.forEach(x=>{const [n,k,c,r]=x;const ok=isUnlocked(n==='Security Guard'?'Security':n);h+='<div class="row"><span>'+n+'<br><span class="stat">$'+c+' • unlock Rep '+r+'</span></span><button class="small primary" '+(state.hired[k]?'disabled':(!ok?'disabled':''))+' onclick="hire(\''+k+'\','+c+')">'+(state.hired[k]?'HIRED':(ok?'UNLOCK / HIRE':'LOCKED'))+'</button></div>'});h+='<hr><h3>Skills</h3><div class="row"><span>Guest Service I<br><span class="stat">Unlocks at Rep 60</span></span><button class="small primary" '+(rep<60?'disabled':'')+'> '+(rep<60?'LOCKED':'ACTIVE')+'</button></div><div class="row"><span>Guest Service II<br><span class="stat">Unlocks at Rep 120</span></span><button class="small primary" '+(rep<120?'disabled':'')+'>'+ (rep<120?'LOCKED':'ACTIVE')+'</button></div>'}if(type==='upgrades'){h+='<h2>Hotel Expansion</h2><p class="stat">Build rooms and facilities as your reputation grows.</p>';hotelLevels.forEach(x=>{const owned=state.upgrades[x.id];h+='<div class="row"><span>'+x.name+'<br><span class="stat">$'+x.cost+' • Rep '+x.rep+'<br>'+x.desc+'</span></span><button class="small primary" '+(owned?'disabled':(rep<x.rep||money<x.cost?'disabled':''))+' onclick="buyHotel(\''+x.id+'\','+x.cost+','+x.rep+',5)">'+(owned?'BUILT':(rep<x.rep?'LOCKED':money<x.cost?'NEED CASH':'BUILD'))+'</button></div>'});h+=upgrade('key','Better Key System',800,'Faster guest service')+upgrade('security','Security Upgrade',1200,'Improves reputation from incidents')+upgrade('reception','Premium Reception',1800,'Raises guest rewards')}if(type==='store')h+='<h2>Store</h2><p class="stat">Purchases are simulated — no real charges.</p><div class="row"><span>⭐ Reputation boost</span><button class="small primary" onclick="store(\'rep\',300)">BUY $300</button></div><div class="row"><span>⚡ Night boost</span><button class="small primary" onclick="store(\'cash\',200)">BUY $200</button></div><div class="row"><span>🎨 Seasonal theme</span><button class="small primary" onclick="store(\'theme\',450)">BUY $450</button></div>';
