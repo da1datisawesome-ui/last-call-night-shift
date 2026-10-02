@@ -229,11 +229,11 @@ function buildLevel(seed){
 
  const center=room=>({x:(room.x+room.w/2)/ART_W,y:(room.y+room.h/2)/ART_H});
  const safe=(room,ox,oy)=>({x:(room.x+room.w*ox)/ART_W,y:(room.y+room.h*oy)/ART_H});
- GENERATED_POINTS.reception=safe(reception,.50,.52);
+ GENERATED_POINTS.reception=safe(reception,.80,.52);
  GENERATED_POINTS.guest=safe(reception,.55,.78);
- GENERATED_POINTS.room101=safe(rooms[2],.50,.78);
- GENERATED_POINTS.room102=safe(rooms[3],.50,.78);
- GENERATED_POINTS.room103=safe(rooms[4],.50,.78);
+ GENERATED_POINTS.room101=safe(rooms[2],.90,.78);
+ GENERATED_POINTS.room102=safe(rooms[3],.90,.78);
+ GENERATED_POINTS.room103=safe(rooms[4],.90,.78);
  GENERATED_POINTS.lounge=center(rooms[5]);GENERATED_POINTS.housekeeping=center(rooms[5]);
  GENERATED_POINTS.kitchen=safe(rooms[6],.50,.55);GENERATED_POINTS.maintenance=center(rooms[7]);
  GENERATED_POINTS.staff=center(rooms[8]);GENERATED_POINTS.garden=safe(rooms[8],.50,.50);
@@ -309,8 +309,20 @@ function blocked(x,y){
 function moveClamped(nx,ny){
  nx=Math.max(.04,Math.min(.96,nx));
  ny=Math.max(.08,Math.min(.92,ny));
+ // Recover if procedural furniture ever leaves the player slightly inside a collider.
+ if(blocked(px,py)){
+   const sx=px,sy=py;
+   for(let radius=.006;radius<=.08;radius+=.006){
+     let found=false;
+     for(let a=0;a<Math.PI*2;a+=Math.PI/8){
+       const tx=Math.max(.04,Math.min(.96,sx+Math.cos(a)*radius));
+       const ty=Math.max(.08,Math.min(.92,sy+Math.sin(a)*radius));
+       if(!blocked(tx,ty)){px=tx;py=ty;found=true;break}
+     }
+     if(found)break;
+   }
+ }
  // Test the requested destination and then resolve each axis separately.
- // This keeps the actor on the walkable side of the hotel's physical geometry.
  const oldX=px,oldY=py;
  if(!blocked(nx,ny)){px=nx;py=ny;return true}
  let moved=false;
@@ -590,7 +602,7 @@ world.addEventListener("pointermove",e=>{
  touchLastX=e.clientX;touchLastY=e.clientY;touchLastTime=now;
  if(Math.abs(dx)+Math.abs(dy)>1)touchMoved=true;
  const zoom=worldTransform.zoom||1;
- const maxWorldStep=0.020*(dt/16.67);
+ const maxWorldStep=0.035*(dt/16.67);
  const wx=Math.max(-maxWorldStep,Math.min(maxWorldStep,dx/(zoom*worldW)));
  const wy=Math.max(-maxWorldStep,Math.min(maxWorldStep,dy/(zoom*worldH)));
  if(wx||wy){player.classList.add("walking");moveClamped(px+wx,py+wy);positionActors();}
