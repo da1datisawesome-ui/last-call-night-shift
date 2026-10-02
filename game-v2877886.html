@@ -665,7 +665,7 @@ function pointer(e){
 }
 let lastStepSound=0;
 function playStepSound(){if(!audioOn)return;const now=performance.now();if(now-lastStepSound<240)return;lastStepSound=now;step.currentTime=0;step.volume=.16;step.play().catch(()=>{})}
-function nudge(dx,dy){if(!playing)return;const moved=moveClamped(px+dx,py+dy);if(moved){player.classList.add("walking");playStepSound()}positionActors()}
+function nudge(dx,dy){if(!playing)return;const moved=moveClamped(px+dx,py+dy);if(moved)player.classList.add("walking");positionActors()}
 addEventListener("keydown",e=>{
  if(!playing)return;
  const k=e.key.toLowerCase(),stepSize=.018;
@@ -689,7 +689,7 @@ function stopPad(){padDX=0;padDY=0;if(padTimer){clearInterval(padTimer);padTimer
 function startPad(btn){
  stopPad();
  padDX=Number(btn.dataset.dx||0);padDY=Number(btn.dataset.dy||0);
- const step=()=>{if(!playing)return;player.classList.add("walking");if(moveClamped(px+padDX*.012,py+padDY*.012))playStepSound();positionActors();};
+ const step=()=>{if(!playing)return;player.classList.add("walking");moveClamped(px+padDX*.012,py+padDY*.012);positionActors();};
  step();padTimer=setInterval(step,35);
 }
 moveButtons.forEach(btn=>{
@@ -713,7 +713,7 @@ world.addEventListener("pointermove",e=>{
  const maxWorldStep=0.035*(dt/16.67);
  const wx=Math.max(-maxWorldStep,Math.min(maxWorldStep,dx/(zoom*worldW)));
  const wy=Math.max(-maxWorldStep,Math.min(maxWorldStep,dy/(zoom*worldH)));
- if(wx||wy){player.classList.add("walking");if(moveClamped(px+wx,py+wy))playStepSound();positionActors();}
+ if(wx||wy){player.classList.add("walking");moveClamped(px+wx,py+wy);positionActors();}
 });
 world.addEventListener("pointerup",e=>{
  if(!touchDrag)return;
