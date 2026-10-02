@@ -132,19 +132,14 @@ let unlock={Receptionist:true,Porter:false,Cleaner:false,Maintenance:false};
 let worldW=0,worldH=0,worldLeft=0,worldTop=0;
 function resize(){
  W=innerWidth;H=innerHeight;
- const scale=Math.max(W/ART_W,H/ART_H);
- worldW=ART_W*scale;worldH=ART_H*scale;
- worldLeft=(W-worldW)/2;worldTop=(H-worldH)/2;
- world.style.width=worldW+"px";world.style.height=worldH+"px";
- updateWorld();positionActors()
-} addEventListener("resize",resize);
-const camera={x:px,y:py};
-const CAMERA_ZOOM=1.08;
-let worldTransform={x:0,y:0,zoom:CAMERA_ZOOM};
+ worldW=ART_W;worldH=ART_H;
+ worldLeft=0;worldTop=0;
+ world.style.width=ART_W+"px";world.style.height=ART_H+"px";
+}
 function updateWorld(){
- const zoom=CAMERA_ZOOM;
- let tx=W/2-(worldLeft+camera.x*worldW)*zoom;
- let ty=H/2-(worldTop+camera.y*worldH)*zoom;
+ const zoom=Math.max(CAMERA_ZOOM,Math.min(1.55,Math.min(W/(ART_W*.62),H/(ART_H*.62))));
+ let tx=W/2-camera.x*worldW*zoom;
+ let ty=H/2-camera.y*worldH*zoom;
  const scaledW=worldW*zoom,scaledH=worldH*zoom;
  tx=Math.min(0,Math.max(W-scaledW,tx));
  ty=Math.min(0,Math.max(H-scaledH,ty));
