@@ -95,10 +95,11 @@ function audioStart(){
  const a=$('#musicAudio'); if(!a)return;
  a.volume=Math.max(0,Math.min(1,state.music));
  const p=a.play();
+ musicTimer=true;
  if(p&&p.catch)p.catch(()=>{});
  $('#soundBtn').textContent='🔊 MUSIC ON';
 }
-function stopAudio(){const a=$('#musicAudio');if(a){a.pause();a.currentTime=0}$('#soundBtn').textContent='🔇 MUSIC OFF'}
+function stopAudio(){const a=$('#musicAudio');if(a){a.pause();a.currentTime=0}musicTimer=null;$('#soundBtn').textContent='🔇 MUSIC OFF'}
 function sfx(id){
  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
  if(!audioCtx)audioCtx=new AC();
@@ -118,9 +119,7 @@ function job(action){
  const role=$('#role').value;if(!(roleJobs[role]||[]).includes(action)){toast(role+' cannot perform this job');return}
  sfx('click');
  if(action==='checkin'){
-  const g=$('#guestActor'),h=$('#guestHot');if(!g||g.style.display==='none'){toast('No guest waiting');return}
-  money+=55;rep+=2;g.style.display='none';h.style.display='none';update();setTask('Guest checked in — key ready');toast('Guest checked in • +$55');save();
-  setTimeout(()=>{if(active){g.style.display='block';h.style.display='block';setTask('New guest waiting at reception');sfx('bell')}},3500);return
+  money+=55;rep+=2;update();setTask('Guest checked in • key ready');toast('Guest checked in • +$55');save();return
  }
  const rewards={keys:35,reception:20,cleaning:45,maintenance:60,service:50,security:60},labels={keys:'Key delivered',reception:'Reception handled',cleaning:'Room cleaned',maintenance:'Maintenance completed',service:'Room service delivered',security:'Security patrol completed'};
  money+=rewards[action]||0;rep+=2;update();setTask('Next guest request');toast((labels[action]||'Task completed')+' • +$'+(rewards[action]||0));save()
@@ -137,7 +136,7 @@ function hire(k,c){
  const sel=$('#role');
  if(sel&&role&&!Array.from(sel.options).some(o=>o.value===role)){const o=document.createElement('option');o.value=role;o.textContent=role;sel.appendChild(o)}
  toast(role+' unlocked');renderPanel('staff')
-}}
+}
 function buyUpgrade(k,c){if(state.upgrades[k])return;if(spend(c)){state.upgrades[k]=1;rep+=5;update();toast('Upgrade installed • +5 reputation');save();renderPanel('upgrades')}}
 function upgrade(k,n,c,d){return '<div class="row"><span>'+n+'<br><span class="stat">'+d+'</span></span><button class="small primary" '+(state.upgrades[k]?'disabled':'')+' onclick="buyUpgrade(\''+k+'\','+c+')">'+(state.upgrades[k]?'OWNED':'$'+c)+'</button></div>'}
 function store(k,c){if(!spend(c))return;if(k==='rep')rep+=10;if(k==='cash')money+=250;if(k==='theme')state.premium++;update();toast('Store item applied • test purchase only');save()}
