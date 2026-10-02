@@ -54,14 +54,23 @@ const moneyEl=document.getElementById("money"),taskEl=document.getElementById("t
 const music=document.getElementById("music"),ambience=document.getElementById("ambience"),step=document.getElementById("step");
 let W=0,H=0,playing=false,role="Receptionist",money=1280,rep=50,audioOn=true,px=.52,py=.51,gx=.60,gy=.34,drag=false,target=null,lastStep=0;
 let unlock={Receptionist:true,Porter:false,Cleaner:false,Maintenance:false};
-function resize(){W=innerWidth;H=innerHeight;updateWorld();positionActors()} addEventListener("resize",resize);
+const ART_W=1672,ART_H=940;
+let worldW=0,worldH=0,worldLeft=0,worldTop=0;
+function resize(){
+ W=innerWidth;H=innerHeight;
+ const scale=Math.max(W/ART_W,H/ART_H);
+ worldW=ART_W*scale;worldH=ART_H*scale;
+ worldLeft=(W-worldW)/2;worldTop=(H-worldH)/2;
+ world.style.width=worldW+"px";world.style.height=worldH+"px";
+ updateWorld();positionActors()
+} addEventListener("resize",resize);
 const camera={x:px,y:py};
 const CAMERA_ZOOM=1.18;
 let worldTransform={x:0,y:0,zoom:CAMERA_ZOOM};
 function updateWorld(){
  const zoom=CAMERA_ZOOM;
- const tx=(.5-camera.x)*W*zoom;
- const ty=(.5-camera.y)*H*zoom;
+ const tx=W/2-(worldLeft+camera.x*worldW)*zoom;
+ const ty=H/2-(worldTop+camera.y*worldH)*zoom;
  worldTransform={x:tx,y:ty,zoom};
  world.style.transform="translate3d("+tx+"px,"+ty+"px,0) scale("+zoom+")";
 }
@@ -120,7 +129,12 @@ addEventListener("keydown",e=>{
  if(["arrowright","d"].includes(k)){e.preventDefault();nudge(stepSize,0)}
  if(k==="e")interactAt(px,py);
 });
-function screenToWorld(p){return{x:(p.x-worldTransform.x)/(W*CAMERA_ZOOM),y:(p.y-worldTransform.y)/(H*CAMERA_ZOOM)}}
+function screenToWorld(p){
+ return{
+  x:Math.max(0,Math.min(1,((p.x-worldTransform.x)/worldTransform.zoom-worldLeft)/worldW)),
+  y:Math.max(0,Math.min(1,((p.y-worldTransform.y)/worldTransform.zoom-worldTop)/worldH))
+ }
+}
 world.addEventListener("pointerdown",e=>{if(!playing)return;drag=true;target=screenToWorld(pointer(e));walkTo(target.x,target.y);world.setPointerCapture?.(e.pointerId)});
 world.addEventListener("pointermove",e=>{if(drag){const p=screenToWorld(pointer(e));walkTo(p.x,p.y)}});
 addEventListener("pointerup",()=>drag=false);
