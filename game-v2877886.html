@@ -437,11 +437,13 @@ for(const n of npcs){
 }
 hotelGuests.forEach(g=>{const nameEl=g.npc.el.querySelector(".name");if(nameEl)nameEl.textContent=g.roleLabel+" • "+g.name;});
 function positionActors(){
- player.style.left=(px*100)+"%";player.style.top=(py*100)+"%";player.querySelector(".sprite").style.backgroundSize="100% 100%";const cb=player.querySelector(".carryBadge");if(cb)cb.style.display=carrying?"block":"none";
+ player.style.left=(px*100)+"%";player.style.top=(py*100)+"%";player.querySelector(".sprite").style.backgroundSize="100% 100%";const cb=player.querySelector(".carryBadge");if(cb){cb.style.display=carrying?"block":"none";cb.textContent=carrying==="luggage"?"🧳":carrying==="roomservice"?"🍽️":"🧹";}
  for(const n of npcs){n.el.style.left=(n.x*100)+"%";n.el.style.top=(n.y*100)+"%";}
  let action=null,ad=.19;const consider=(x,y,label,type,obj)=>{const d=Math.hypot(px-x,py-y);if(d<ad){ad=d;action={x,y,label,type,obj}}};
- hotelGuests.forEach(g=>{if(g.npc.el.style.display!=="none"){if(g.status==="waiting")consider(g.npc.x,g.npc.y,"🔑 CHECK IN GUEST","checkin",g);if(g.status==="staying"&&g.serviceRequested)consider(g.npc.x,g.npc.y,"🍽️ DELIVER ROOM SERVICE","service",g)}});
+ hotelGuests.forEach(g=>{if(g.npc.el.style.display!=="none"){if(g.status==="waiting")consider(g.npc.x,g.npc.y,"🔑 CHECK IN GUEST","checkin",g);if(g.status==="staying"&&g.serviceRequested)consider(g.npc.x,g.npc.y,serviceTarget===g&&carrying==="roomservice"?"🍽️ DELIVER ROOM SERVICE":"🍽️ SEND TO KITCHEN","service",g)}});
  if(luggageState&&luggageState.active)consider(luggageState.x,luggageState.y,carrying?"🧳 DELIVER LUGGAGE":"🧳 PICK UP LUGGAGE","luggage",luggageState);
+ if(serviceTarget&&serviceTarget.status==="staying"&&serviceTarget.serviceRequested&&!carrying)consider(GENERATED_POINTS.kitchen.x,GENERATED_POINTS.kitchen.y,"🍽️ COLLECT ROOM SERVICE","kitchen",serviceTarget);
+ if(cleaningTarget&&cleaningTarget.state==="dirty"&&carrying!=="cleaning")consider(GENERATED_POINTS.housekeeping.x,GENERATED_POINTS.housekeeping.y,"🧹 COLLECT CLEANING SUPPLIES","housekeeping",cleaningTarget);
  guestRooms.forEach(rm=>{if(rm.state==="dirty")consider(roomPoint(rm).x,roomPoint(rm).y,"🧹 CLEAN ROOM "+rm.id,"clean",rm);if(carrying==="luggage"&&luggageState&&luggageState.room===rm.id)consider(roomPoint(rm).x,roomPoint(rm).y,"🧳 DELIVER TO ROOM "+rm.id,"deliver",rm)});
  if(action){interact.style.display="block";interact.style.left=(action.x*100)+"%";interact.style.top=((action.y*100)-9)+"%";interact.textContent=action.label}else interact.style.display="none";
 }
