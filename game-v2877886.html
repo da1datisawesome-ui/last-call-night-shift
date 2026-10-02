@@ -288,7 +288,7 @@ function updateActorAnimation(){
  }
 }
 const heldKeys=new Set();
-const MOVE_SPEED=.00011;
+const MOVE_SPEED=.000075;
 let lastAudioX=px,lastAudioY=py;
 function updatePlayerInput(dt){
  let dx=0,dy=0;
@@ -309,8 +309,6 @@ function loop(){
  updatePlayerInput(dt);
  camera.x+=(px-camera.x)*.10;camera.y+=(py-camera.y)*.10;
  updateWorld();updateNpcs();positionActors();updateActorAnimation();
- const movedSinceSound=Math.hypot(px-lastAudioX,py-lastAudioY)>.00035;
- if(player.classList.contains("walking")&&movedSinceSound)playStepSound();
  lastAudioX=px;lastAudioY=py;
  requestAnimationFrame(loop);
 }
@@ -492,11 +490,7 @@ function updateNpcs(){
        }
      }else{
        const nx=n.x+dx/d*step,ny=n.y+dy/d*step;
-       if(!npcBlocked(nx,ny)){n.x=nx;n.y=ny}
-       else{
-         const ax=n.x+dx/d*step,ay=n.y,bx=n.x,by=n.y+dy/d*step;
-         if(!npcBlocked(ax,ay))n.x=ax;else if(!npcBlocked(bx,by))n.y=by;
-       }
+       n.x=nx;n.y=ny;
      }
      continue;
    }
@@ -691,14 +685,7 @@ function pointer(e){
  return{x:e.clientX-r.left,y:e.clientY-r.top};
 }
 let lastStepSound=0;
-function playStepSound(){if(!audioOn)return;const now=performance.now();if(now-lastStepSound<320)return;lastStepSound=now;step.volume=.10;step.play().catch(()=>{})}
-function nudge(dx,dy){if(!playing)return;const moved=moveClamped(px+dx,py+dy);if(moved)player.classList.add("walking");positionActors()}
-addEventListener("keydown",e=>{
- const k=e.key.toLowerCase();
- if(!playing)return;
- if(["arrowup","arrowdown","arrowleft","arrowright","w","a","s","d"].includes(k)){e.preventDefault();heldKeys.add(k)}
- if(k==="e")interactAt(px,py);
-});
+function playStepSound(){});
 addEventListener("keyup",e=>{heldKeys.delete(e.key.toLowerCase())});
 addEventListener("blur",()=>heldKeys.clear());
 function screenToWorld(p){
@@ -735,7 +722,7 @@ world.addEventListener("pointermove",e=>{
  touchLastX=e.clientX;touchLastY=e.clientY;touchLastTime=now;
  if(Math.abs(dx)+Math.abs(dy)>1)touchMoved=true;
  const zoom=worldTransform.zoom||1;
- const maxWorldStep=0.005*(dt/16.67);
+ const maxWorldStep=0.0025*(dt/16.67);
  const wx=Math.max(-maxWorldStep,Math.min(maxWorldStep,dx/(zoom*worldW)));
  const wy=Math.max(-maxWorldStep,Math.min(maxWorldStep,dy/(zoom*worldH)));
  if(wx||wy){const moved=moveClamped(px+wx,py+wy);if(moved)player.classList.add("walking");positionActors();}
