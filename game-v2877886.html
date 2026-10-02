@@ -687,6 +687,13 @@ function pointer(e){
 }
 let lastStepSound=0;
 function playStepSound(){}
+function nudge(dx,dy){if(!playing)return;const moved=moveClamped(px+dx,py+dy);if(moved)player.classList.add("walking");positionActors()}
+addEventListener("keydown",e=>{
+ const k=e.key.toLowerCase();
+ if(!playing)return;
+ if(["arrowup","arrowdown","arrowleft","arrowright","w","a","s","d"].includes(k)){e.preventDefault();heldKeys.add(k)}
+ if(k==="e")interactAt(px,py);
+});
 addEventListener("keyup",e=>{heldKeys.delete(e.key.toLowerCase())});
 addEventListener("blur",()=>heldKeys.clear());
 function screenToWorld(p){
