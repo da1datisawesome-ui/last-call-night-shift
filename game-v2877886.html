@@ -89,4 +89,324 @@ const SPRITES={
 const ART_W=2600,ART_H=1500;
 const world=document.getElementById("world"),level=document.getElementById("level");
 
-const GENERATED_COLLIDERS=[];\nlet levelSeed=0;\nfunction seeded(){ levelSeed=(levelSeed*1664525+1013904223)>>>0; return levelSeed/4294967296; }\nfunction buildLevel(seed){\n level.innerHTML=""; GENERATED_COLLIDERS.length=0; levelSeed=(seed>>>0)||((Date.now()>>>0)^((performance.now()*1000)>>>0));\n const add=(cls,x,y,w,h,label,solid=false)=>{const el=document.createElement("div");el.className=cls;el.style.left=x+"px";el.style.top=y+"px";el.style.width=w+"px";el.style.height=h+"px";if(label){el.textContent=label;el.classList.add("levelLabel")}level.appendChild(el);if(solid)GENERATED_COLLIDERS.push({x,y,w,h});return el};\n const margin=70,gap=24,cols=4,rows=3; const rw=(ART_W-margin*2-gap*(cols-1))/cols, rh=(ART_H-margin*2-gap*(rows-1))/rows;\n const names=["Reception","Grand Lobby","Guest Wing","Dining Room","Lounge","Housekeeping","Service Kitchen","Maintenance","Staff Room","Garden Court","Conference","Night Bar"];\n add("levelFloor",35,35,ART_W-70,ART_H-70);\n // Outer walls and a large, varied room grid. Door gaps are cut into every internal wall.\n add("levelWall",35,35,ART_W-70,30,"",true); add("levelWall",35,ART_H-65,ART_W-70,30,"",true); add("levelWall",35,35,30,ART_H-70,"",true); add("levelWall",ART_W-65,35,30,ART_H-70,"",true);\n const rooms=[];\n for(let r=0;r<rows;r++)for(let col=0;col<cols;col++){ const x=margin+col*(rw+gap),y=margin+r*(rh+gap); rooms.push({x,y,w:rw,h:rh}); add("levelFloor",x,y,rw,rh,names[r*cols+col]);\n   // room-specific dressing\n   const variant=(r*cols+col+Math.floor(seeded()*3))%6;\n   if(variant===0){ for(let k=0;k<3;k++) add("levelBed",x+35+k*(rw-70)/3,y+55,(rw-105)/3,Math.min(105,rh*.25),"",true); add("levelDesk",x+35,y+rh-105,150,65,"",true); add("levelPlant",x+rw-75,y+rh-75,44,44); }\n   else if(variant===1){ add("levelCounter",x+35,y+55,rw-70,72,"",true); add("levelDesk",x+55,y+rh-120,170,75,"",true); add("levelDesk",x+rw-225,y+rh-120,170,75,"",true); add("levelLamp",x+rw/2-12,y+rh-175,24,70); }\n   else if(variant===2){ add("levelSofa",x+35,y+65,220,85,"",true); add("levelSofa",x+rw-255,y+65,220,85,"",true); add("levelRug",x+70,y+175,rw-140,Math.min(180,rh-260)); add("levelPlant",x+rw-75,y+rh-75,44,44); }\n   else if(variant===3){ add("levelCart",x+45,y+70,105,70,"",true); add("levelCart",x+185,y+70,105,70,"",true); add("levelDesk",x+rw-220,y+65,165,75,"",true); add("levelWindow",x+rw/2-60,y+rh-70,120,45); }\n   else if(variant===4){ add("levelDesk",x+40,y+55,180,80,"",true); add("levelDesk",x+rw-220,y+55,180,80,"",true); add("levelSofa",x+rw/2-110,y+rh-135,220,80,"",true); add("levelLamp",x+rw/2-12,y+160,24,70); }\n   else { add("levelBed",x+45,y+55,210,110,"",true); add("levelBed",x+rw-255,y+55,210,110,"",true); add("levelDesk",x+rw/2-80,y+rh-110,160,70,"",true); }\n }\n // Internal partitions with randomized door locations; corridors remain wide enough for the player.\n for(let col=1;col<cols;col++){const wallX=margin+(col-1)*(rw+gap)+rw+gap/2-12; for(let r=0;r<rows;r++){const y=margin+r*(rh+gap);const doorY=y+rh/2-55+(Math.floor(seeded()*3)-1)*55; add("levelWall",wallX,y,24,Math.max(30,doorY-y),"",true); add("levelWall",wallX,doorY+110,24,y+rh-(doorY+110),"",true); add("levelDoor",wallX-12,doorY,48,110);}}\n for(let r=1;r<rows;r++){const wallY=margin+(r-1)*(rh+gap)+rh+gap/2-12; for(let col=0;col<cols;col++){const x=margin+col*(rw+gap);const doorX=x+rw/2-65+(Math.floor(seeded()*3)-1)*65; add("levelWall",x,wallY,Math.max(30,doorX-x),24,"",true); add("levelWall",doorX+130,wallY,x+rw-(doorX+130),24,"",true); add("levelDoor",doorX,wallY-12,130,48);}}\n // Windows, lamps and plants give each generated run a visibly different dressed environment.\n for(let i=0;i<18;i++){const room=rooms[Math.floor(seeded()*rooms.length)]; const side=seeded()<.5; add("levelWindow",side?room.x+20:room.x+room.w-120,room.y+18,100,45);}\n for(let i=0;i<22;i++){const room=rooms[Math.floor(seeded()*rooms.length)]; add("levelPlant",room.x+20+seeded()*(room.w-65),room.y+room.h-65,44,44);}\n for(let i=0;i<18;i++){const room=rooms[Math.floor(seeded()*rooms.length)]; add("levelLamp",room.x+room.w/2-12,room.y+room.h/2-25,24,70);}\n // A large central reception desk anchors the start of every shift, while its surrounding geometry varies.\n const rr=rooms[0]; add("levelCounter",rr.x+70,rr.y+rr.h-115,rr.w-140,72,"",true); add("levelRug",rr.x+75,rr.y+60,rr.w-150,Math.min(220,rr.h-190));\n}>
+const GENERATED_COLLIDERS=[];
+let levelSeed=0;
+const GENERATED_ROOMS=[];
+const GENERATED_POINTS={};
+function seeded(){levelSeed=(levelSeed*1664525+1013904223)>>>0;return levelSeed/4294967296;}
+function buildLevel(seed){
+ level.innerHTML="";GENERATED_COLLIDERS.length=0;GENERATED_ROOMS.length=0;
+ levelSeed=(seed>>>0)||((Date.now()>>>0)^Math.floor(Math.random()*0xffffffff));
+ const add=(cls,x,y,w,h,label="",solid=false)=>{const el=document.createElement("div");el.className=cls;el.style.left=x+"px";el.style.top=y+"px";el.style.width=w+"px";el.style.height=h+"px";if(label){el.textContent=label;el.classList.add("levelLabel")}level.appendChild(el);if(solid)GENERATED_COLLIDERS.push({x,y,w,h});return el;};
+ const margin=70,gap=24,cols=4,rows=3,rw=(ART_W-margin*2-gap*(cols-1))/cols,rh=(ART_H-margin*2-gap*(rows-1))/rows;
+ const names=["Reception","Grand Lobby","Guest Wing","Dining Room","Lounge","Housekeeping","Service Kitchen","Maintenance","Staff Room","Garden Court","Conference","Night Bar"];
+ add("levelFloor",35,35,ART_W-70,ART_H-70);
+ add("levelWall",35,35,ART_W-70,30,"",true);add("levelWall",35,ART_H-65,ART_W-70,30,"",true);add("levelWall",35,35,30,ART_H-70,"",true);add("levelWall",ART_W-65,35,30,ART_H-70,"",true);
+ for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const x=margin+c*(rw+gap),y=margin+r*(rh+gap);const room={x,y,w:rw,h:rh,c,r};GENERATED_ROOMS.push(room);add("levelFloor",x,y,rw,rh,names[r*cols+c]);const v=Math.floor(seeded()*6);
+  if(v===0){add("levelBed",x+35,y+55,(rw-105)/3,105,"",true);add("levelBed",x+220,y+55,(rw-105)/3,105,"",true);add("levelBed",x+405,y+55,(rw-105)/3,105,"",true);add("levelDesk",x+35,y+rh-105,150,65,"",true);}
+  else if(v===1){add("levelCounter",x+35,y+55,rw-70,72,"",true);add("levelDesk",x+55,y+rh-120,170,75,"",true);add("levelDesk",x+rw-225,y+rh-120,170,75,"",true);add("levelLamp",x+rw/2-12,y+rh-175,24,70);}
+  else if(v===2){add("levelSofa",x+35,y+65,220,85,"",true);add("levelSofa",x+rw-255,y+65,220,85,"",true);add("levelRug",x+70,y+175,rw-140,Math.min(180,rh-260));add("levelPlant",x+rw-75,y+rh-75,44,44);}
+  else if(v===3){add("levelCart",x+45,y+70,105,70,"",true);add("levelCart",x+185,y+70,105,70,"",true);add("levelDesk",x+rw-220,y+65,165,75,"",true);add("levelWindow",x+rw/2-60,y+rh-70,120,45);}
+  else if(v===4){add("levelDesk",x+40,y+55,180,80,"",true);add("levelDesk",x+rw-220,y+55,180,80,"",true);add("levelSofa",x+rw/2-110,y+rh-135,220,80,"",true);add("levelLamp",x+rw/2-12,y+160,24,70);}
+  else{add("levelBed",x+45,y+55,210,110,"",true);add("levelBed",x+rw-255,y+55,210,110,"",true);add("levelDesk",x+rw/2-80,y+rh-110,160,70,"",true);}
+ }
+ for(let c=1;c<cols;c++){const wallX=margin+(c-1)*(rw+gap)+rw+gap/2-12;for(let r=0;r<rows;r++){const y=margin+r*(rh+gap),doorY=y+rh/2-55+(Math.floor(seeded()*3)-1)*55;add("levelWall",wallX,y,24,Math.max(30,doorY-y),"",true);add("levelWall",wallX,doorY+110,24,y+rh-(doorY+110),"",true);add("levelDoor",wallX-12,doorY,48,110);}}
+ for(let r=1;r<rows;r++){const wallY=margin+(r-1)*(rh+gap)+rh+gap/2-12;for(let c=0;c<cols;c++){const x=margin+c*(rw+gap),doorX=x+rw/2-65+(Math.floor(seeded()*3)-1)*65;add("levelWall",x,wallY,Math.max(30,doorX-x),24,"",true);add("levelWall",doorX+130,wallY,x+rw-(doorX+130),24,"",true);add("levelDoor",doorX,wallY-12,130,48);}}
+ for(let i=0;i<18;i++){const room=GENERATED_ROOMS[Math.floor(seeded()*GENERATED_ROOMS.length)];add("levelWindow",seeded()<.5?room.x+20:room.x+room.w-120,room.y+18,100,45);}
+ for(let i=0;i<22;i++){const room=GENERATED_ROOMS[Math.floor(seeded()*GENERATED_ROOMS.length)];add("levelPlant",room.x+20+seeded()*(room.w-65),room.y+room.h-65,44,44);}
+ for(let i=0;i<18;i++){const room=GENERATED_ROOMS[Math.floor(seeded()*GENERATED_ROOMS.length)];add("levelLamp",room.x+room.w/2-12,room.y+room.h/2-25,24,70);}
+ const reception=GENERATED_ROOMS[0];add("levelCounter",reception.x+70,reception.y+reception.h-115,reception.w-140,72,"",true);add("levelRug",reception.x+75,reception.y+60,reception.w-150,Math.min(220,reception.h-190));
+ const center=room=>({x:(room.x+room.w/2)/ART_W,y:(room.y+room.h/2)/ART_H}),safe=(room,ox,oy)=>({x:(room.x+room.w*ox)/ART_W,y:(room.y+room.h*oy)/ART_H});
+ GENERATED_POINTS.reception=safe(reception,.5,.56);GENERATED_POINTS.guest=safe(reception,.5,.32);GENERATED_POINTS.lounge=center(GENERATED_ROOMS[4]);GENERATED_POINTS.housekeeping=center(GENERATED_ROOMS[5]);GENERATED_POINTS.kitchen=center(GENERATED_ROOMS[6]);GENERATED_POINTS.maintenance=center(GENERATED_ROOMS[7]);GENERATED_POINTS.staff=center(GENERATED_ROOMS[8]);GENERATED_POINTS.garden=center(GENERATED_ROOMS[9]);GENERATED_POINTS.conference=center(GENERATED_ROOMS[10]);GENERATED_POINTS.bar=center(GENERATED_ROOMS[11]);
+}
+buildLevel(Date.now()>>>0);
+const player=document.getElementById("player"),guest=document.getElementById("guest"),porterNpc=document.getElementById("porterNpc"),cleanerNpc=document.getElementById("cleanerNpc"),maintenanceNpc=document.getElementById("maintenanceNpc"),receptionNpc=document.getElementById("receptionNpc"),loungeNpc1=document.getElementById("loungeNpc1"),loungeNpc2=document.getElementById("loungeNpc2"),interact=document.getElementById("interact");
+const moneyEl=document.getElementById("money"),taskEl=document.getElementById("task"),toast=document.getElementById("toast"),hint=document.getElementById("hint");
+const music=document.getElementById("music"),ambience=document.getElementById("ambience"),step=document.getElementById("step");
+let W=0,H=0,playing=false,role="Receptionist",money=1280,rep=50,audioOn=true,px=.582,py=.527,gx=.60,gy=.34,drag=false,target=null,pendingInteraction=null,lastStep=0;
+let unlock={Receptionist:true,Porter:false,Cleaner:false,Maintenance:false};
+let worldW=0,worldH=0,worldLeft=0,worldTop=0;
+function resize(){
+ W=innerWidth;H=innerHeight;
+ const scale=Math.max(W/ART_W,H/ART_H);
+ worldW=ART_W*scale;worldH=ART_H*scale;
+ worldLeft=(W-worldW)/2;worldTop=(H-worldH)/2;
+ world.style.width=worldW+"px";world.style.height=worldH+"px";
+ updateWorld();positionActors()
+} addEventListener("resize",resize);
+const camera={x:px,y:py};
+const CAMERA_ZOOM=1.48;
+let worldTransform={x:0,y:0,zoom:CAMERA_ZOOM};
+function updateWorld(){
+ const zoom=CAMERA_ZOOM;
+ let tx=W/2-(worldLeft+camera.x*worldW)*zoom;
+ let ty=H/2-(worldTop+camera.y*worldH)*zoom;
+ const scaledW=worldW*zoom,scaledH=worldH*zoom;
+ tx=Math.min(0,Math.max(W-scaledW,tx));
+ ty=Math.min(0,Math.max(H-scaledH,ty));
+ worldTransform={x:tx,y:ty,zoom};
+ world.style.transform="translate3d("+tx+"px,"+ty+"px,0) scale("+zoom+")";
+}
+function loop(){
+ if(!playing)return;
+ camera.x+=(px-camera.x)*.10;camera.y+=(py-camera.y)*.10;
+ updateWorld();updateNpcs();positionActors();requestAnimationFrame(loop);
+}
+// Collision geometry lives in the same 1672x940 coordinate system as the hotel artwork.
+// Rectangles are physical solid areas on the actual world surface, not screen-space overlays.
+const COLLIDERS=GENERATED_COLLIDERS;
+const PLAYER_RADIUS_X=34/ART_W;
+const PLAYER_RADIUS_Y=18/ART_H;
+function blocked(x,y){
+ const cx=x*ART_W,cy=y*ART_H;
+ return COLLIDERS.some(r=>
+   cx+PLAYER_RADIUS_X*ART_W>r.x &&
+   cx-PLAYER_RADIUS_X*ART_W<r.x+r.w &&
+   cy+PLAYER_RADIUS_Y*ART_H>r.y &&
+   cy-PLAYER_RADIUS_Y*ART_H<r.y+r.h
+ );
+}
+function moveClamped(nx,ny){
+ nx=Math.max(.04,Math.min(.96,nx));
+ ny=Math.max(.08,Math.min(.92,ny));
+ // Test the requested destination and then resolve each axis separately.
+ // This keeps the actor on the walkable side of the hotel's physical geometry.
+ const oldX=px,oldY=py;
+ if(!blocked(nx,ny)){px=nx;py=ny;return true}
+ let moved=false;
+ if(!blocked(nx,oldY)){px=nx;moved=true}
+ if(!blocked(px,ny)){py=ny;moved=true}
+ return moved;
+}
+function canReach(x,y){
+ // Check the whole approach, not just the destination.
+ const sx=px,sy=py,steps=Math.max(12,Math.ceil(Math.hypot(x-sx,y-sy)*80));
+ for(let i=1;i<=steps;i++){
+   const t=i/steps;
+   if(blocked(sx+(x-sx)*t,sy+(y-sy)*t))return false;
+ }
+ return !blocked(x,y);
+}
+const PATH_COLS=42,PATH_ROWS=24;
+function cellPoint(c,r){
+ return {x:(c+.5)/PATH_COLS,y:(r+.5)/PATH_ROWS};
+}
+function cellBlocked(c,r){
+ if(c<0||r<0||c>=PATH_COLS||r>=PATH_ROWS)return true;
+ const p=cellPoint(c,r);
+ return blocked(p.x,p.y);
+}
+function nearestOpenCell(x,y){
+ let c=Math.max(0,Math.min(PATH_COLS-1,Math.floor(x*PATH_COLS)));
+ let r=Math.max(0,Math.min(PATH_ROWS-1,Math.floor(y*PATH_ROWS)));
+ if(!cellBlocked(c,r))return {c,r};
+ for(let radius=1;radius<8;radius++){
+   for(let yy=r-radius;yy<=r+radius;yy++)for(let xx=c-radius;xx<=c+radius;xx++){
+     if(Math.abs(xx-c)!==radius&&Math.abs(yy-r)!==radius)continue;
+     if(!cellBlocked(xx,yy))return {c:xx,r:yy};
+   }
+ }
+ return null;
+}
+function findPath(sx,sy,tx,ty){
+ const s=nearestOpenCell(sx,sy),g=nearestOpenCell(tx,ty);
+ if(!s||!g)return null;
+ const key=(c,r)=>r*PATH_COLS+c;
+ const open=[{c:s.c,r:s.r,f:0,g:0}];
+ const came=new Map(),cost=new Map([[key(s.c,s.r),0]]);
+ const dirs=[[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],[1,1,1.414],[1,-1,1.414],[-1,1,1.414],[-1,-1,1.414]];
+ while(open.length){
+   open.sort((a,b)=>a.f-b.f);
+   const cur=open.shift(),ck=key(cur.c,cur.r);
+   if(cur.c===g.c&&cur.r===g.r){
+     const cells=[{c:cur.c,r:cur.r}];
+     let k=ck;
+     while(came.has(k)){const p=came.get(k);cells.push(p);k=key(p.c,p.r)}
+     cells.reverse();
+     const pts=[{x:sx,y:sy}];
+     for(const q of cells.slice(1,-1)){const p=cellPoint(q.c,q.r);pts.push(p)}
+     pts.push({x:tx,y:ty});
+     // Remove unnecessary corners while retaining collision-safe straight runs.
+     const smooth=[pts[0]];
+     for(let i=1;i<pts.length;i++){
+       let advanced=true;
+       while(i+1<pts.length&&canReachFrom(smooth[smooth.length-1],pts[i+1]))i++;
+       smooth.push(pts[i]);
+     }
+     return smooth;
+   }
+   for(const [dc,dr,step] of dirs){
+     const nc=cur.c+dc,nr=cur.r+dr;
+     if(cellBlocked(nc,nr))continue;
+     if(dc&&dr&&(cellBlocked(cur.c+dc,cur.r)||cellBlocked(cur.c,cur.r+dr)))continue;
+     const ng=cur.g+step,nk=key(nc,nr);
+     if(ng>=(cost.get(nk)??Infinity))continue;
+     cost.set(nk,ng);came.set(nk,{c:cur.c,r:cur.r});
+     const h=Math.hypot(nc-g.c,nr-g.r);
+     open.push({c:nc,r:nr,g:ng,f:ng+h});
+   }
+ }
+ return null;
+}
+function canReachFrom(a,b){
+ const steps=Math.max(6,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)*80));
+ for(let i=1;i<=steps;i++){
+   const t=i/steps;
+   if(blocked(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t))return false;
+ }
+ return true;
+}
+const npcs=[
+ {el:guest,role:"Guest1",x:.2,y:.2,path:[],i:0,t:0,speed:.00032},{el:porterNpc,role:"Porter",x:.2,y:.2,path:[],i:0,t:0,speed:.00024},{el:cleanerNpc,role:"Cleaner",x:.2,y:.2,path:[],i:0,t:0,speed:.00022},{el:maintenanceNpc,role:"Maintenance",x:.2,y:.2,path:[],i:0,t:0,speed:.0002},{el:receptionNpc,role:"Receptionist",x:.2,y:.2,path:[],i:0,t:0,speed:.00016},{el:loungeNpc1,role:"Guest2",x:.2,y:.2,path:[],i:0,t:0,speed:.00014},{el:loungeNpc2,role:"Guest3",x:.2,y:.2,path:[],i:0,t:0,speed:.00013}
+];
+function resetGeneratedActors(){
+ const p=GENERATED_POINTS;
+ const routes=[[p.guest,p.reception,p.lounge],[p.staff,p.reception,p.garden],[p.housekeeping,p.lounge,p.kitchen],[p.maintenance,p.kitchen,p.maintenance],[p.reception,p.guest,p.reception],[p.lounge,p.bar,p.lounge],[p.conference,p.garden,p.conference]];
+ npcs.forEach((n,i)=>{const route=routes[i]||routes[0];n.x=route[0].x;n.y=route[0].y;n.path=route.map(q=>[q.x,q.y]);n.i=0;n.route=null;n.ri=1;n.el.style.display=(i===0||i===5||i===6)?"block":"none";});
+ gx=p.guest.x;gy=p.guest.y;guest.style.display="block";
+}
+for(const n of npcs){
+ n.el.querySelector(".sprite").style.backgroundImage='url("'+SPRITES[n.role]+'")';
+ n.route=null;n.ri=1;
+}
+function positionActors(){
+ player.style.left=(px*100)+"%";player.style.top=(py*100)+"%";
+ player.querySelector(".sprite").style.backgroundImage='url("'+SPRITES[role]+'")';
+ for(const n of npcs){n.el.style.left=(n.x*100)+"%";n.el.style.top=(n.y*100)+"%";}
+}
+function updateNpcs(){
+ for(const n of npcs){
+   const target=n.path[(n.i+1)%n.path.length];
+   if(!n.route){
+     n.route=findPath(n.x,n.y,target[0],target[1]);
+     n.ri=1;
+     if(!n.route){
+       n.i=(n.i+1)%n.path.length;
+       n.el.classList.remove("walking");
+       continue;
+     }
+   }
+   const dest=n.route[n.ri]||target;
+   const dx=dest.x-n.x,dy=dest.y-n.y,d=Math.hypot(dx,dy),step=n.speed*16;
+   if(d<=Math.max(step,.004)){
+     n.x=dest.x;n.y=dest.y;n.ri++;
+     if(n.ri>=n.route.length){
+       n.i=(n.i+1)%n.path.length;
+       n.route=null;n.ri=1;
+     }
+   }else{
+     const nx=n.x+dx/d*step,ny=n.y+dy/d*step;
+     if(blocked(nx,ny)){
+       n.route=null;
+       n.el.classList.remove("walking");
+       continue;
+     }
+     n.x=nx;n.y=ny;
+   }
+   n.el.classList.toggle("walking",d>.01);
+ }
+}
+function showToast(t){toast.textContent=t;toast.style.display="block";clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.style.display="none",1800)}
+function startAudio(){if(!audioOn)return;music.volume=.34;ambience.volume=.2;Promise.allSettled([music.play(),ambience.play()]);document.getElementById("sound").textContent="🔊"}
+function toggleAudio(){audioOn=!audioOn;if(audioOn)startAudio();else{music.pause();ambience.pause()}document.getElementById("sound").textContent=audioOn?"🔊":"🔇"}
+function setTask(){taskEl.textContent=role==="Receptionist"?"Guest waiting at reception":role==="Porter"?"Collect luggage":"Complete your current hotel job"}
+function walkTo(x,y,onArrive=null){
+ const path=findPath(px,py,x,y);
+ if(!path){showToast("That area is blocked");return}
+ let index=1;
+ player.classList.add("walking");
+ const nextSegment=()=>{
+   if(index>=path.length){player.classList.remove("walking");onArrive?.();return}
+   const dest=path[index++],sx=px,sy=py,dx=dest.x-sx,dy=dest.y-sy,d=Math.hypot(dx,dy);
+   if(d<.006){nextSegment();return}
+   const dur=Math.min(850,Math.max(120,d*1200)),st=performance.now();
+   const tick=now=>{
+     const t=Math.min(1,(now-st)/dur);
+     moveClamped(sx+(dest.x-sx)*t,sy+(dest.y-sy)*t);positionActors();
+     if(now-lastStep>260){lastStep=now;if(audioOn){step.currentTime=0;step.volume=.16;step.play().catch(()=>{})}}
+     if(t<1)requestAnimationFrame(tick);else nextSegment();
+   };
+   requestAnimationFrame(tick);
+ };
+ nextSegment();
+}
+function hit(x,y){return x>.42&&x<.58&&y>.36&&y<.60}
+const INTERACTABLES=[
+ {type:"guest",get x(){return GENERATED_POINTS.guest.x},get y(){return GENERATED_POINTS.guest.y},r:.09},
+ {type:"Kitchen",get x(){return GENERATED_POINTS.kitchen.x},get y(){return GENERATED_POINTS.kitchen.y},r:.10,reward:35},
+ {type:"Housekeeping",get x(){return GENERATED_POINTS.housekeeping.x},get y(){return GENERATED_POINTS.housekeeping.y},r:.10,reward:30},
+ {type:"Maintenance",get x(){return GENERATED_POINTS.maintenance.x},get y(){return GENERATED_POINTS.maintenance.y},r:.10,reward:45}
+];
+function nearestInteractable(x,y){
+ let best=null,bd=Infinity;
+ for(const q of INTERACTABLES){const d=Math.hypot(x-q.x,y-q.y);if(d<q.r&&d<bd){best=q;bd=d}}
+ return best;
+}
+function interactAt(x,y){
+ const q=nearestInteractable(x,y);
+ if(!q||Math.hypot(px-q.x,py-q.y)>.11){showToast("Move closer to interact");return false} if(!canReach(q.x,q.y)){showToast("That area is blocked");return false}
+ if(q.type==="guest"&&role==="Receptionist"){
+   money+=20;rep++;moneyEl.textContent="$"+money.toLocaleString();taskEl.textContent="Guest checked in ✓";showToast("+$20  Guest checked in");
+   guest.style.display="none";
+   setTimeout(()=>{gx=.62;gy=.37;guest.style.display="block";taskEl.textContent="New guest waiting at reception"},1300);
+   return true;
+ }
+ if(q.reward){
+   money+=q.reward;moneyEl.textContent="$"+money.toLocaleString();taskEl.textContent=q.type+" job complete ✓";showToast(q.type+" job complete  +$"+q.reward);
+   setTimeout(()=>{if(playing)setTask()},1400);return true;
+ }
+ return false;
+}
+function pointer(e){
+ const r=world.parentElement.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}
+}
+function nudge(dx,dy){if(!playing)return;moveClamped(px+dx,py+dy);positionActors()}
+addEventListener("keydown",e=>{
+ if(!playing)return;
+ const k=e.key.toLowerCase(),stepSize=.018;
+ if(["arrowup","w"].includes(k)){e.preventDefault();nudge(0,-stepSize)}
+ if(["arrowdown","s"].includes(k)){e.preventDefault();nudge(0,stepSize)}
+ if(["arrowleft","a"].includes(k)){e.preventDefault();nudge(-stepSize,0)}
+ if(["arrowright","d"].includes(k)){e.preventDefault();nudge(stepSize,0)}
+ if(k==="e")interactAt(px,py);
+});
+function screenToWorld(p){
+ return{
+  x:Math.max(0,Math.min(1,((p.x-worldTransform.x)/worldTransform.zoom-worldLeft)/worldW)),
+  y:Math.max(0,Math.min(1,((p.y-worldTransform.y)/worldTransform.zoom-worldTop)/worldH))
+ }
+}
+world.addEventListener("pointerdown",e=>{if(!playing)return;drag=true;target=screenToWorld(pointer(e));walkTo(target.x,target.y);world.setPointerCapture?.(e.pointerId)});
+world.addEventListener("pointermove",e=>{if(drag){const p=screenToWorld(pointer(e));walkTo(p.x,p.y)}});
+addEventListener("pointerup",()=>drag=false);
+world.addEventListener("click",e=>{if(!playing)return;const p=screenToWorld(pointer(e));const q=nearestInteractable(p.x,p.y);if(q){pendingInteraction=q;walkTo(q.x,q.y,()=>{if(pendingInteraction===q){interactAt(q.x,q.y);pendingInteraction=null}})}else{pendingInteraction=null;walkTo(p.x,p.y)}});
+window.beginGame=function(){
+ if(playing)return;
+ levelSeed=(Date.now()>>>0)^Math.floor(Math.random()*0xffffffff);
+ buildLevel(levelSeed);resetGeneratedActors();
+ px=GENERATED_POINTS.reception.x;py=GENERATED_POINTS.reception.y;camera.x=px;camera.y=py;
+ playing=true;document.getElementById("title").style.display="none";guest.style.display="block";
+ hint.classList.add("show");setTimeout(()=>hint.classList.remove("show"),3500);
+ startAudio();positionActors();updateWorld();requestAnimationFrame(loop);
+}
+addEventListener("lastcall-play",beginGame);
+document.getElementById("sound").onclick=toggleAudio;
+function openPanel(type){
+ const panel=document.getElementById("panel"),card=document.getElementById("panelCard");panel.style.display="flex";
+ if(type==="menu")card.innerHTML='<h2>Menu</h2><p>Keep the shift simple.</p><button class="btn" id="resume">Back to Game</button><button class="btn alt" id="staff">Staff</button><button class="btn alt" id="upgrades">Hotel Upgrades</button><button class="btn alt" id="settings">Settings</button>';
+ if(type==="settings")card.innerHTML='<h2>Settings</h2><div class="row"><span>Music</span><input id="mv" class="range" type="range" min="0" max="1" step=".05" value="'+music.volume+'"></div><div class="row"><span>Ambience</span><input id="av" class="range" type="range" min="0" max="1" step=".05" value="'+ambience.volume+'"></div><button class="btn close" id="close">Back</button>';
+ if(type==="staff")card.innerHTML='<h2>Staff</h2><div class="staffGrid">'+Object.entries(unlock).map(([n,v])=>'<div class="staff '+(v?'':'locked')+'"><b>'+n+'</b><div class="mini">'+(v?'Available':'Unlock through hotel progress')+'</div></div>').join("")+'</div><button class="btn close" id="close">Back</button>';
+ if(type==="upgrades")card.innerHTML='<h2>Hotel Upgrades</h2><p>Spend hotel earnings to unlock more of the property.</p><div class="staff">Guest Rooms <b>$2,000</b></div><div class="staff">Kitchen & Room Service <b>$3,500</b></div><div class="staff">Maintenance Wing <b>$5,000</b></div><button class="btn close" id="close">Back</button>';
+ if(type==="menu"){document.getElementById("resume").onclick=()=>panel.style.display="none";document.getElementById("staff").onclick=()=>openPanel("staff");document.getElementById("upgrades").onclick=()=>openPanel("upgrades");document.getElementById("settings").onclick=()=>openPanel("settings")}
+ if(type==="settings"){document.getElementById("close").onclick=()=>panel.style.display="none";document.getElementById("mv").oninput=e=>music.volume=+e.target.value;document.getElementById("av").oninput=e=>ambience.volume=+e.target.value}
+ if(type==="staff"||type==="upgrades")document.getElementById("close").onclick=()=>openPanel("menu");
+}
+document.getElementById("menu").onclick=()=>openPanel("menu");
+document.getElementById("titleSettings").onclick=()=>openPanel("settings");
+addEventListener("lastcall-settings",()=>openPanel("settings"));
+document.addEventListener("visibilitychange",()=>{if(document.hidden){music.pause();ambience.pause()}else if(playing&&audioOn)startAudio()});
+resize();positionActors();
+</script>
+</div>
+</body>
+</html>
