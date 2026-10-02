@@ -225,7 +225,10 @@ const npcs=[
  {el:loungeNpc1,role:"Guest2",x:.274,y:.459,path:[[.274,.459],[.30,.43],[.25,.40],[.274,.459]],i:0,t:0,speed:.00014},
  {el:loungeNpc2,role:"Guest3",x:.189,y:.583,path:[[.189,.583],[.22,.56],[.20,.62],[.189,.583]],i:0,t:0,speed:.00013}
 ];
-for(const n of npcs)n.el.querySelector(".sprite").style.backgroundImage='url("'+SPRITES[n.role]+'")';
+for(const n of npcs){
+ n.el.querySelector(".sprite").style.backgroundImage='url("'+SPRITES[n.role]+'")';
+ n.route=null;n.ri=1;
+}
 function positionActors(){
  player.style.left=(px*100)+"%";player.style.top=(py*100)+"%";
  player.querySelector(".sprite").style.backgroundImage='url("'+SPRITES[role]+'")';
@@ -233,21 +236,34 @@ function positionActors(){
 }
 function updateNpcs(){
  for(const n of npcs){
-   const a=n.path[n.i],b=n.path[(n.i+1)%n.path.length];
-   const dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy);
-   if(d<.001){n.i=(n.i+1)%n.path.length;n.t=0;continue}
-   const nextT=Math.min(1,n.t+n.speed*16);
-   const nx=a[0]+dx*nextT,ny=a[1]+dy*nextT;
-   if(blocked(nx,ny)){
-     n.t=0;
-     n.i=(n.i+1)%n.path.length;
-     n.el.classList.remove("walking");
-     continue;
+   const target=n.path[(n.i+1)%n.path.length];
+   if(!n.route){
+     n.route=findPath(n.x,n.y,target[0],target[1]);
+     n.ri=1;
+     if(!n.route){
+       n.i=(n.i+1)%n.path.length;
+       n.el.classList.remove("walking");
+       continue;
+     }
    }
-   n.t=nextT;
-   n.x=nx;n.y=ny;
-   if(n.t>=1){n.t=0;n.i=(n.i+1)%n.path.length}
-   n.el.classList.toggle("walking",n.t>0.04&&n.t<.96);
+   const dest=n.route[n.ri]||target;
+   const dx=dest.x-n.x,dy=dest.y-n.y,d=Math.hypot(dx,dy),step=n.speed*16;
+   if(d<=Math.max(step,.004)){
+     n.x=dest.x;n.y=dest.y;n.ri++;
+     if(n.ri>=n.route.length){
+       n.i=(n.i+1)%n.path.length;
+       n.route=null;n.ri=1;
+     }
+   }else{
+     const nx=n.x+dx/d*step,ny=n.y+dy/d*step;
+     if(blocked(nx,ny)){
+       n.route=null;
+       n.el.classList.remove("walking");
+       continue;
+     }
+     n.x=nx;n.y=ny;
+   }
+   n.el.classList.toggle("walking",d>.01);
  }
 }
 function showToast(t){toast.textContent=t;toast.style.display="block";clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.style.display="none",1800)}
