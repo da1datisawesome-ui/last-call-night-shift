@@ -326,6 +326,7 @@ function positionActors(){
 }
 function updateNpcs(){
  for(const n of npcs){
+   if(hotelGuests.some(g=>g.npc===n)){n.el.classList.remove("walking");continue;}
    const target=n.path[(n.i+1)%n.path.length];
    if(!n.route){
      n.route=findPath(n.x,n.y,target[0],target[1]);
@@ -362,7 +363,6 @@ function updateProgression(){
  if(!unlock.Cleaner&&earned>=900){unlock.Cleaner=true;newly.push("Cleaner");}
  if(!unlock.Maintenance&&earned>=1500){unlock.Maintenance=true;newly.push("Maintenance");}
  if(newly.length)showToast("Staff unlocked: "+newly.join(", "));
- if(taskEl)taskEl.textContent="Guest waiting at reception  •  Rooms "+occupiedRooms+"/"+roomCapacity;
 }
 function roomUpgrade(){
  const cost=ROOM_UPGRADE_COSTS[upgradeRooms];
@@ -374,6 +374,37 @@ function roomUpgrade(){
 function facilityUpgrade(kind,cost){
  if(money<cost){showToast("Need $"+cost.toLocaleString()+" for "+kind);return false}
  money-=cost;moneyEl.textContent="$"+money.toLocaleString();showToast(kind+" upgraded ✓");return true;
+}
+function setHotelTask(t){taskState=t;taskEl.textContent=t}
+function createLuggage(room){
+ const el=document.createElement("div");el.className="luggage";el.textContent="🧳";el.id="activeLuggage";level.appendChild(el);
+ luggageState={el,active:true,x:GENERATED_POINTS.reception.x,y:GENERATED_POINTS.reception.y,room:room.id};
+ el.style.left=(luggageState.x*ART_W-23)+"px";el.style.top=(luggageState.y*ART_H-19)+"px";
+}
+function removeLuggage(){if(luggageState&&luggageState.el)luggageState.el.remove();luggageState=null}
+function checkInGuest(g){
+ const rm=firstAvailableRoom();if(!rm){showToast("All rooms are occupied or need cleaning");return false}
+ rm.state="occupied";rm.guest=g;updateRoomMarker(guestRooms.indexOf(rm));g.status="luggage";g.room=rm;occupiedRooms++;
+ money+=100;earned+=100;checkIns++;rep++;moneyEl.textContent="$"+money.toLocaleString();updateProgression();
+ createLuggage(rm);setHotelTask("🧳 Take luggage to Room "+rm.id);showToast("+$100  Guest checked in");
+ return true;
+}
+function deliverLuggage(rm){
+ if(!carrying||!luggageState||luggageState.room!==rm.id)return false;
+ const g=rm.guest;carrying=null;removeLuggage();g.status="staying";g.npc.x=roomPoint(rm).x;g.npc.y=roomPoint(rm).y;g.npc.path=[[g.npc.x,g.npc.y],[g.npc.x,g.npc.y]];g.npc.el.style.display="block";
+ setHotelTask("Guest in Room "+rm.id+" • stay in progress");showToast("Luggage delivered to Room "+rm.id);
+ setTimeout(()=>{if(!playing||g.status!=="staying")return;g.serviceRequested=true;setHotelTask("🍽️ Room "+rm.id+" is requesting room service");showToast("Room "+rm.id+" requested room service")},ROOM_SERVICE_DELAY_MS);
+ setTimeout(()=>{if(!playing||g.status!=="staying")return;g.status="checkout";g.serviceRequested=false;g.npc.el.style.display="none";rm.state="dirty";rm.guest=null;occupiedRooms=Math.max(0,occupiedRooms-1);updateRoomMarker(guestRooms.indexOf(rm));setHotelTask("🧹 Room "+rm.id+" needs cleaning");showToast("Guest checked out — Room "+rm.id+" needs cleaning");},GUEST_STAY_MS);
+ spawnWaitingGuest();return true;
+}
+function deliverRoomService(g){
+ if(g.status!=="staying"||!g.serviceRequested)return false;
+ g.serviceRequested=false;g.serviceDone=true;money+=40;earned+=40;moneyEl.textContent="$"+money.toLocaleString();updateProgression();showToast("+$40  Room service delivered");setHotelTask("Room "+g.room.id+" • guest staying");return true;
+}
+function cleanRoom(rm){
+ if(rm.state!=="dirty")return false;
+ rm.state="available";updateRoomMarker(guestRooms.indexOf(rm));money+=30;earned+=30;moneyEl.textContent="$"+money.toLocaleString();updateProgression();showToast("+$30  Room "+rm.id+" cleaned");setHotelTask("Room "+rm.id+" is ready");
+ setTimeout(()=>{if(playing)spawnWaitingGuest()},500);return true;
 }
 function showToast(t){toast.textContent=t;toast.style.display="block";clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.style.display="none",1800)}
 function startAudio(){if(!audioOn)return;music.volume=.34;ambience.volume=.2;Promise.allSettled([music.play(),ambience.play()]);document.getElementById("sound").textContent="🔊"}
@@ -412,33 +443,19 @@ function nearestInteractable(x,y){
  return best;
 }
 function interactAt(x,y){
- const activeGuest=npcs[0];
- const gd=Math.hypot(px-activeGuest.x,py-activeGuest.y);
- if(activeGuest.el.style.display!=="none"&&gd<=.18&&role==="Receptionist"){
-   if(occupiedRooms>=roomCapacity){showToast("No rooms available — upgrade the hotel or wait for checkout");return false}
-   occupiedRooms++;checkIns++;money+=20;earned+=20;rep++;
-   moneyEl.textContent="$"+money.toLocaleString();taskEl.textContent="Guest checked in ✓  •  Rooms "+occupiedRooms+"/"+roomCapacity;showToast("+$20  Guest checked in");
-   updateProgression();
-   activeGuest.el.style.display="none";guest.style.display="none";interact.style.display="none";
-   setTimeout(()=>{
-     if(!playing)return;
-     occupiedRooms=Math.max(0,occupiedRooms-1);
-     activeGuest.el.style.display="block";
-     activeGuest.x=GENERATED_POINTS.guest.x;activeGuest.y=GENERATED_POINTS.guest.y;
-     activeGuest.path=[[activeGuest.x,activeGuest.y],[activeGuest.x,activeGuest.y]];
-     activeGuest.route=null;activeGuest.i=0;activeGuest.ri=1;
-     taskEl.textContent="New guest waiting at reception  •  Rooms "+occupiedRooms+"/"+roomCapacity;positionActors();
-   },12000);
-   return true;
- }
- const q=nearestInteractable(x,y);
- if(!q||Math.hypot(px-q.x,py-q.y)>.11){showToast("Move closer to interact");return false}
- if(q.reward){
-   money+=q.reward;moneyEl.textContent="$"+money.toLocaleString();taskEl.textContent=q.type+" job complete ✓";showToast(q.type+" job complete  +$"+q.reward);
-   setTimeout(()=>{if(playing)setTask()},1400);return true;
- }
+ let best=null,bd=.19;
+ hotelGuests.forEach(g=>{if(g.npc.el.style.display!=="none"){const d=Math.hypot(px-g.npc.x,py-g.npc.y);if(d<bd){if(g.status==="waiting"){best={type:"checkin",g};bd=d}else if(g.status==="staying"&&g.serviceRequested){best={type:"service",g};bd=d}}}});
+ if(luggageState&&luggageState.active){const d=Math.hypot(px-luggageState.x,py-luggageState.y);if(d<bd){best={type:"luggage",l:luggageState};bd=d}}
+ guestRooms.forEach(rm=>{const rp=roomPoint(rm),d=Math.hypot(px-rp.x,py-rp.y);if(d<bd){if(carrying==="luggage"&&luggageState&&luggageState.room===rm.id)best={type:"deliver",rm};else if(rm.state==="dirty")best={type:"clean",rm};if(best)bd=d}});
+ if(!best){showToast("Move closer to the current task");return false}
+ if(best.type==="checkin")return checkInGuest(best.g);
+ if(best.type==="luggage"){if(!carrying){carrying="luggage";best.l.active=false;best.l.el.style.display="none";setHotelTask("🧳 Take luggage to Room "+best.l.room);showToast("Luggage picked up");positionActors();return true}}
+ if(best.type==="deliver")return deliverLuggage(best.rm);
+ if(best.type==="service")return deliverRoomService(best.g);
+ if(best.type==="clean")return cleanRoom(best.rm);
  return false;
 }
+
 function pointer(e){
  const r=world.parentElement.getBoundingClientRect();
  return{x:e.clientX-r.left,y:e.clientY-r.top};
@@ -494,7 +511,7 @@ window.beginGame=function(){
  title.style.display="none";title.style.visibility="hidden";title.style.pointerEvents="none";
  try{
   levelSeed=(Date.now()>>>0)^Math.floor(Math.random()*0xffffffff);
-  buildLevel(levelSeed);resetGeneratedActors();
+  buildLevel(levelSeed);resetGeneratedActors();money=1280;earned=0;rep=50;moneyEl.textContent="$"+money.toLocaleString();setHotelTask("Guest waiting at reception");
   px=GENERATED_POINTS.reception.x;py=GENERATED_POINTS.reception.y;camera.x=px;camera.y=py;
   playing=true;guest.style.display="block";
   hint.classList.add("show");setTimeout(()=>hint.classList.remove("show"),3500);
