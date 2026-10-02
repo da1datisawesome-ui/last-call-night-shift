@@ -407,12 +407,20 @@ world.addEventListener("pointercancel",()=>{touchDrag=false});
 
 window.beginGame=function(){
  if(playing)return;
- levelSeed=(Date.now()>>>0)^Math.floor(Math.random()*0xffffffff);
- buildLevel(levelSeed);resetGeneratedActors();
- px=GENERATED_POINTS.reception.x;py=GENERATED_POINTS.reception.y;camera.x=px;camera.y=py;
- playing=true;document.getElementById("title").style.display="none";guest.style.display="block";
- hint.classList.add("show");setTimeout(()=>hint.classList.remove("show"),3500);
- startAudio();positionActors();updateWorld();requestAnimationFrame(loop);
+ const title=document.getElementById("title");
+ title.style.display="none";title.style.visibility="hidden";title.style.pointerEvents="none";
+ try{
+  levelSeed=(Date.now()>>>0)^Math.floor(Math.random()*0xffffffff);
+  buildLevel(levelSeed);resetGeneratedActors();
+  px=GENERATED_POINTS.reception.x;py=GENERATED_POINTS.reception.y;camera.x=px;camera.y=py;
+  playing=true;guest.style.display="block";
+  hint.classList.add("show");setTimeout(()=>hint.classList.remove("show"),3500);
+  startAudio();positionActors();updateWorld();requestAnimationFrame(loop);
+ }catch(err){
+  playing=false;title.style.display="none";title.style.visibility="hidden";title.style.pointerEvents="none";
+  showToast("Startup error: "+(err&&err.message?err.message:"unknown"));
+  console.error("Last Call startup error",err);
+ }
 }
 addEventListener("lastcall-play",()=>{if(typeof window.beginGame==="function")window.beginGame()});
 document.getElementById("sound").onclick=toggleAudio;
