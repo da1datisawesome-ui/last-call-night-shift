@@ -6,7 +6,7 @@
 <title>Last Call: Night Shift</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#081a2b;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#fff;touch-action:none}button{font:inherit;border:0;cursor:pointer}.app{position:fixed;inset:0;background:#081a2b}.game{position:absolute;inset:0;overflow:hidden}.scene{position:absolute;inset:0;overflow:hidden}.scene #world{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0;will-change:transform}.hud{position:absolute;z-index:20;inset:0;pointer-events:none}.topbar{position:absolute;top:max(10px,env(safe-area-inset-top));left:12px;right:12px;display:flex;align-items:center;gap:8px}.pill{background:#09253bdd;border:1px solid #ffffff26;border-radius:15px;padding:9px 13px;box-shadow:0 5px 20px #0005;font-weight:800}.money{font-size:18px}.task{flex:1;text-align:center;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.menuBtn,.soundBtn{pointer-events:auto;background:#092f4eea;color:#fff;border:1px solid #ffffff2e;border-radius:15px;padding:10px 14px;font-weight:900}.soundBtn{width:46px;padding:10px}.bottom{position:absolute;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:8px}.hint{background:#071827df;border:1px solid #ffffff24;border-radius:14px;padding:8px 13px;font-size:13px;opacity:0;transition:.25s}.hint.show{opacity:1}.actor{position:absolute;width:108px;height:150px;z-index:10;transform:translate(-50%,-100%);pointer-events:none}.npcActor{z-index:11}.playerActor{z-index:14}.npcActor .name{opacity:.9}
-@keyframes actorIdle{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-2px)}}
+@keyframes actorIdle{0%,100%{transform:translateX(-50%) translateY(0) rotate(0deg)}25%{transform:translateX(-50%) translateY(-3px) rotate(-1deg)}50%{transform:translateX(-50%) translateY(-5px) rotate(0deg)}75%{transform:translateX(-50%) translateY(-3px) rotate(1deg)}}
 @keyframes actorWalk{0%,100%{transform:translateX(-50%) translateY(0) rotate(-1deg)}50%{transform:translateX(-50%) translateY(-5px) rotate(1deg)}}
 .actor .sprite{position:absolute;left:50%;bottom:4px;transform:translateX(-50%);width:100px;height:129px;background-repeat:no-repeat;background-position:center bottom;background-size:100% 100%;display:block;visibility:visible;animation:actorIdle 1.8s ease-in-out infinite;transform-origin:50% 100%}
 .actor.walking .sprite{animation:actorWalk .42s ease-in-out infinite}
@@ -131,7 +131,8 @@ function buildLevel(seed){
 }
 buildLevel(Date.now()>>>0);
 const player=document.getElementById("player"),guest=document.getElementById("guest"),porterNpc=document.getElementById("porterNpc"),cleanerNpc=document.getElementById("cleanerNpc"),maintenanceNpc=document.getElementById("maintenanceNpc"),receptionNpc=document.getElementById("receptionNpc"),loungeNpc1=document.getElementById("loungeNpc1"),loungeNpc2=document.getElementById("loungeNpc2"),interact=document.getElementById("interact");
-interact.addEventListener("pointerup",e=>{e.preventDefault();e.stopPropagation();interactAt(px,py)});
+interact.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();});
+interact.addEventListener("pointerup",e=>{e.preventDefault();e.stopPropagation();interactAt(px,py);})
 const moneyEl=document.getElementById("money"),taskEl=document.getElementById("task"),toast=document.getElementById("toast"),hint=document.getElementById("hint");
 const music=document.getElementById("music"),ambience=document.getElementById("ambience"),step=document.getElementById("step");
 let W=0,H=0,playing=false,role="Receptionist",money=1280,rep=50,audioOn=true,px=.582,py=.527,gx=.60,gy=.34,drag=false,target=null,pendingInteraction=null,lastStep=0;
@@ -426,17 +427,18 @@ world.addEventListener("pointermove",e=>{
  const maxWorldStep=0.020*(dt/16.67);
  const wx=Math.max(-maxWorldStep,Math.min(maxWorldStep,dx/(zoom*worldW)));
  const wy=Math.max(-maxWorldStep,Math.min(maxWorldStep,dy/(zoom*worldH)));
- if(wx||wy){moveClamped(px+wx,py+wy);positionActors();}
+ if(wx||wy){player.classList.add("walking");moveClamped(px+wx,py+wy);positionActors();}
 });
 world.addEventListener("pointerup",e=>{
  if(!touchDrag)return;
+ player.classList.remove("walking");
  touchDrag=false;
  if(!touchMoved){
   const p=screenToWorld(pointer(e)),q=nearestInteractable(p.x,p.y);
   if(q)interactAt(q.x,q.y);
  }
 });
-world.addEventListener("pointercancel",()=>{touchDrag=false});
+world.addEventListener("pointercancel",()=>{touchDrag=false;player.classList.remove("walking")});
 
 window.beginGame=function(){
  if(playing)return;
