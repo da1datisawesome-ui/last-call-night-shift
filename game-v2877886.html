@@ -28,7 +28,7 @@
 </div>
 <div id="toast" class="toast"></div>
 </div>
-<div id="title" class="title"><div class="titleBox"><h1>LAST CALL:<br>NIGHT SHIFT</h1><p>Run the hotel. Help the guests. Build your business.</p><button class="btn" id="play" type="button" onclick="if(window.beginGame){window.beginGame()}else{window.dispatchEvent(new Event('lastcall-play'))}">▶ PLAY / CONTINUE</button><button class="btn alt" id="titleSettings">⚙ SETTINGS</button></div></div>
+<div id="title" class="title"><div class="titleBox"><h1>LAST CALL:<br>NIGHT SHIFT</h1><p>Run the hotel. Help the guests. Build your business.</p><button class="btn" id="play" type="button">▶ PLAY / CONTINUE</button><button class="btn alt" id="titleSettings">⚙ SETTINGS</button></div></div>
 <div id="panel" class="panel"><div class="card" id="panelCard"></div></div>
 <audio id="music" loop preload="auto" src="https://last-call-night-shift.floot.app/_cdn/static/1c1dd8ce-104a-4dc4-b3e9-c89171f5de53-night_shift_original_lounge.wav"></audio>
 <audio id="ambience" loop preload="auto" src="https://last-call-night-shift.floot.app/_cdn/static/7e62d859-056a-4703-96ae-de301a38dd92-night_shift_hotel_ambience.wav"></audio>
@@ -506,23 +506,42 @@ world.addEventListener("pointerup",e=>{
 world.addEventListener("pointercancel",()=>{touchDrag=false;player.classList.remove("walking")});
 
 window.beginGame=function(){
- if(playing)return;
- const title=document.getElementById("title");
- title.style.display="none";title.style.visibility="hidden";title.style.pointerEvents="none";
+ if(playing)return true;
+ const title=document.getElementById("title"),playBtn=document.getElementById("play");
+ if(playBtn){playBtn.disabled=true;playBtn.textContent="LOADING SHIFT…";}
  try{
   levelSeed=(Date.now()>>>0)^Math.floor(Math.random()*0xffffffff);
-  buildLevel(levelSeed);resetGeneratedActors();money=1280;earned=0;rep=50;moneyEl.textContent="$"+money.toLocaleString();setHotelTask("Guest waiting at reception");
-  px=GENERATED_POINTS.reception.x;py=GENERATED_POINTS.reception.y;camera.x=px;camera.y=py;
-  playing=true;guest.style.display="block";
+  buildLevel(levelSeed);
+  resetGeneratedActors();
+  money=1280;earned=0;rep=50;occupiedRooms=0;checkIns=0;carrying=null;luggageState=null;
+  moneyEl.textContent="$1,280";
+  setHotelTask("Guest waiting at reception");
+  px=GENERATED_POINTS.reception.x;py=GENERATED_POINTS.reception.y;
+  camera.x=px;camera.y=py;
+  playing=true;
+  positionActors();
+  updateWorld();
+  title.style.display="none";title.style.visibility="hidden";title.style.pointerEvents="none";
   hint.classList.add("show");setTimeout(()=>hint.classList.remove("show"),3500);
-  startAudio();positionActors();updateWorld();requestAnimationFrame(loop);
+  startAudio();
+  requestAnimationFrame(loop);
+  return true;
  }catch(err){
-  playing=false;title.style.display="none";title.style.visibility="hidden";title.style.pointerEvents="none";
-  showToast("Startup error: "+(err&&err.message?err.message:"unknown"));
+  playing=false;
+  if(playBtn){playBtn.disabled=false;playBtn.textContent="▶ PLAY / CONTINUE";}
+  title.style.display="flex";title.style.visibility="visible";title.style.pointerEvents="auto";
   console.error("Last Call startup error",err);
+  showToast("Startup error: "+(err&&err.message?err.message:"unknown"));
+  return false;
  }
 }
-addEventListener("lastcall-play",()=>{if(typeof window.beginGame==="function")window.beginGame()});
+const playButton=document.getElementById("play");
+if(playButton&&!playButton.dataset.startWired){
+ playButton.dataset.startWired="1";
+ const startFromTitle=e=>{e.preventDefault();e.stopPropagation();window.beginGame();};
+ playButton.addEventListener("click",startFromTitle);
+ playButton.addEventListener("pointerup",startFromTitle);
+}
 document.getElementById("sound").onclick=toggleAudio;
 function openPanel(type){
  const panel=document.getElementById("panel"),card=document.getElementById("panelCard");panel.style.display="flex";
