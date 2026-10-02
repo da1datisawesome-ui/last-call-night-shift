@@ -528,13 +528,20 @@ function deliverLuggage(rm){
  if(!carrying||carrying!=="luggage"||!luggageState||luggageState.room!==rm.id)return false;
  const g=rm.guest;carrying=null;removeLuggage();
  g.status="walkingToRoom";
- const rp=roomPoint(rm),roomX=rp.x,corridorY=.55,doorY=(rm.y-28)/ART_H;
+ const rp=roomPoint(rm),roomX=rp.x;
+ // Follow the physical reception exit, central corridor, and each room's bottom doorway.
+ const receptionDoorX=(70+350-18)/ART_W;
+ const receptionDoorY=(650+60)/ART_H;
+ const corridorY=(455+45)/ART_H;
+ const roomDoorY=(rm.y+rm.h-28)/ART_H;
  g.npc.x=GENERATED_POINTS.guest.x;g.npc.y=GENERATED_POINTS.guest.y;
  g.npc.path=[
   {x:g.npc.x,y:g.npc.y},
-  {x:g.npc.x,y:corridorY},
+  {x:receptionDoorX,y:g.npc.y},
+  {x:receptionDoorX,y:receptionDoorY},
+  {x:receptionDoorX,y:corridorY},
   {x:roomX,y:corridorY},
-  {x:roomX,y:Math.min(corridorY,doorY)},
+  {x:roomX,y:roomDoorY},
   {x:rp.x,y:rp.y}
  ];
  g.npc.ri=1;g.npc.route=null;g.npc.el.style.display="block";g.npc.el.classList.add("walking");
