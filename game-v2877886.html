@@ -307,28 +307,36 @@ function blocked(x,y){
  );
 }
 function moveClamped(nx,ny){
- nx=Math.max(.04,Math.min(.96,nx));
- ny=Math.max(.08,Math.min(.92,ny));
- // Recover if procedural furniture ever leaves the player slightly inside a collider.
+ nx=Math.max(.04,Math.min(.96,nx));ny=Math.max(.08,Math.min(.92,ny));
+ // Recover from an accidental furniture overlap first.
  if(blocked(px,py)){
-   const sx=px,sy=py;
-   for(let radius=.006;radius<=.08;radius+=.006){
-     let found=false;
-     for(let a=0;a<Math.PI*2;a+=Math.PI/8){
-       const tx=Math.max(.04,Math.min(.96,sx+Math.cos(a)*radius));
-       const ty=Math.max(.08,Math.min(.92,sy+Math.sin(a)*radius));
-       if(!blocked(tx,ty)){px=tx;py=ty;found=true;break}
+   let recovered=false;
+   for(let radius=.004;radius<=.10&&!recovered;radius+=.004){
+     for(let a=0;a<Math.PI*2;a+=Math.PI/12){
+       const tx=Math.max(.04,Math.min(.96,px+Math.cos(a)*radius));
+       const ty=Math.max(.08,Math.min(.92,py+Math.sin(a)*radius));
+       if(!blocked(tx,ty)){px=tx;py=ty;recovered=true;break}
      }
-     if(found)break;
    }
  }
- // Test the requested destination and then resolve each axis separately.
- const oldX=px,oldY=py;
- if(!blocked(nx,ny)){px=nx;py=ny;return true}
- let moved=false;
- if(!blocked(nx,oldY)){px=nx;moved=true}
- if(!blocked(px,ny)){py=ny;moved=true}
- return moved;
+ const sx=px,sy=py,dx=nx-sx,dy=ny-sy;
+ const distance=Math.hypot(dx,dy);
+ if(distance<.00001)return false;
+ // Sweep in small increments instead of testing only the final destination.
+ // This makes touch dragging physically move the actor until the first real obstacle.
+ const steps=Math.max(1,Math.ceil(distance/.0025));
+ let lx=sx,ly=sy,moved=false;
+ for(let i=1;i<=steps;i++){
+   const t=i/steps,tx=sx+dx*t,ty=sy+dy*t;
+   if(blocked(tx,ty))break;
+   lx=tx;ly=ty;moved=true;
+ }
+ if(moved){px=lx;py=ly;return true}
+ // If diagonal motion is blocked, slide along either open axis.
+ let ax=sx+dx,ay=sy, bx=sx,by=sy+dy;
+ if(!blocked(ax,ay)){px=ax;py=ay;return true}
+ if(!blocked(bx,by)){px=bx;py=by;return true}
+ return false;
 }
 function canReach(x,y){
  // Check the whole approach, not just the destination.
@@ -411,11 +419,11 @@ function canReachFrom(a,b){
 const npcs=[
  {el:guest,role:"Guest1",x:.2,y:.2,path:[],i:0,t:0,speed:.00032},{el:porterNpc,role:"Porter",x:.2,y:.2,path:[],i:0,t:0,speed:.00024},{el:cleanerNpc,role:"Cleaner",x:.2,y:.2,path:[],i:0,t:0,speed:.00022},{el:maintenanceNpc,role:"Maintenance",x:.2,y:.2,path:[],i:0,t:0,speed:.0002},{el:receptionNpc,role:"Receptionist",x:.2,y:.2,path:[],i:0,t:0,speed:.00016},{el:loungeNpc1,role:"Guest2",x:.2,y:.2,path:[],i:0,t:0,speed:.00014},{el:loungeNpc2,role:"Guest3",x:.2,y:.2,path:[],i:0,t:0,speed:.00013}
 ];
-const hotelGuests=npcs.filter((n,i)=>i===0||i===5||i===6).map((n,i)=>({npc:n,id:i+1,status:i===0?"waiting":"idle",room:null,serviceRequested:false,serviceDone:false}));
+const hotelGuests=npcs.filter((n,i)=>i===0||i===5||i===6).map((n,i)=>({npc:n,id:i+1,status:i===0?"waiting":"idle",room:null,serviceRequested:false,serviceDone:false,name:["Alex","Jordan","Taylor"][i],roleLabel:["Guest A","Guest B","Guest C"][i]}));
 function updateRoomMarker(i){const rm=guestRooms[i],el=rm.marker;if(!el)return;const label=rm.state==="occupied"?"OCCUPIED":rm.state==="dirty"?"DIRTY":rm.state==="reserved"?"READY":"AVAILABLE";el.className="roomStatus "+rm.state;el.textContent="ROOM "+rm.id+" • "+label}
 function roomPoint(rm){return GENERATED_POINTS["room"+rm.id]}
 function firstAvailableRoom(){return guestRooms.find(r=>r.state==="available")}
-function spawnWaitingGuest(){const g=hotelGuests.find(h=>h.status==="idle");if(!g||!firstAvailableRoom())return;g.status="waiting";g.room=null;g.serviceRequested=false;g.serviceDone=false;g.npc.x=GENERATED_POINTS.guest.x;g.npc.y=GENERATED_POINTS.guest.y;g.npc.path=[[g.npc.x,g.npc.y],[g.npc.x,g.npc.y]];g.npc.route=null;g.npc.i=0;g.npc.ri=1;g.npc.el.style.display="block";g.npc.el.classList.remove("walking");taskState="waiting";taskEl.textContent="Guest waiting at reception"}
+function spawnWaitingGuest(){const g=hotelGuests.find(h=>h.status==="idle");if(!g||!firstAvailableRoom())return;g.status="waiting";g.room=null;g.serviceRequested=false;g.serviceDone=false;g.npc.x=GENERATED_POINTS.guest.x;g.npc.y=GENERATED_POINTS.guest.y;g.npc.path=[[g.npc.x,g.npc.y],[g.npc.x,g.npc.y]];g.npc.route=null;g.npc.i=0;g.npc.ri=1;g.npc.el.style.display="block";g.npc.el.classList.remove("walking");g.npc.el.dataset.guestId=g.id;taskState="waiting";taskEl.textContent=g.name+" ("+g.roleLabel+") waiting at reception"}
 function resetGeneratedActors(){
  const p=GENERATED_POINTS;
  npcs.forEach(n=>{n.x=p.guest.x;n.y=p.guest.y;n.path=[[n.x,n.y],[n.x,n.y]];n.i=0;n.route=null;n.ri=1;n.el.style.display="none";n.el.classList.remove("walking")});
@@ -427,6 +435,7 @@ for(const n of npcs){
  n.el.querySelector(".sprite").style.backgroundImage='url("'+SPRITES[n.role]+'")';n.el.querySelector(".sprite").style.backgroundSize="100% 100%";
  n.route=null;n.ri=1;
 }
+hotelGuests.forEach(g=>{const nameEl=g.npc.el.querySelector(".name");if(nameEl)nameEl.textContent=g.roleLabel+" • "+g.name;});
 function positionActors(){
  player.style.left=(px*100)+"%";player.style.top=(py*100)+"%";player.querySelector(".sprite").style.backgroundSize="100% 100%";const cb=player.querySelector(".carryBadge");if(cb)cb.style.display=carrying?"block":"none";
  for(const n of npcs){n.el.style.left=(n.x*100)+"%";n.el.style.top=(n.y*100)+"%";}
