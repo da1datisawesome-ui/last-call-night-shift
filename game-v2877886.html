@@ -270,12 +270,12 @@ function resetGeneratedActors(){
  gx=p.guest.x;gy=p.guest.y;guest.style.display="block";
 }
 for(const n of npcs){
- n.el.querySelector(".sprite").style.backgroundImage="url(\\"" + SPRITES[n.role] + "\\")";n.el.querySelector(".sprite").style.backgroundSize="100% 100%";
+ n.el.querySelector(".sprite").style.backgroundImage='url("'+SPRITES[n.role]+'")';n.el.querySelector(".sprite").style.backgroundSize="100% 100%";
  n.route=null;n.ri=1;
 }
 function positionActors(){
  player.style.left=(px*100)+"%";player.style.top=(py*100)+"%";
- player.querySelector(".sprite").style.backgroundImage="url(\\"" + SPRITES[role] + "\\")";player.querySelector(".sprite").style.backgroundSize="100% 100%";
+ player.querySelector(".sprite").style.backgroundImage='url("'+SPRITES[role]+'")';player.querySelector(".sprite").style.backgroundSize="100% 100%";
  for(const n of npcs){n.el.style.left=(n.x*100)+"%";n.el.style.top=(n.y*100)+"%";}
 }
 function updateNpcs(){
