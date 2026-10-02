@@ -689,7 +689,7 @@ function stopPad(){padDX=0;padDY=0;if(padTimer){clearInterval(padTimer);padTimer
 function startPad(btn){
  stopPad();
  padDX=Number(btn.dataset.dx||0);padDY=Number(btn.dataset.dy||0);
- const step=()=>{if(!playing)return;player.classList.add("walking");moveClamped(px+padDX*.012,py+padDY*.012);positionActors();};
+ const step=()=>{if(!playing)return;player.classList.add("walking");if(moveClamped(px+padDX*.012,py+padDY*.012))playStepSound();positionActors();};
  step();padTimer=setInterval(step,35);
 }
 moveButtons.forEach(btn=>{
