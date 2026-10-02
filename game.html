@@ -95,11 +95,25 @@ function hit(x,y){return x>.42&&x<.58&&y>.36&&y<.60}
 function interactAt(x,y){
  if(Math.hypot(x-gx,y-gy)<.12 && role==="Receptionist"){money+=20;rep++;moneyEl.textContent="$"+money.toLocaleString();taskEl.textContent="Guest checked in ✓";showToast("+$20  Guest checked in");guest.style.display="none";setTimeout(()=>{gx=.62;gy=.37;guest.style.display="block";taskEl.textContent="New guest waiting at reception"},1300);return}
  const jobs=[["Kitchen",.74,.73,35],["Housekeeping",.82,.70,30],["Maintenance",.72,.76,45]];
- for(const [name,jx,jy,reward] of jobs)if(Math.hypot(x-jx,y-jy)<.12){money+=reward;moneyEl.textContent="$"+money.toLocaleString();showToast(name+" job complete  +$"+reward);return}
+ for(const [name,jx,jy,reward] of jobs)if(Math.hypot(x-jx,y-jy)<.12){
+   money+=reward;moneyEl.textContent="$"+money.toLocaleString();taskEl.textContent=name+" job complete ✓";showToast(name+" job complete  +$"+reward);
+   setTimeout(()=>{if(playing)setTask()},1400);return;
+ }
+ showToast("Nothing to interact with here");
 }
 function pointer(e){
  const r=cvs.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height}
 }
+function nudge(dx,dy){if(!playing)return;moveClamped(px+dx,py+dy);positionActors()}
+addEventListener("keydown",e=>{
+ if(!playing)return;
+ const k=e.key.toLowerCase(),stepSize=.018;
+ if(["arrowup","w"].includes(k)){e.preventDefault();nudge(0,-stepSize)}
+ if(["arrowdown","s"].includes(k)){e.preventDefault();nudge(0,stepSize)}
+ if(["arrowleft","a"].includes(k)){e.preventDefault();nudge(-stepSize,0)}
+ if(["arrowright","d"].includes(k)){e.preventDefault();nudge(stepSize,0)}
+ if(k==="e")interactAt(px,py);
+});
 function screenToWorld(p){return{x:camera.x+(p.x-.5),y:camera.y+(p.y-.5)}}
 cvs.addEventListener("pointerdown",e=>{if(!playing)return;drag=true;target=screenToWorld(pointer(e));walkTo(target.x,target.y)});
 cvs.addEventListener("pointermove",e=>{if(drag){const p=screenToWorld(pointer(e));walkTo(p.x,p.y)}});addEventListener("pointerup",()=>drag=false);
