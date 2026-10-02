@@ -35,6 +35,20 @@
 <audio id="step" preload="auto" src="https://last-call-night-shift.floot.app/_cdn/static/b8e46b68-9746-4123-9dc6-0eeaefe33b85-hotel_footstep.wav"></audio>
 <script>
 (function(){
+ window.addEventListener("error",function(e){
+   const t=document.getElementById("title");
+   if(t&&t.style.display!=="none"){
+     const p=t.querySelector(".titleBox p");
+     if(p){p.textContent="STARTUP ERROR: "+(e.message||"JavaScript initialization failed")+" — tap PLAY again after the fix.";p.style.color="#ffb4b4";}
+   }
+   console.error("Last Call global error",e.message,e.filename,e.lineno,e.colno);
+ });
+ window.addEventListener("unhandledrejection",function(e){
+   const msg=e.reason&&e.reason.message?e.reason.message:String(e.reason);
+   const t=document.getElementById("title"),p=t&&t.querySelector(".titleBox p");
+   if(p){p.textContent="STARTUP ERROR: "+msg;p.style.color="#ffb4b4";}
+   console.error("Last Call unhandled rejection",e.reason);
+ });
  function wireTitle(){
    const play=document.getElementById("play"),settings=document.getElementById("titleSettings");
    if(play&&!play.dataset.wired){
