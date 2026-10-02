@@ -528,8 +528,8 @@ function deliverLuggage(rm){
  if(!carrying||carrying!=="luggage"||!luggageState||luggageState.room!==rm.id)return false;
  const g=rm.guest;carrying=null;removeLuggage();
  g.status="walkingToRoom";
- const rp=roomPoint(rm),roomX=rp.x;
- // Follow the physical reception exit, central corridor, and each room's bottom doorway.
+ const rp=roomPoint(rm),roomX=(rm.x+rm.w/2)/ART_W;
+ // Follow the physical reception exit, central corridor, and the exact center of each room doorway.
  const receptionDoorX=(70+350-18)/ART_W;
  const receptionDoorY=(650+60)/ART_H;
  const corridorY=(455+45)/ART_H;
