@@ -358,7 +358,8 @@ function interactAt(x,y){
  return false;
 }
 function pointer(e){
- const r=world.parentElement.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}
+ const r=world.parentElement.getBoundingClientRect();
+ return{x:e.clientX-r.left,y:e.clientY-r.top};
 }
 function nudge(dx,dy){if(!playing)return;moveClamped(px+dx,py+dy);positionActors()}
 addEventListener("keydown",e=>{
@@ -376,10 +377,34 @@ function screenToWorld(p){
   y:Math.max(0,Math.min(1,((p.y-worldTransform.y)/worldTransform.zoom-worldTop)/worldH))
  }
 }
-world.addEventListener("pointerdown",e=>{if(!playing)return;drag=true;target=screenToWorld(pointer(e));walkTo(target.x,target.y);world.setPointerCapture?.(e.pointerId)});
-world.addEventListener("pointermove",e=>{if(drag){const p=screenToWorld(pointer(e));walkTo(p.x,p.y)}});
-addEventListener("pointerup",()=>drag=false);
-world.addEventListener("click",e=>{if(!playing)return;const p=screenToWorld(pointer(e));const q=nearestInteractable(p.x,p.y);if(q){pendingInteraction=q;walkTo(q.x,q.y,()=>{if(pendingInteraction===q){interactAt(q.x,q.y);pendingInteraction=null}})}else{pendingInteraction=null;walkTo(p.x,p.y)}});
+let touchDrag=false,touchLastX=0,touchLastY=0,touchMoved=false,touchLastTime=0;
+world.addEventListener("pointerdown",e=>{
+ if(!playing)return;
+ touchDrag=true;touchMoved=false;touchLastX=e.clientX;touchLastY=e.clientY;touchLastTime=performance.now();
+ world.setPointerCapture?.(e.pointerId);
+});
+world.addEventListener("pointermove",e=>{
+ if(!playing||!touchDrag)return;
+ const now=performance.now(),dt=Math.max(8,Math.min(50,now-touchLastTime));
+ let dx=e.clientX-touchLastX,dy=e.clientY-touchLastY;
+ touchLastX=e.clientX;touchLastY=e.clientY;touchLastTime=now;
+ if(Math.abs(dx)+Math.abs(dy)>1)touchMoved=true;
+ const zoom=worldTransform.zoom||1;
+ const maxWorldStep=0.020*(dt/16.67);
+ const wx=Math.max(-maxWorldStep,Math.min(maxWorldStep,dx/(zoom*worldW)));
+ const wy=Math.max(-maxWorldStep,Math.min(maxWorldStep,dy/(zoom*worldH)));
+ if(wx||wy){moveClamped(px+wx,py+wy);positionActors();}
+});
+world.addEventListener("pointerup",e=>{
+ if(!touchDrag)return;
+ touchDrag=false;
+ if(!touchMoved){
+  const p=screenToWorld(pointer(e)),q=nearestInteractable(p.x,p.y);
+  if(q)interactAt(q.x,q.y);
+ }
+});
+world.addEventListener("pointercancel",()=>{touchDrag=false});
+
 window.beginGame=function(){
  if(playing)return;
  levelSeed=(Date.now()>>>0)^Math.floor(Math.random()*0xffffffff);
