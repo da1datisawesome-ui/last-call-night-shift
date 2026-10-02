@@ -22,7 +22,7 @@
 </div>
 <div id="toast" class="toast"></div>
 </div>
-<div id="title" class="title"><div class="titleBox"><h1>LAST CALL:<br>NIGHT SHIFT</h1><p>Run the hotel. Help the guests. Build your business.</p><button class="btn" id="play">▶ PLAY / CONTINUE</button><button class="btn alt" id="titleSettings">⚙ SETTINGS</button></div></div>
+<div id="title" class="title"><div class="titleBox"><h1>LAST CALL:<br>NIGHT SHIFT</h1><p>Run the hotel. Help the guests. Build your business.</p><button class="btn" id="play" type="button" onclick="if(window.beginGame){window.beginGame()}else{window.dispatchEvent(new Event('lastcall-play'))}">▶ PLAY / CONTINUE</button><button class="btn alt" id="titleSettings">⚙ SETTINGS</button></div></div>
 <div id="panel" class="panel"><div class="card" id="panelCard"></div></div>
 <audio id="music" loop preload="auto" src="https://last-call-night-shift.floot.app/_cdn/static/1c1dd8ce-104a-4dc4-b3e9-c89171f5de53-night_shift_original_lounge.wav"></audio>
 <audio id="ambience" loop preload="auto" src="https://last-call-night-shift.floot.app/_cdn/static/7e62d859-056a-4703-96ae-de301a38dd92-night_shift_hotel_ambience.wav"></audio>
@@ -37,6 +37,10 @@
        e.preventDefault(); e.stopPropagation();
        if(typeof window.beginGame==="function"){ window.beginGame(); }
        else { window.dispatchEvent(new Event("lastcall-play")); }
+     });
+     play.addEventListener("pointerup",function(e){
+       e.preventDefault(); e.stopPropagation();
+       if(typeof window.beginGame==="function"){ window.beginGame(); }
      });
    }
    if(settings&&!settings.dataset.wired){
@@ -389,7 +393,7 @@ window.beginGame=function(){
  hint.classList.add("show");setTimeout(()=>hint.classList.remove("show"),3500);
  startAudio();positionActors();updateWorld();requestAnimationFrame(loop);
 }
-addEventListener("lastcall-play",beginGame);
+addEventListener("lastcall-play",()=>{if(typeof window.beginGame==="function")window.beginGame()});
 document.getElementById("sound").onclick=toggleAudio;
 function openPanel(type){
  const panel=document.getElementById("panel"),card=document.getElementById("panelCard");panel.style.display="flex";
