@@ -128,7 +128,7 @@ world.addEventListener("pointerdown",e=>{if(!playing)return;drag=true;target=scr
 world.addEventListener("pointermove",e=>{if(drag){const p=screenToWorld(pointer(e));walkTo(p.x,p.y)}});
 addEventListener("pointerup",()=>drag=false);
 world.addEventListener("click",e=>{if(!playing)return;const p=screenToWorld(pointer(e));interactAt(p.x,p.y)});
-document.getElementById("play").onclick=()=>{playing=true;document.getElementById("title").style.display="none";guest.style.display="block";hint.classList.add("show");setTimeout(()=>hint.classList.remove("show"),3500);startAudio();positionActors();updateWorld();requestAnimationFrame(loop);draw()};
+document.getElementById("play").onclick=()=>{playing=true;document.getElementById("title").style.display="none";guest.style.display="block";hint.classList.add("show");setTimeout(()=>hint.classList.remove("show"),3500);startAudio();positionActors();updateWorld();requestAnimationFrame(loop)};
 document.getElementById("sound").onclick=toggleAudio;
 function openPanel(type){
  const panel=document.getElementById("panel"),card=document.getElementById("panelCard");panel.style.display="flex";
