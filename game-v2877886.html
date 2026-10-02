@@ -114,6 +114,7 @@ let levelSeed=0;
 const GENERATED_ROOMS=[];
 const GENERATED_POINTS={};
 function seeded(){levelSeed=(levelSeed*1664525+1013904223)>>>0;return levelSeed/4294967296;}
+const level=document.getElementById("level");
 function buildLevel(seed){
  level.innerHTML="";GENERATED_COLLIDERS.length=0;GENERATED_ROOMS.length=0;
  levelSeed=(seed>>>0)||((Date.now()>>>0)^Math.floor(Math.random()*0xffffffff));
