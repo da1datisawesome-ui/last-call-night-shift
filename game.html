@@ -143,7 +143,7 @@ function setActiveActor(role){
  const hireKey={Porter:'porter',Cleaner:'cleaner',Maintenance:'maintenance',Security:'security',NightManager:'manager'}[role];
  if(role!=='Receptionist'&&!state.hired[hireKey]){toast('Hire '+role+' first');$('#role').value=activeActor?.dataset.role||'Receptionist';return}
  $('#role').value=role;
- const target=role==='Receptionist'?$('#player'):$('.staffActor').find(a=>a.dataset.role===role);
+ const target=role==='Receptionist'?$('#player'):$$('.staffActor').find(a=>a.dataset.role===role);
  if(!target)return;
  if(activeActor&&activeActor!==target){activeActor.classList.remove('activeStaff');activeActor.classList.remove('walking')}
  activeActor=target;activeActor.classList.add('activeStaff');activeActor.innerHTML=finalAvatar(role)+'<span class="tag">'+(role==='Receptionist'?'YOU':role.toUpperCase())+'</span>';
