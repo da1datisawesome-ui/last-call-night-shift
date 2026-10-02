@@ -139,14 +139,82 @@ function moveClamped(nx,ny){
  return moved;
 }
 function canReach(x,y){
- // A destination is reachable only if it is clear and a few points along
- // the straight approach are also clear. This prevents interacting through walls.
- const sx=px,sy=py,steps=12;
+ // Check the whole approach, not just the destination.
+ const sx=px,sy=py,steps=Math.max(12,Math.ceil(Math.hypot(x-sx,y-sy)*80));
  for(let i=1;i<=steps;i++){
    const t=i/steps;
    if(blocked(sx+(x-sx)*t,sy+(y-sy)*t))return false;
  }
  return !blocked(x,y);
+}
+const PATH_COLS=42,PATH_ROWS=24;
+function cellPoint(c,r){
+ return {x:(c+.5)/PATH_COLS,y:(r+.5)/PATH_ROWS};
+}
+function cellBlocked(c,r){
+ if(c<0||r<0||c>=PATH_COLS||r>=PATH_ROWS)return true;
+ const p=cellPoint(c,r);
+ return blocked(p.x,p.y);
+}
+function nearestOpenCell(x,y){
+ let c=Math.max(0,Math.min(PATH_COLS-1,Math.floor(x*PATH_COLS)));
+ let r=Math.max(0,Math.min(PATH_ROWS-1,Math.floor(y*PATH_ROWS)));
+ if(!cellBlocked(c,r))return {c,r};
+ for(let radius=1;radius<8;radius++){
+   for(let yy=r-radius;yy<=r+radius;yy++)for(let xx=c-radius;xx<=c+radius;xx++){
+     if(Math.abs(xx-c)!==radius&&Math.abs(yy-r)!==radius)continue;
+     if(!cellBlocked(xx,yy))return {c:xx,r:yy};
+   }
+ }
+ return null;
+}
+function findPath(sx,sy,tx,ty){
+ const s=nearestOpenCell(sx,sy),g=nearestOpenCell(tx,ty);
+ if(!s||!g)return null;
+ const key=(c,r)=>r*PATH_COLS+c;
+ const open=[{c:s.c,r:s.r,f:0,g:0}];
+ const came=new Map(),cost=new Map([[key(s.c,s.r),0]]);
+ const dirs=[[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],[1,1,1.414],[1,-1,1.414],[-1,1,1.414],[-1,-1,1.414]];
+ while(open.length){
+   open.sort((a,b)=>a.f-b.f);
+   const cur=open.shift(),ck=key(cur.c,cur.r);
+   if(cur.c===g.c&&cur.r===g.r){
+     const cells=[{c:cur.c,r:cur.r}];
+     let k=ck;
+     while(came.has(k)){const p=came.get(k);cells.push(p);k=key(p.c,p.r)}
+     cells.reverse();
+     const pts=[{x:sx,y:sy}];
+     for(const q of cells.slice(1,-1)){const p=cellPoint(q.c,q.r);pts.push(p)}
+     pts.push({x:tx,y:ty});
+     // Remove unnecessary corners while retaining collision-safe straight runs.
+     const smooth=[pts[0]];
+     for(let i=1;i<pts.length;i++){
+       let advanced=true;
+       while(i+1<pts.length&&canReachFrom(smooth[smooth.length-1],pts[i+1]))i++;
+       smooth.push(pts[i]);
+     }
+     return smooth;
+   }
+   for(const [dc,dr,step] of dirs){
+     const nc=cur.c+dc,nr=cur.r+dr;
+     if(cellBlocked(nc,nr))continue;
+     if(dc&&dr&&(cellBlocked(cur.c+dc,cur.r)||cellBlocked(cur.c,cur.r+dr)))continue;
+     const ng=cur.g+step,nk=key(nc,nr);
+     if(ng>=(cost.get(nk)??Infinity))continue;
+     cost.set(nk,ng);came.set(nk,{c:cur.c,r:cur.r});
+     const h=Math.hypot(nc-g.c,nr-g.r);
+     open.push({c:nc,r:nr,g:ng,f:ng+h});
+   }
+ }
+ return null;
+}
+function canReachFrom(a,b){
+ const steps=Math.max(6,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)*80));
+ for(let i=1;i<=steps;i++){
+   const t=i/steps;
+   if(blocked(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t))return false;
+ }
+ return true;
 }
 const npcs=[
  {el:guest,role:"Guest1",x:.60,y:.34,path:[[.60,.34],[.57,.30],[.61,.34]],i:0,t:0,speed:.00032},
@@ -187,26 +255,24 @@ function startAudio(){if(!audioOn)return;music.volume=.34;ambience.volume=.2;Pro
 function toggleAudio(){audioOn=!audioOn;if(audioOn)startAudio();else{music.pause();ambience.pause()}document.getElementById("sound").textContent=audioOn?"🔊":"🔇"}
 function setTask(){taskEl.textContent=role==="Receptionist"?"Guest waiting at reception":role==="Porter"?"Collect luggage":"Complete your current hotel job"}
 function walkTo(x,y,onArrive=null){
- const startX=px,startY=py;
- if(!canReach(x,y)){
-   // Move toward the requested point until the first blocked segment, then stop.
-   let lo=0,hi=1;
-   for(let i=0;i<10;i++){
-     const mid=(lo+hi)/2;
-     if(canReach(startX+(x-startX)*mid,startY+(y-startY)*mid))lo=mid;else hi=mid;
-   }
-   x=startX+(x-startX)*Math.max(0,lo-.025);
-   y=startY+(y-startY)*Math.max(0,lo-.025);
- }
- const dx=x-px,dy=y-py,d=Math.hypot(dx,dy);if(d<.01){onArrive?.();return}
- const dur=Math.min(1100,Math.max(180,d*1200)),sx=px,sy=py,st=performance.now();player.classList.add("walking");
- const tick=now=>{
-   const t=Math.min(1,(now-st)/dur);
-   moveClamped(sx+(x-sx)*t,sy+(y-sy)*t);positionActors();
-   if(now-lastStep>260){lastStep=now;if(audioOn){step.currentTime=0;step.volume=.16;step.play().catch(()=>{})}}
-   if(t<1)requestAnimationFrame(tick);else{player.classList.remove("walking");onArrive?.()}
+ const path=findPath(px,py,x,y);
+ if(!path){showToast("That area is blocked");return}
+ let index=1;
+ player.classList.add("walking");
+ const nextSegment=()=>{
+   if(index>=path.length){player.classList.remove("walking");onArrive?.();return}
+   const dest=path[index++],sx=px,sy=py,dx=dest.x-sx,dy=dest.y-sy,d=Math.hypot(dx,dy);
+   if(d<.006){nextSegment();return}
+   const dur=Math.min(850,Math.max(120,d*1200)),st=performance.now();
+   const tick=now=>{
+     const t=Math.min(1,(now-st)/dur);
+     moveClamped(sx+(dest.x-sx)*t,sy+(dest.y-sy)*t);positionActors();
+     if(now-lastStep>260){lastStep=now;if(audioOn){step.currentTime=0;step.volume=.16;step.play().catch(()=>{})}}
+     if(t<1)requestAnimationFrame(tick);else nextSegment();
+   };
+   requestAnimationFrame(tick);
  };
- requestAnimationFrame(tick);
+ nextSegment();
 }
 function hit(x,y){return x>.42&&x<.58&&y>.36&&y<.60}
 const INTERACTABLES=[
