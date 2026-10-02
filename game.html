@@ -73,6 +73,7 @@ const SPRITES={
  Receptionist:spriteFor("receptionist"),Porter:spriteFor("porter"),Cleaner:spriteFor("cleaner"),Maintenance:spriteFor("maintenance"),
  Guest1:spriteFor("guest1"),Guest2:spriteFor("guest2"),Guest3:spriteFor("guest3"),Guest4:spriteFor("guest4")
 };
+const ART_W=1672,ART_H=940;
 const world=document.getElementById("world"),art=document.getElementById("art"),artCanvas=document.getElementById("artCanvas"),artCtx=artCanvas.getContext("2d"),artSource=document.createElement("canvas");
 artSource.width=ART_W;artSource.height=ART_H;
 const artSourceCtx=artSource.getContext("2d");
@@ -103,7 +104,6 @@ const moneyEl=document.getElementById("money"),taskEl=document.getElementById("t
 const music=document.getElementById("music"),ambience=document.getElementById("ambience"),step=document.getElementById("step");
 let W=0,H=0,playing=false,role="Receptionist",money=1280,rep=50,audioOn=true,px=.582,py=.527,gx=.60,gy=.34,drag=false,target=null,pendingInteraction=null,lastStep=0;
 let unlock={Receptionist:true,Porter:false,Cleaner:false,Maintenance:false};
-const ART_W=1672,ART_H=940;
 let worldW=0,worldH=0,worldLeft=0,worldTop=0;
 function resize(){
  W=innerWidth;H=innerHeight;
