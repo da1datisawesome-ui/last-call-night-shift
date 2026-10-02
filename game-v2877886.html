@@ -686,7 +686,7 @@ function pointer(e){
  return{x:e.clientX-r.left,y:e.clientY-r.top};
 }
 let lastStepSound=0;
-function playStepSound(){});
+function playStepSound(){}
 addEventListener("keyup",e=>{heldKeys.delete(e.key.toLowerCase())});
 addEventListener("blur",()=>heldKeys.clear());
 function screenToWorld(p){
