@@ -36,24 +36,18 @@
 <script>
 (function(){
  function wireTitle(){
-   const play=document.getElementById("play"),settings=document.getElementById("titleSettings"),title=document.getElementById("title");
+   const play=document.getElementById("play"),settings=document.getElementById("titleSettings");
    if(play&&!play.dataset.wired){
      play.dataset.wired="1";
      play.addEventListener("click",function(e){
        e.preventDefault(); e.stopPropagation();
-       if(typeof window.beginGame==="function"){ window.beginGame(); }
-       else { window.dispatchEvent(new Event("lastcall-play")); }
-     });
-     play.addEventListener("pointerup",function(e){
-       e.preventDefault(); e.stopPropagation();
-       if(typeof window.beginGame==="function"){ window.beginGame(); }
-     });
+       if(typeof window.beginGame==="function") window.beginGame();
+       else window.__lastCallStartQueued=true;
+     },{passive:false});
    }
    if(settings&&!settings.dataset.wired){
      settings.dataset.wired="1";
-     settings.addEventListener("click",function(){
-       window.dispatchEvent(new Event("lastcall-settings"));
-     });
+     settings.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();window.dispatchEvent(new Event("lastcall-settings"));},{passive:false});
    }
  }
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",wireTitle,{once:true});else wireTitle();
@@ -141,7 +135,6 @@ function buildLevel(seed){
  GENERATED_POINTS.reception=safe(reception,.5,.56);GENERATED_POINTS.guest=safe(reception,.5,.32);GENERATED_POINTS.room101=safe(GENERATED_ROOMS[2],.5,.56);GENERATED_POINTS.room102=safe(GENERATED_ROOMS[3],.5,.56);GENERATED_POINTS.room103=safe(GENERATED_ROOMS[4],.5,.56);GENERATED_POINTS.lounge=center(GENERATED_ROOMS[5]);GENERATED_POINTS.housekeeping=center(GENERATED_ROOMS[5]);GENERATED_POINTS.kitchen=center(GENERATED_ROOMS[6]);GENERATED_POINTS.maintenance=center(GENERATED_ROOMS[7]);GENERATED_POINTS.staff=center(GENERATED_ROOMS[8]);GENERATED_POINTS.garden=center(GENERATED_ROOMS[9]);GENERATED_POINTS.conference=center(GENERATED_ROOMS[10]);GENERATED_POINTS.bar=center(GENERATED_ROOMS[11]);
  const roomNames=["ROOM 101","ROOM 102","ROOM 103"];[2,3,4].forEach((idx,i)=>{const rm=GENERATED_ROOMS[idx],el=document.createElement("div");el.className="roomStatus available";el.id="roomStatus"+i;el.style.left=(rm.x+rm.w*.18)+"px";el.style.top=(rm.y+rm.h*.12)+"px";el.textContent=roomNames[i]+" • AVAILABLE";level.appendChild(el)});
 }
-buildLevel(Date.now()>>>0);
 const player=document.getElementById("player"),guest=document.getElementById("guest"),porterNpc=document.getElementById("porterNpc"),cleanerNpc=document.getElementById("cleanerNpc"),maintenanceNpc=document.getElementById("maintenanceNpc"),receptionNpc=document.getElementById("receptionNpc"),loungeNpc1=document.getElementById("loungeNpc1"),loungeNpc2=document.getElementById("loungeNpc2"),interact=document.getElementById("interact");
 interact.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();});
 interact.addEventListener("pointerup",e=>{e.preventDefault();e.stopPropagation();interactAt(px,py);})
@@ -506,6 +499,7 @@ world.addEventListener("pointerup",e=>{
 });
 world.addEventListener("pointercancel",()=>{touchDrag=false;player.classList.remove("walking")});
 
+try{buildLevel(Date.now()>>>0)}catch(err){console.error("Initial level build failed",err)}
 window.beginGame=function(){
  if(playing)return true;
  const title=document.getElementById("title"),playBtn=document.getElementById("play");
@@ -536,13 +530,7 @@ window.beginGame=function(){
   return false;
  }
 }
-const playButton=document.getElementById("play");
-if(playButton&&!playButton.dataset.startWired){
- playButton.dataset.startWired="1";
- const startFromTitle=e=>{e.preventDefault();e.stopPropagation();window.beginGame();};
- playButton.addEventListener("click",startFromTitle);
- playButton.addEventListener("pointerup",startFromTitle);
-}
+if(window.__lastCallStartQueued)window.beginGame();
 document.getElementById("sound").onclick=toggleAudio;
 function openPanel(type){
  const panel=document.getElementById("panel"),card=document.getElementById("panelCard");panel.style.display="flex";
