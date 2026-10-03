@@ -225,11 +225,10 @@ function buildLevel(seed){
    door(rm.x+rm.w-18,rm.y+rm.h/2-45,28,90);
  });
  add("levelCounter",reception.x+55,reception.y+55,reception.w-110,70,"",true);
- add("levelDesk",reception.x+70,reception.y+185,150,65,"",true);
+ // Keep the central reception floor open. The counter remains the visual anchor,
+ // but no solid desk/table is allowed to choke the guest's route to the doorway.
  add("levelRug",reception.x+55,reception.y+285,reception.w-110,90);
  add("levelRug",reception.x+45,reception.y+125,reception.w-90,70);
- add("levelTable",reception.x+35,reception.y+255,90,72,"",true);
- add("levelTable",reception.x+reception.w-125,reception.y+255,90,72,"",true);
  roomSlots.forEach(rm=>{
    add("levelRug",rm.x+55,rm.y+175,rm.w-110,110);
    add("levelTable",rm.x+45,rm.y+225,90,64,"",true);
@@ -577,15 +576,18 @@ function deliverLuggage(rm){
  const roomEntryY=(rm.y<500 ? rm.y+rm.h+34 : rm.y-34)/ART_H;
  const roomFinalX=(rm.x+rm.w*.28)/ART_W;
  const roomFinalY=(rm.y+rm.h*.72)/ART_H;
- const path=[
-   // The reception desk occupies the straight line out of the guest spawn.
-   // Route around its right edge first, then use the open reception doorway.
+ const plannedPath=findPath(
+   GENERATED_POINTS.guest.x,GENERATED_POINTS.guest.y,
+   roomFinalX,roomFinalY
+ );
+ // Use the real collision map rather than a straight-line lobby route.
+ // If the planner ever fails, the fallback uses the deliberately wide
+ // reception doorway instead of cutting through furniture.
+ const path=plannedPath||[
    {x:GENERATED_POINTS.guest.x,y:GENERATED_POINTS.guest.y},
-   {x:(reception.x+reception.w-55)/ART_W,y:(reception.y+reception.h-115)/ART_H},
-   {x:(reception.x+reception.w-55)/ART_W,y:(reception.y+reception.h*.35)/ART_H},
-   {x:corridorEntryX,y:corridorEntryY},
-   // Once in the main corridor, travel along the corridor instead of cutting
-   // diagonally through furniture or room walls.
+   {x:(reception.x+reception.w-25)/ART_W,y:(reception.y+reception.h*.78)/ART_H},
+   {x:(reception.x+reception.w-25)/ART_W,y:(reception.y+reception.h*.50)/ART_H},
+   {x:(reception.x+reception.w+35)/ART_W,y:(reception.y+reception.h*.50)/ART_H},
    {x:roomEntryX,y:corridorEntryY},
    {x:roomEntryX,y:roomEntryY},
    {x:roomFinalX,y:roomEntryY},
@@ -609,7 +611,13 @@ function deliverLuggage(rm){
    const dx=target.x-g.npc.x,dy=target.y-g.npc.y,d=Math.hypot(dx,dy);
    const step=Math.min(d,.00115*dt/16.67);
    if(d<=.0002){g.npc.x=target.x;g.npc.y=target.y;segment++;if(segment>=path.length){finish();return}}
-   else{g.npc.x+=dx/d*step;g.npc.y+=dy/d*step}
+   else{
+     const nx=g.npc.x+dx/d*step,ny=g.npc.y+dy/d*step;
+     if(npcBlocked(nx,ny)){
+       const replanned=findPath(g.npc.x,g.npc.y,roomFinalX,roomFinalY);
+       if(replanned&&replanned.length>1){path.splice(0,path.length,...replanned);segment=1;}
+     }else{g.npc.x=nx;g.npc.y=ny}
+   }
    positionActors();
    requestAnimationFrame(tick);
  };
