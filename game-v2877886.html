@@ -490,22 +490,11 @@ function positionActors(){
  if(action){interact.style.display="block";interact.style.left=(action.x*100)+"%";interact.style.top=((action.y*100)-9)+"%";interact.textContent=action.label}else interact.style.display="none";
 }
 function updateNpcs(){
+ // Guest travel is intentionally NOT advanced here. A guest has one and only
+ // one movement owner: the motion timer created by deliverLuggage().
+ // This function is kept for the main render loop to update actor visuals.
  for(const g of hotelGuests){
-   if(g.status!=="walkingToRoom"||!g.npc.path)continue;
-   const n=g.npc, dest=n.path[n.ri];
-   if(!dest){n.el.classList.remove("walking");continue;}
-   const dx=dest.x-n.x,dy=dest.y-n.y,d=Math.hypot(dx,dy);
-   n.el.classList.add("walking");
-   if(d<0.00001){
-     n.x=dest.x;n.y=dest.y;n.ri++;
-   }else{
-     const step=Math.min(0.0026,d);
-     n.x+=dx/d*step;n.y+=dy/d*step;
-   }
-   if(n.ri>=n.path.length){
-     n.el.classList.remove("walking");
-     if(g.onRoomArrival){const cb=g.onRoomArrival;g.onRoomArrival=null;cb();}
-   }
+   if(g.status==="walkingToRoom")g.npc.el.classList.add("walking");
  }
 }
 function updateProgression(){
@@ -578,11 +567,8 @@ function deliverLuggage(rm){
  const roomFinalX=(rm.x+rm.w*.28)/ART_W;
  const roomFinalY=(rm.y+rm.h*.72)/ART_H;
 
- // One movement system only: updateNpcs() owns this route.
- // Keep the route deliberately simple and wide; there is no second rAF loop
- // competing with updateNpcs().
  const path=[
-   {x:GENERATED_POINTS.guest.x,y:GENERATED_POINTS.guest.y},
+   {x:g.npc.x,y:g.npc.y},
    {x:(reception.x+reception.w-25)/ART_W,y:(reception.y+reception.h*.82)/ART_H},
    {x:(reception.x+reception.w-25)/ART_W,y:(reception.y+reception.h*.50)/ART_H},
    {x:corridorEntryX,y:corridorEntryY},
@@ -592,22 +578,47 @@ function deliverLuggage(rm){
    {x:roomFinalX,y:roomFinalY}
  ];
 
- g.npc.x=path[0].x;
- g.npc.y=path[0].y;
+ if(g.motionTimer)clearInterval(g.motionTimer);
  g.npc.path=path;
  g.npc.ri=1;
  g.npc.el.style.display="block";
  g.npc.el.classList.add("walking");
- g.onRoomArrival=()=>{
+ g.onRoomArrival=null;
+
+ setHotelTask("Guest walking to Room "+rm.id);
+ showToast("Guest is heading to Room "+rm.id);
+
+ let last=performance.now();
+ const finish=()=>{
+   if(g.motionTimer){clearInterval(g.motionTimer);g.motionTimer=null;}
    g.npc.x=roomPoint(rm).x;
    g.npc.y=roomPoint(rm).y;
+   g.npc.ri=path.length;
    g.npc.el.classList.remove("walking");
    beginGuestStay(g,rm);
    setTimeout(()=>{if(playing&&g.status==="staying")spawnWaitingGuest()},650);
  };
 
- setHotelTask("Guest walking to Room "+rm.id);
- showToast("Guest is heading to Room "+rm.id);
+ g.motionTimer=setInterval(()=>{
+   if(!playing||g.status!=="walkingToRoom"){clearInterval(g.motionTimer);g.motionTimer=null;return;}
+   const now=performance.now();
+   const dt=Math.min(50,Math.max(12,now-last));
+   last=now;
+   const target=path[g.npc.ri];
+   if(!target){finish();return;}
+   const dx=target.x-g.npc.x,dy=target.y-g.npc.y,d=Math.hypot(dx,dy);
+   if(d<=0.0005){
+     g.npc.x=target.x;
+     g.npc.y=target.y;
+     g.npc.ri++;
+     if(g.npc.ri>=path.length){finish();return;}
+   }else{
+     const step=Math.min(d,0.00022*dt);
+     g.npc.x+=dx/d*step;
+     g.npc.y+=dy/d*step;
+   }
+   positionActors();
+ },16);
 
  setTimeout(()=>{
    if(!playing||g.status!=="staying")return;
