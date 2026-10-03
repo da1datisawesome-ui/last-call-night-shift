@@ -490,32 +490,25 @@ function positionActors(){
 function updateNpcs(){
  for(const n of npcs){
    const hg=hotelGuests.find(g=>g.npc===n);
-   if(hg){
-     if(hg.status!=="walkingToRoom"){n.el.classList.remove("walking");continue;}
-     const dest=n.path[n.ri];
-     if(!dest){n.el.classList.remove("walking");continue;}
-     const dx=dest.x-n.x,dy=dest.y-n.y,d=Math.hypot(dx,dy),step=.0026;
-     n.el.classList.add("walking");
-     if(d<=step){
-       n.x=dest.x;n.y=dest.y;n.ri++;
-       if(n.ri>=n.path.length){
-         n.el.classList.remove("walking");
-         if(hg.onRoomArrival){const cb=hg.onRoomArrival;hg.onRoomArrival=null;cb();}
-       }
-     }else{
-       const nx=n.x+dx/d*step,ny=n.y+dy/d*step;
-       if(!npcBlocked(nx,ny)){
-         n.x=nx;n.y=ny;
-       }else{
-         // Slide along an open axis instead of vibrating against furniture/walls.
-         const ax=n.x+dx/d*step,ay=n.y,bx=n.x,by=n.y+dy/d*step;
-         if(!npcBlocked(ax,ay))n.x=ax;
-         else if(!npcBlocked(bx,by))n.y=by;
-       }
+   if(!hg){n.el.classList.remove("walking");continue;}
+   if(hg.status!=="walkingToRoom"){n.el.classList.remove("walking");continue;}
+   const dest=n.path[n.ri];
+   if(!dest){n.el.classList.remove("walking");continue;}
+   const dx=dest.x-n.x,dy=dest.y-n.y,d=Math.hypot(dx,dy),step=.0026;
+   n.el.classList.add("walking");
+   if(d<=step){
+     n.x=dest.x;n.y=dest.y;n.ri++;
+     if(n.ri>=n.path.length){
+       n.el.classList.remove("walking");
+       if(hg.onRoomArrival){const cb=hg.onRoomArrival;hg.onRoomArrival=null;cb();}
      }
-     continue;
+   }else{
+     // Guest routes are pre-planned through the reception doorway, main corridor,
+     // and the unlocked room doorway. Do not run them through the furniture
+     // collision solver: that was causing the guest to vibrate at the doorway.
+     n.x+=dx/d*step;
+     n.y+=dy/d*step;
    }
-   n.el.classList.remove("walking");
  }
 }
 function updateProgression(){
