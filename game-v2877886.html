@@ -409,7 +409,7 @@ function spawnWaitingGuest(){const g=hotelGuests.find(h=>h.status==="idle");if(!
 function resetGeneratedActors(){
  const p=GENERATED_POINTS;
  npcs.forEach(n=>{n.x=p.guest.x;n.y=p.guest.y;n.path=[[n.x,n.y],[n.x,n.y]];n.i=0;n.route=null;n.ri=1;n.el.style.display="none";n.el.classList.remove("walking")});
- guestRooms.forEach((rm,i)=>{rm.state="available";rm.guest=null;rm.unlocked=i<3;rm.marker=document.getElementById("roomStatus"+i);updateRoomMarker(i)});upgradeRooms=0;roomCapacity=3;LOCKED_ROOM_BARRIERS.length=0;
+ guestRooms.forEach((rm,i)=>{rm.state="available";rm.guest=null;rm.unlocked=i<3;rm.marker=document.getElementById("roomStatus"+i);updateRoomMarker(i)});upgradeRooms=0;roomCapacity=3;
  hotelGuests.forEach((g,i)=>{g.status=i===0?"waiting":"idle";g.room=null;g.serviceRequested=false;g.serviceDone=false;g.npc.el.dataset.guestId=String(g.id);g.npc.el.style.display=i===0?"block":"none";g.npc.x=p.guest.x;g.npc.y=p.guest.y;g.npc.path=[[g.npc.x,g.npc.y],[g.npc.x,g.npc.y]]});
  occupiedRooms=0;checkIns=0;luggageState=null;carrying=null;serviceTarget=null;cleaningTarget=null;taskState="waiting";const cb=player.querySelector(".carryBadge");if(cb)cb.style.display="none";
 }
