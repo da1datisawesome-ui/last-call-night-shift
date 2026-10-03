@@ -32,13 +32,12 @@
 
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-import { RoomEnvironment } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/environments/RoomEnvironment.js";
 
 const ART={floor:"#6a4a34",wall:"#d8c6a9",wood:"#75421f",dark:"#1d130d",brass:"#c99b4c",fabric:"#6f4149",cream:"#eee5d6"};
 const BUILD="FP-VISUAL-PASS-2026-10-03";const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,32,90);
 const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.04,140);camera.position.set(-13,1.68,8);camera.rotation.order="YXZ";
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.physicallyCorrectLights=true;document.getElementById("game").appendChild(renderer.domElement);
-const envScene=new RoomEnvironment(renderer);const pmrem=new THREE.PMREMGenerator(renderer);scene.environment=pmrem.fromScene(envScene,0.04).texture;envScene.dispose();pmrem.dispose();
+const envLight=new THREE.HemisphereLight(0xffead0,0x172331,2.4);scene.add(envLight);
 scene.add(new THREE.HemisphereLight(0xffead0,0x162333,2.1));
 scene.add(new THREE.AmbientLight(0xffd8bd,0.45));
 const sun=new THREE.DirectionalLight(0xffd5a3,3.1);sun.position.set(-18,14,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-30;sun.shadow.camera.right=30;sun.shadow.camera.top=30;sun.shadow.camera.bottom=-25;scene.add(sun);
@@ -188,7 +187,7 @@ plantCluster(-19.8,-15.1);plantCluster(19.8,15.1);plantCluster(-19.8,10.2);
 for(const z of[-13,-5,3,11,-1,7,15]){
   const p=roomLayout[z===-13?101:z===-5?102:z===3?103:z===11?104:z===-1?105:z===7?106:107];
   const side=p.side,x=side*5.0;
-  box("doorThreshold",x,.035,z,2.25,.07,.22,brassMat,false);
+  box("doorThreshold",x,.035,z,2.25,.07,.22,M.brass,false);
   box("doorHeader",x,3.08,z,2.45,.14,.12,trimMat,false);
 }
 for(const z of[-15,-10,-5,0,5,10,15]){
