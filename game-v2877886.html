@@ -491,27 +491,21 @@ function positionActors(){
  if(action){interact.style.display="block";interact.style.left=(action.x*100)+"%";interact.style.top=((action.y*100)-9)+"%";interact.textContent=action.label}else interact.style.display="none";
 }
 function updateNpcs(){
- const active=hotelGuests.find(g=>g.status==="walkingToRoom");
- if(!active){
-   for(const n of npcs)n.el.classList.remove("walking");
-   return;
- }
- const n=active.npc;
- const dest=active.path&&active.path[active.npc.ri];
- if(!dest)return;
- const dx=dest.x-n.x,dy=dest.y-n.y,d=Math.hypot(dx,dy);
- if(!Number.isFinite(d)||d<0.000001)return;
- const step=Math.min(0.0026,d);
- n.el.classList.add("walking");
- n.x+=dx/d*step;
- n.y+=dy/d*step;
- if(d<=0.0026){
-   n.x=dest.x;n.y=dest.y;n.ri++;
-   if(n.ri>=active.path.length){
+ for(const g of hotelGuests){
+   if(g.status!=="walkingToRoom"||!g.npc.path)continue;
+   const n=g.npc, dest=n.path[n.ri];
+   if(!dest){n.el.classList.remove("walking");continue;}
+   const dx=dest.x-n.x,dy=dest.y-n.y,d=Math.hypot(dx,dy);
+   n.el.classList.add("walking");
+   if(d<0.00001){
+     n.x=dest.x;n.y=dest.y;n.ri++;
+   }else{
+     const step=Math.min(0.0026,d);
+     n.x+=dx/d*step;n.y+=dy/d*step;
+   }
+   if(n.ri>=n.path.length){
      n.el.classList.remove("walking");
-     if(active.onRoomArrival){
-       const cb=active.onRoomArrival;active.onRoomArrival=null;cb();
-     }
+     if(g.onRoomArrival){const cb=g.onRoomArrival;g.onRoomArrival=null;cb();}
    }
  }
 }
