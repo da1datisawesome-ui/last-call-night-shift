@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Last Call: Night Shift</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#081a2b;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#fff;touch-action:none}button{font:inherit;border:0;cursor:pointer}.app{position:fixed;inset:0;background:#081a2b}.game{position:absolute;inset:0;overflow:hidden}.scene{position:absolute;inset:0;overflow:hidden}.scene #world{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0;will-change:transform}.hud{position:absolute;z-index:20;inset:0;pointer-events:none}.topbar{position:absolute;top:max(10px,env(safe-area-inset-top));left:12px;right:12px;display:flex;align-items:center;gap:8px}.pill{background:#09253bdd;border:1px solid #ffffff26;border-radius:15px;padding:9px 13px;box-shadow:0 5px 20px #0005;font-weight:800}.money{font-size:18px}.task{flex:1;text-align:center;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.menuBtn,.soundBtn{pointer-events:auto;background:#092f4eea;color:#fff;border:1px solid #ffffff2e;border-radius:15px;padding:10px 14px;font-weight:900}.soundBtn{width:46px;padding:10px}.bottom{position:absolute;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:8px}.hint{background:#071827df;border:1px solid #ffffff24;border-radius:14px;padding:8px 13px;font-size:13px;opacity:0;transition:.25s}.hint.show{opacity:1}.actor{position:absolute;width:108px;height:150px;z-index:10;transform:translate(-50%,-100%);pointer-events:none}.npcActor{z-index:11}.playerActor{z-index:14}.npcActor .name{opacity:.9}
+@keyframes actorIdle{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(0)}}
+@keyframes actorWalk{0%,100%{transform:translateX(-50%) rotate(-4deg)}50%{transform:translateX(-50%) rotate(4deg)}}
+.actor .sprite{position:absolute;left:50%;bottom:4px;transform:translateX(-50%);width:100px;height:129px;background-repeat:no-repeat;background-position:center bottom;background-size:100% 100%;display:block;visibility:visible;animation:actorIdle 1.8s ease-in-out infinite;transform-origin:50% 100%}
+.actor.walking .sprite{animation:actorWalk .32s steps(2,end) infinite}
+.shadow{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:42px;height:9px;border-radius:50%;background:#0005;filter:blur(2px);animation:shadowPulse 1.8s ease-in-out infinite}
+@keyframes shadowPulse{0%,100%{transform:translateX(-50%) scaleX(1);opacity:.5}50%{transform:translateX(-50%) scaleX(.88);opacity:.38}}.name{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:900;text-shadow:0 2px 4px #000;white-space:nowrap}.interact{position:absolute;z-index:18;display:none;pointer-events:auto;touch-action:manipulation;cursor:pointer;transform:translate(-50%,-100%);background:#eaf5ff;color:#0b2840;border-radius:12px;padding:7px 10px;font-weight:900;box-shadow:0 6px 18px #0006;white-space:nowrap}.title,.panel{pointer-events:auto;position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#06182b,#0b2238);background:#09243ddd;border:1px solid #ffffff2e;border-radius:24px;padding:24px;box-shadow:0 20px 70px #0009;text-align:center}.titleBox h1{font-size:clamp(38px,8vw,72px);line-height:.95;margin:0 0 10px;letter-spacing:-2px}.titleBox p{font-size:17px;opacity:.82;margin:0 0 22px}.btn{pointer-events:auto;touch-action:manipulation;cursor:pointer;width:100%;padding:14px;margin-top:10px;border-radius:15px;font-weight:900;background:#eaf5ff;color:#09243b}.btn.alt{background:#155b88;color:#fff}.panel{display:none;background:#06182bd9}.card{text-align:left}.card h2{margin-top:0}.row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #ffffff14}.range{width:52%}.staffGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.staff{padding:12px;border-radius:14px;background:#0c304b;border:1px solid #ffffff20;text-align:left}.locked{opacity:.45}.close{margin-top:14px}.toast{position:absolute;z-index:35;left:50%;bottom:70px;transform:translateX(-50%);background:#08243de8;border:1px solid #ffffff25;border-radius:15px;padding:9px 14px;font-weight:800;display:none}.mini{font-size:12px;opacity:.7;margin-top:3px}@media(max-width:700px){.actor .sprite{width:78px;height:104px}.task{font-size:12px}.pill{padding:8px 10px}.money{font-size:15px}.topbar{gap:5px}.actor{width:64px;height:92px}.actor .sprite{width:56px;height:83px}.bottom{bottom:8px}.hint{font-size:11px}}
+#level{position:absolute;inset:0;overflow:hidden;background:#d4c1a2}.levelFloor{position:absolute;box-sizing:border-box;border-radius:14px;background:linear-gradient(180deg,#dbc8a7,#cbb28d);box-shadow:inset 0 0 0 3px rgba(80,55,35,.25),inset 0 -16px 30px rgba(55,40,25,.10)}.levelWall{position:absolute;box-sizing:border-box;background:linear-gradient(180deg,#eee4d3,#c6b79f);box-shadow:0 8px 15px rgba(30,22,16,.24);border:2px solid rgba(90,70,50,.3)}.levelDesk,.levelBed,.levelCounter,.levelPlant,.levelCart{position:absolute;box-sizing:border-box;box-shadow:0 8px 12px rgba(30,20,12,.22)}.levelDesk{border-radius:12px;background:linear-gradient(180deg,#7d4b2b,#4e2d1b);border:3px solid #b47d49}.levelCounter{border-radius:12px;background:linear-gradient(180deg,#a16b3c,#5a341e);border:3px solid #c99a5d}.levelBed{border-radius:12px;background:#eee7dc;border:3px solid #a8947a}.levelBed:after{content:"";position:absolute;left:8%;right:8%;top:8%;height:34%;border-radius:8px;background:#c9d9e8}.levelPlant{width:44px;height:44px;border-radius:50%;background:#6c8b56;border:8px solid #a9784b}.levelCart{border-radius:10px;background:#66737b;border:3px solid #303b42}.levelLabel{position:absolute;z-index:2;font:700 20px/1.1 system-ui,sans-serif;letter-spacing:.08em;color:rgba(55,42,28,.72);text-transform:uppercase;pointer-events:none}.lockedActor{display:none!important}.levelDoor{position:absolute;box-sizing:border-box;background:linear-gradient(90deg,#5b3a28,#8a5a38);border:4px solid #3e2a1f;border-radius:7px;box-shadow:0 5px 10px #0004}.levelWindow{position:absolute;box-sizing:border-box;background:linear-gradient(135deg,#a8d8e8,#dceef2);border:5px solid #6d5744;border-radius:6px;box-shadow:inset 0 0 0 3px #fff8}.levelRug{position:absolute;border-radius:18px;background:repeating-linear-gradient(90deg,#8e5f45 0 12px,#a97956 12px 24px);border:8px solid #5d4031;box-shadow:0 6px 12px #0003}.levelSofa{position:absolute;border-radius:18px;background:linear-gradient(#7a5360,#4f3641);border:4px solid #3d2b33;box-shadow:0 7px 12px #0003}.levelLamp{position:absolute;width:24px;height:70px;background:#76533a;border-radius:8px;box-shadow:0 0 24px #f7d98a}.levelLamp:before{content:"";position:absolute;left:-12px;top:-16px;width:48px;height:28px;border-radius:50%;background:#f4dfaa;border:3px solid #9a7950}.levelFloor{background:repeating-linear-gradient(0deg,rgba(255,255,255,.08) 0 2px,transparent 2px 34px),repeating-linear-gradient(90deg,rgba(80,55,35,.05) 0 2px,transparent 2px 42px),linear-gradient(180deg,#dbc8a7,#cbb28d)} .roomStatus{position:absolute;z-index:5;min-width:150px;padding:6px 10px;border-radius:10px;background:#09243ddd;border:2px solid #ffffff44;color:#fff;font:900 12px/1.15 system-ui;text-align:center;box-shadow:0 5px 12px #0005;pointer-events:none}.roomStatus.available{background:#174b35}.roomStatus.occupied{background:#254e72}.roomStatus.dirty{background:#713b2c}.luggage{position:absolute;z-index:12;width:46px;height:38px;border-radius:8px;background:#8b5a38;border:4px solid #4b3022;box-shadow:0 6px 10px #0005;color:#f7e7c9;font-size:26px;text-align:center;line-height:30px;pointer-events:none}.carryBadge{position:absolute;z-index:16;left:50%;bottom:54px;transform:translateX(-50%);font-size:24px;filter:drop-shadow(0 2px 2px #0008);display:none}.levelFloor{z-index:0}.levelWall{z-index:2}.levelDoor{z-index:3}.levelDesk,.levelBed,.levelCounter,.levelPlant,.levelCart,.levelSofa,.levelRug,.levelWindow,.levelLamp{z-index:4}.movePad{position:absolute;left:14px;bottom:max(14px,env(safe-area-inset-bottom));width:156px;height:156px;pointer-events:auto;display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);opacity:.92}.movePad button{width:52px;height:52px;border-radius:14px;background:#092f4eea;color:#fff;border:1px solid #ffffff35;font-size:25px;font-weight:900;box-shadow:0 4px 14px #0006;touch-action:none;-webkit-user-select:none;user-select:none}.movePad button:active{background:#18577eee;transform:scale(.96)}.npcActor[data-guest-id="2"] .sprite{filter:hue-rotate(55deg) saturate(1.15)}.npcActor[data-guest-id="3"] .sprite{filter:hue-rotate(125deg) saturate(1.18)}</style>
+</head>
+<body>
+<div class="app">
+<div id="game" class="game">
+<div class="scene"><div id="world"><div id="level" aria-label="Generated hotel level"></div><div id="player" class="actor playerActor"><div class="sprite"></div><div class="shadow"></div><div class="name">YOU</div></div><div id="guest" class="actor npcActor"><div class="sprite"></div><div class="shadow"></div><div class="name">Guest</div></div><div id="porterNpc" class="actor npcActor lockedActor"><div class="sprite"></div><div class="shadow"></div><div class="name">Porter</div></div><div id="cleanerNpc" class="actor npcActor lockedActor"><div class="sprite"></div><div class="shadow"></div><div class="name">Cleaner</div></div><div id="maintenanceNpc" class="actor npcActor lockedActor"><div class="sprite"></div><div class="shadow"></div><div class="name">Maintenance</div></div><div id="receptionNpc" class="actor npcActor lockedActor"><div class="sprite"></div><div class="shadow"></div><div class="name">Receptionist</div></div><div id="loungeNpc1" class="actor npcActor"><div class="sprite"></div><div class="shadow"></div><div class="name">Guest</div></div><div id="loungeNpc2" class="actor npcActor"><div class="sprite"></div><div class="shadow"></div><div class="name">Guest</div></div><div id="interact" class="interact"></div></div></div>
+<div class="hud">
+ <div class="topbar">
+  <div class="pill money" id="money">$1,280</div>
+  <div class="pill task" id="task">Guest waiting at reception</div>
+  <button class="soundBtn" id="sound">🔊</button><button class="menuBtn" id="menu">☰</button>
+ </div>
+ <div class="movePad" id="movePad"><span></span><button data-dy="-1" aria-label="Move up">▲</button><span></span><button data-dx="-1" aria-label="Move left">◀</button><span></span><button data-dx="1" aria-label="Move right">▶</button><span></span><button data-dy="1" aria-label="Move down">▼</button><span></span><div class="hint" id="hint">Drag your finger to walk</div></div>
+</div>
+<div id="toast" class="toast"></div>
+</div>
+<div id="title" class="title"><div class="titleBox"><h1>LAST CALL:<br>NIGHT SHIFT</h1><p>Run the hotel. Help the guests. Build your business.</p><button class="btn" id="play" type="button">▶ PLAY / CONTINUE</button><button class="btn alt" id="titleSettings">⚙ SETTINGS</button></div></div>
+<div id="panel" class="panel"><div class="card" id="panelCard"></div></div>
+<audio id="music" loop preload="auto" src="https://last-call-night-shift.floot.app/_cdn/static/1c1dd8ce-104a-4dc4-b3e9-c89171f5de53-night_shift_original_lounge.wav"></audio>
+<audio id="ambience" loop preload="auto" src="https://last-call-night-shift.floot.app/_cdn/static/7e62d859-056a-4703-96ae-de301a38dd92-night_shift_hotel_ambience.wav"></audio>
+<audio id="step" preload="auto" src="https://last-call-night-shift.floot.app/_cdn/static/b8e46b68-9746-4123-9dc6-0eeaefe33b85-hotel_footstep.wav"></audio>
+<script>
+(function(){
+ window.addEventListener("error",function(e){
+   const t=document.getElementById("title");
+   if(t&&t.style.display!=="none"){
+     const p=t.querySelector(".titleBox p");
+     if(p){p.textContent="STARTUP ERROR: "+(e.message||"JavaScript initialization failed")+" — tap PLAY again after the fix.";p.style.color="#ffb4b4";}
+   }
+   console.error("Last Call global error",e.message,e.filename,e.lineno,e.colno);
+ });
+ window.addEventListener("unhandledrejection",function(e){
+   const msg=e.reason&&e.reason.message?e.reason.message:String(e.reason);
+   const t=document.getElementById("title"),p=t&&t.querySelector(".titleBox p");
+   if(p){p.textContent="STARTUP ERROR: "+msg;p.style.color="#ffb4b4";}
+   console.error("Last Call unhandled rejection",e.reason);
+ });
+ function wireTitle(){
+   const play=document.getElementById("play"),settings=document.getElementById("titleSettings");
+   if(play&&!play.dataset.wired){
+     play.dataset.wired="1";
+     play.addEventListener("click",function(e){
+       e.preventDefault(); e.stopPropagation();
+       if(typeof window.beginGame==="function") window.beginGame();
+       else window.__lastCallStartQueued=true;
+     },{passive:false});
+   }
+   if(settings&&!settings.dataset.wired){
+     settings.dataset.wired="1";
+     settings.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();window.dispatchEvent(new Event("lastcall-settings"));},{passive:false});
+   }
+ }
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",wireTitle,{once:true});else wireTitle();
+})();
+</script>
+<script>
+
+const CHARACTER_DESIGNS={
+ receptionist:{skin:"#f2c2a6",hair:"#3b241d",hair2:"#5a3528",coat:"#24334d",shirt:"#e7edf4",accent:"#c7a45b",style:"bob",accessory:"tie"},
+ porter:{skin:"#d9a47f",hair:"#17202a",hair2:"#273847",coat:"#214b70",shirt:"#c9deed",accent:"#d7aa52",style:"short",accessory:"cap"},
+ cleaner:{skin:"#edbea1",hair:"#5a3428",hair2:"#754b3c",coat:"#f5f7f8",shirt:"#4aa9c7",accent:"#e0c35b",style:"ponytail",accessory:"badge"},
+ maintenance:{skin:"#c98f6c",hair:"#25252a",hair2:"#3b3b42",coat:"#2b4a60",shirt:"#d89b38",accent:"#e0b15d",style:"short",accessory:"tool"},
+ guest1:{skin:"#e7b995",hair:"#4b2e25",hair2:"#684136",coat:"#6b4a3a",shirt:"#f1d6b3",accent:"#b87952",style:"long",accessory:"scarf"},
+ guest2:{skin:"#c98d68",hair:"#171b22",hair2:"#343c49",coat:"#6a3550",shirt:"#f0c9d4",accent:"#d9a34f",style:"long",accessory:"bag"},
+ guest3:{skin:"#f0c8a7",hair:"#8b5636",hair2:"#a96e49",coat:"#365b4b",shirt:"#e7f0df",accent:"#c89b4a",style:"bun",accessory:"glasses"},
+ guest4:{skin:"#a96848",hair:"#17191e",hair2:"#2b2e34",coat:"#6d5636",shirt:"#e6d6b6",accent:"#d0a95b",style:"curly",accessory:"watch"}
+};
+function spriteFor(kind,pose=0){
+ const c=CHARACTER_DESIGNS[kind]||CHARACTER_DESIGNS.guest1;
+ let svg='<svg xmlns="http://www.w3.org/2000/svg" width="140" height="180" viewBox="0 0 140 180">'
+  +'<defs><linearGradient id="coat" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c.coat+'"/><stop offset="1" stop-color="#17202a"/></linearGradient><linearGradient id="skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c.skin+'"/><stop offset="1" stop-color="#b97860"/></linearGradient></defs>'
+  +'<ellipse cx="70" cy="170" rx="38" ry="9" fill="#000" opacity=".18"/>'
+  +'<path d="M49 116 Q41 140 44 158 L59 158 L65 133 L75 133 L81 158 L96 158 Q99 139 91 116Z" fill="url(#coat)" stroke="#18212b" stroke-width="3"/>'
+  +'<path d="M56 116 L48 128 L64 136 L70 126 L76 136 L92 128 L84 116Z" fill="'+c.shirt+'" stroke="#27323a" stroke-width="2"/>'
+  +'<path d="M51 119 Q40 129 37 145" fill="none" stroke="'+c.coat+'" stroke-width="16" stroke-linecap="round"/><circle cx="36" cy="146" r="8" fill="url(#skin)"/>'
+  +'<path d="M89 119 Q100 129 103 145" fill="none" stroke="'+c.coat+'" stroke-width="16" stroke-linecap="round"/><circle cx="104" cy="146" r="8" fill="url(#skin)"/>'
+  +'<circle cx="82" cy="77" r="31" fill="url(#skin)" stroke="#7e5147" stroke-width="2"/>'
+  +'<path d="M48 78 Q45 38 82 29 Q119 34 117 80 Q102 60 82 62 Q61 60 48 78Z" fill="'+c.hair+'"/>'
+  +'<circle cx="69" cy="80" r="4" fill="#27313a"/><circle cx="96" cy="80" r="4" fill="#27313a"/>'
+  +'<path d="M70 96 Q82 103 94 96" fill="none" stroke="#9b5954" stroke-width="4" stroke-linecap="round"/>'
+  +'<path d="M58 159 L72 159 L72 173 L54 173 Q52 166 58 159Z" fill="#252c36"/><path d="M80 159 L94 159 Q100 166 98 173 L80 173Z" fill="#252c36"/>'
+  +'<path d="M48 54 Q82 35 117 55 L122 63 L42 63Z" fill="'+c.accent+'" opacity="'+(c.accessory==="cap"?1:.0)+'"/>'
+  +'<circle cx="105" cy="128" r="8" fill="'+c.accent+'" opacity="'+(c.accessory==="badge"?1:.0)+'"/>'
+  +'<path d="M82 123 L73 145 L82 154 L91 145Z" fill="'+c.accent+'" opacity="'+(c.accessory==="tie"?1:.0)+'"/>'
+  +'<path d="M63 119 Q82 132 101 119 L99 151 Q82 162 65 151Z" fill="'+c.accent+'" opacity="'+(c.accessory==="scarf"?1:.0)+'"/>'
+  +'</svg>';
+ if(pose===1){
+ svg=svg.replace('M51 119 Q40 129 37 145','M51 119 Q43 132 48 148').replace('M89 119 Q100 129 103 145','M89 119 Q102 126 108 140').replace('M58 159 L72 159 L72 173 L54 173','M58 159 L72 159 L65 173 L50 173').replace('M80 159 L94 159 Q100 166 98 173 L80 173','M80 159 L94 159 Q102 165 106 172 L84 173');
+}else if(pose===2){
+ svg=svg.replace('M51 119 Q40 129 37 145','M51 119 Q38 126 32 140').replace('M89 119 Q100 129 103 145','M89 119 Q97 132 92 148').replace('M58 159 L72 159 L72 173 L54 173','M58 159 L72 159 L79 173 L54 173').replace('M80 159 L94 159 Q100 166 98 173 L80 173','M80 159 L94 159 L87 173 L106 173');
+}
+return "data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(svg);
+}
+const SPRITES={
+ Receptionist:spriteFor("receptionist"),Porter:spriteFor("porter"),Cleaner:spriteFor("cleaner"),Maintenance:spriteFor("maintenance"),
+ Guest1:spriteFor("guest1"),Guest2:spriteFor("guest2"),Guest3:spriteFor("guest3"),Guest4:spriteFor("guest4")
+};
+const SPRITE_FRAMES={};
+for(const [roleName,url] of Object.entries(SPRITES)){
+ const kind=roleName==="Receptionist"?"receptionist":roleName==="Porter"?"porter":roleName==="Cleaner"?"cleaner":roleName==="Maintenance"?"maintenance":roleName==="Guest1"?"guest1":roleName==="Guest2"?"guest2":roleName==="Guest3"?"guest3":"guest4";
+ SPRITE_FRAMES[roleName]=[spriteFor(kind,0),spriteFor(kind,1),spriteFor(kind,2)];
+}
+const ART_W=2600,ART_H=1500;
+const world=document.getElementById("world");
+
+const GENERATED_COLLIDERS=[];
+let levelSeed=0;
+const GENERATED_ROOMS=[];
+const GENERATED_POINTS={};
+function seeded(){levelSeed=(levelSeed*1664525+1013904223)>>>0;return levelSeed/4294967296;}
+const level=document.getElementById("level");
+function buildLevel(seed){
+ level.innerHTML="";GENERATED_COLLIDERS.length=0;GENERATED_ROOMS.length=0;
+ levelSeed=(seed>>>0)||((Date.now()>>>0)^Math.floor(Math.random()*0xffffffff));
+ const add=(cls,x,y,w,h,label="",solid=false)=>{const el=document.createElement("div");el.className=cls;el.style.left=x+"px";el.style.top=y+"px";el.style.width=w+"px";el.style.height=h+"px";if(label){el.textContent=label;el.classList.add("levelLabel")}level.appendChild(el);if(solid)GENERATED_COLLIDERS.push({x,y,w,h});return el;};
+ const wall=(x,y,w,h)=>add("levelWall",x,y,w,h,"",true);
+ const door=(x,y,w,h)=>add("levelDoor",x,y,w,h);
+ const roomFloor=(x,y,w,h,label)=>add("levelFloor",x,y,w,h,label);
+ const margin=70;
+ const names=["Reception","Grand Lobby","Guest Room 101","Guest Room 102","Guest Room 103","Lounge","Service Kitchen","Maintenance","Staff Room","Garden Court","Conference","Night Bar"];
+ // Fixed hotel circulation plan: reception feeds one wide central corridor. Guest rooms sit on private
+ // side branches; service rooms are on the opposite side. The corridor itself is always unobstructed.
+ add("levelFloor",35,35,ART_W-70,ART_H-70);
+ wall(35,35,ART_W-70,30);wall(35,ART_H-65,ART_W-70,30);wall(35,35,30,ART_H-70);wall(ART_W-65,35,30,ART_H-70);
+
+ const rooms=[
+  {x:70,y:500,w:350,h:420,c:0,r:1},          // 0 Reception
+  {x:455,y:500,w:420,h:420,c:1,r:1},         // 1 Grand Lobby / corridor west
+  {x:520,y:105,w:500,h:350,c:2,r:0},         // 2 Guest 101
+  {x:1080,y:105,w:500,h:350,c:3,r:0},        // 3 Guest 102
+  {x:1640,y:105,w:500,h:350,c:0,r:0},         // 4 Guest 103
+  {x:520,y:965,w:500,h:350,c:1,r:2},         // 5 Lounge
+  {x:1080,y:965,w:500,h:350,c:2,r:2},        // 6 Service Kitchen
+  {x:1640,y:965,w:500,h:350,c:3,r:2},        // 7 Maintenance
+  {x:1640,y:500,w:500,h:350,c:0,r:1},        // 8 Staff Room / service hub
+  {x:1640,y:500,w:500,h:350,c:0,r:1},        // 9 Garden Court (visual overlay in same zone)
+  {x:70,y:965,w:350,h:350,c:0,r:2},          // 10 Conference
+  {x:70,y:105,w:350,h:350,c:0,r:0}           // 11 Night Bar
+ ];
+ rooms.forEach((room,i)=>{GENERATED_ROOMS[i]=room;});
+ roomFloor(70,500,350,420,"Reception");
+ roomFloor(455,500,420,420,"Grand Lobby • CENTRAL CORRIDOR");
+ roomFloor(875,500,765,420,"CENTRAL GUEST CORRIDOR");
+ roomFloor(1640,500,500,350,"Staff Room • Service Hub");
+ roomFloor(70,105,350,350,"Night Bar");
+ roomFloor(520,105,500,350,"Guest Room 101");
+ roomFloor(1080,105,500,350,"Guest Room 102");
+ roomFloor(1640,105,500,350,"Guest Room 103");
+ roomFloor(70,965,350,350,"Conference");
+ roomFloor(520,965,500,350,"Lounge");
+ roomFloor(1080,965,500,350,"Service Kitchen");
+ roomFloor(1640,965,500,350,"Maintenance");
+
+ // Private guest-room walls. Each room has exactly one doorway into the central corridor.
+ const guestRoomsLayout=[rooms[2],rooms[3],rooms[4]];
+ guestRoomsLayout.forEach((rm,i)=>{
+   wall(rm.x,rm.y,rm.w,18);wall(rm.x,rm.y,18,rm.h);wall(rm.x+rm.w-18,rm.y,18,rm.h);
+   const dw=120,dx=rm.x+rm.w/2-dw/2,by=rm.y+rm.h-18;
+   wall(rm.x,by,dx-rm.x,18);wall(dx+dw,by,rm.x+rm.w-(dx+dw),18);door(dx,by-10,dw,28);
+ });
+ // Service-side rooms have their own doors into the corridor, so the player never needs to cross a guest room.
+ const serviceRooms=[rooms[5],rooms[6],rooms[7]];
+ serviceRooms.forEach(rm=>{
+   wall(rm.x,rm.y+rm.h-18,rm.w,18);wall(rm.x,rm.y,18,rm.h);wall(rm.x+rm.w-18,rm.y,18,rm.h);
+   const dw=130,dx=rm.x+rm.w/2-dw/2,ty=rm.y;
+   wall(rm.x,ty,dx-rm.x,18);wall(dx+dw,ty,rm.x+rm.w-(dx+dw),18);door(dx,ty-10,dw,28);
+ });
+ // Side areas are enclosed but have broad openings to the main circulation route.
+ wall(70,500,350,18);wall(70,500,18,420);wall(70,902,350,18);
+ door(390,650,48,120);
+ wall(70,105,350,18);wall(70,105,18,350);wall(402,105,18,350);
+ door(402,250,28,90);
+ wall(70,965,350,18);wall(70,965,18,350);wall(402,965,18,350);
+ door(402,1090,28,90);
+ // Staff/service hub has a wide double-width opening to the corridor.
+ wall(1640,500,500,18);wall(2122,500,18,350);wall(1640,832,500,18);wall(1640,500,18,350);
+ door(1632,625,38,130);
+
+ // Reception furniture stays inside reception; the corridor remains empty.
+ const reception=rooms[0];
+ add("levelCounter",reception.x+55,reception.y+55,reception.w-110,70,"",true);
+ add("levelDesk",reception.x+70,reception.y+185,150,65,"",true);
+ add("levelRug",reception.x+55,reception.y+285,reception.w-110,90);
+ // Guest rooms: beds and desks are against walls, leaving a clear straight path from each private door.
+ guestRoomsLayout.forEach((rm,i)=>{
+   add("levelBed",rm.x+45,rm.y+55,155,100,"",true);
+   add("levelBed",rm.x+rm.w-200,rm.y+55,155,100,"",true);
+   add("levelDesk",rm.x+rm.w/2-75,rm.y+215,150,60,"",true);
+   add("levelWindow",rm.x+rm.w/2-60,rm.y+20,120,40);
+ });
+ // Service rooms get practical furniture but retain wide door approaches.
+ add("levelCounter",rooms[6].x+45,rooms[6].y+55,rooms[6].w-90,70,"",true);
+ add("levelCart",rooms[6].x+55,rooms[6].y+190,105,70,"",true);
+ add("levelCart",rooms[6].x+190,rooms[6].y+190,105,70,"",true);
+ add("levelDesk",rooms[7].x+55,rooms[7].y+60,170,75,"",true);
+ add("levelDesk",rooms[7].x+rooms[7].w-225,rooms[7].y+60,170,75,"",true);
+ add("levelCart",rooms[7].x+rooms[7].w/2-52,rooms[7].y+210,105,70,"",true);
+ add("levelSofa",rooms[5].x+60,rooms[5].y+65,220,85,"",true);
+ add("levelRug",rooms[5].x+70,rooms[5].y+185,rooms[5].w-140,105);
+ add("levelDesk",rooms[8].x+60,rooms[8].y+65,165,75,"",true);
+ add("levelDesk",rooms[8].x+rooms[8].w-225,rooms[8].y+65,165,75,"",true);
+ add("levelPlant",rooms[8].x+rooms[8].w/2-22,rooms[8].y+210,44,44);
+
+ // Decorative variation is seeded, but NEVER placed in the central corridor or guest-room door approaches.
+ const decorZones=[rooms[0],rooms[1],rooms[5],rooms[6],rooms[7],rooms[8],rooms[10],rooms[11]];
+ for(let i=0;i<10;i++){
+   const rm=decorZones[Math.floor(seeded()*decorZones.length)];
+   const px=rm.x+35+seeded()*Math.max(20,rm.w-70),py=rm.y+35+seeded()*Math.max(20,rm.h-70);
+   add("levelLamp",px,py,24,70);
+ }
+ for(let i=0;i<7;i++){
+   const rm=decorZones[Math.floor(seeded()*decorZones.length)];
+   add("levelPlant",rm.x+rm.w-70,rm.y+rm.h-70,44,44);
+ }
+
+ const center=room=>({x:(room.x+room.w/2)/ART_W,y:(room.y+room.h/2)/ART_H});
+ const safe=(room,ox,oy)=>({x:(room.x+room.w*ox)/ART_W,y:(room.y+room.h*oy)/ART_H});
+ GENERATED_POINTS.reception=safe(reception,.80,.52);
+ GENERATED_POINTS.guest=safe(reception,.55,.78);
+ GENERATED_POINTS.room101=safe(rooms[2],.28,.72);
+ GENERATED_POINTS.room102=safe(rooms[3],.28,.72);
+ GENERATED_POINTS.room103=safe(rooms[4],.28,.72);
+ GENERATED_POINTS.lounge=center(rooms[5]);GENERATED_POINTS.housekeeping=center(rooms[5]);
+ GENERATED_POINTS.kitchen=safe(rooms[6],.50,.55);GENERATED_POINTS.maintenance=center(rooms[7]);
+ GENERATED_POINTS.staff=center(rooms[8]);GENERATED_POINTS.garden=safe(rooms[8],.50,.50);
+ GENERATED_POINTS.conference=center(rooms[10]);GENERATED_POINTS.bar=center(rooms[11]);
+
+ const roomNames=["ROOM 101","ROOM 102","ROOM 103"];
+ [2,3,4].forEach((idx,i)=>{const rm=GENERATED_ROOMS[idx],el=document.createElement("div");el.className="roomStatus available";el.id="roomStatus"+i;el.style.left=(rm.x+rm.w*.18)+"px";el.style.top=(rm.y+rm.h*.12)+"px";el.textContent=roomNames[i]+" • AVAILABLE";level.appendChild(el)});
+}
+const player=document.getElementById("player"),guest=document.getElementById("guest"),porterNpc=document.getElementById("porterNpc"),cleanerNpc=document.getElementById("cleanerNpc"),maintenanceNpc=document.getElementById("maintenanceNpc"),receptionNpc=document.getElementById("receptionNpc"),loungeNpc1=document.getElementById("loungeNpc1"),loungeNpc2=document.getElementById("loungeNpc2"),interact=document.getElementById("interact");
+interact.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();});
+interact.addEventListener("pointerup",e=>{e.preventDefault();e.stopPropagation();interactAt(px,py);})
+const moneyEl=document.getElementById("money"),taskEl=document.getElementById("task"),toast=document.getElementById("toast"),hint=document.getElementById("hint");
+const music=document.getElementById("music"),ambience=document.getElementById("ambience"),step=document.getElementById("step");
+let W=0,H=0,playing=false,role="Receptionist",money=1280,rep=50,earned=0,audioOn=true,px=.582,py=.527,gx=.60,gy=.34,drag=false,target=null,pendingInteraction=null,lastStep=0;
+let unlock={Receptionist:true,Porter:false,RoomService:false,Cleaner:false,Maintenance:false};
+let roomCapacity=3,occupiedRooms=0,checkIns=0,upgradeRooms=0;
+const ROOM_UPGRADE_COSTS=[2000,3500,5000];
+const GUEST_STAY_MS=90000,ROOM_SERVICE_DELAY_MS=25000;
+const guestRooms=[{id:101,state:"available",guest:null,marker:null},{id:102,state:"available",guest:null,marker:null},{id:103,state:"available",guest:null,marker:null}];
+let luggageState=null,carrying=null,taskState="waiting",serviceTarget=null,cleaningTarget=null;
+let worldW=0,worldH=0,worldLeft=0,worldTop=0;
+const camera={x:px,y:py};
+let actorAnimFrame=0,actorAnimClock=0;
+let worldTransform={x:0,y:0,zoom:1};
+const CAMERA_ZOOM=0.72;
+function resize(){
+ W=innerWidth;H=innerHeight;
+ worldW=ART_W;worldH=ART_H;
+ worldLeft=0;worldTop=0;
+ world.style.width=ART_W+"px";world.style.height=ART_H+"px";
+}
+function updateWorld(){
+ const zoom=Math.max(CAMERA_ZOOM,Math.min(1.55,Math.min(W/(ART_W*.62),H/(ART_H*.62))));
+ let tx=W/2-camera.x*worldW*zoom;
+ let ty=H/2-camera.y*worldH*zoom;
+ const scaledW=worldW*zoom,scaledH=worldH*zoom;
+ tx=Math.min(0,Math.max(W-scaledW,tx));
+ ty=Math.min(0,Math.max(H-scaledH,ty));
+ worldTransform={x:tx,y:ty,zoom};
+ world.style.transform="translate3d("+tx+"px,"+ty+"px,0) scale("+zoom+")";
+}
+function updateActorAnimation(){
+ actorAnimClock+=16;
+ const walking=player.classList.contains("walking");
+ if(walking&&actorAnimClock>=110){actorAnimClock=0;actorAnimFrame=(actorAnimFrame+1)%3;}
+ if(!walking)actorAnimFrame=0;
+ const ps=player.querySelector(".sprite");ps.style.backgroundImage='url("'+(SPRITE_FRAMES[role]||[SPRITES[role]])[actorAnimFrame]+'")';
+ for(const n of npcs){
+  const ns=n.el.querySelector(".sprite");
+  const fr=SPRITE_FRAMES[n.role]||[SPRITES[n.role]];
+  ns.style.backgroundImage='url("'+fr[(n.el.classList.contains("walking")?actorAnimFrame:0)]+'")';
+ }
+}
+const heldKeys=new Set();
+const MOVE_SPEED=.000075;
+let lastAudioX=px,lastAudioY=py;
+function updatePlayerInput(dt){
+ let dx=0,dy=0;
+ if(heldKeys.has("arrowup")||heldKeys.has("w"))dy-=1;
+ if(heldKeys.has("arrowdown")||heldKeys.has("s"))dy+=1;
+ if(heldKeys.has("arrowleft")||heldKeys.has("a"))dx-=1;
+ if(heldKeys.has("arrowright")||heldKeys.has("d"))dx+=1;
+ if(padDX||padDY){dx+=padDX;dy+=padDY;}
+ const len=Math.hypot(dx,dy);
+ let moved=false;
+ if(len){dx/=len;dy/=len;moved=moveClamped(px+dx*MOVE_SPEED*dt,py+dy*MOVE_SPEED*dt);}
+ if(!touchDrag)player.classList.toggle("walking",moved);
+ return moved;
+}
+function loop(){
+ if(!playing)return;
+ const dt=16.67;
+ updatePlayerInput(dt);
+ camera.x+=(px-camera.x)*.10;camera.y+=(py-camera.y)*.10;
+ updateWorld();updateNpcs();positionActors();updateActorAnimation();
+ lastAudioX=px;lastAudioY=py;
+ requestAnimationFrame(loop);
+}
+// Collision geometry lives in the same 1672x940 coordinate system as the hotel artwork.
+// Rectangles are physical solid areas on the actual world surface, not screen-space overlays.
+const COLLIDERS=GENERATED_COLLIDERS;
+const PLAYER_RADIUS_X=34/ART_W;
+const PLAYER_RADIUS_Y=18/ART_H;
+const NPC_RADIUS_X=18/ART_W;
+const NPC_RADIUS_Y=10/ART_H;
+function npcBlocked(x,y){
+ const cx=x*ART_W,cy=y*ART_H;
+ return COLLIDERS.some(r=>cx+NPC_RADIUS_X*ART_W>r.x&&cx-NPC_RADIUS_X*ART_W<r.x+r.w&&cy+NPC_RADIUS_Y*ART_H>r.y&&cy-NPC_RADIUS_Y*ART_H<r.y+r.h);
+}
+function blocked(x,y){
+ const cx=x*ART_W,cy=y*ART_H;
+ return COLLIDERS.some(r=>
+   cx+PLAYER_RADIUS_X*ART_W>r.x &&
+   cx-PLAYER_RADIUS_X*ART_W<r.x+r.w &&
+   cy+PLAYER_RADIUS_Y*ART_H>r.y &&
+   cy-PLAYER_RADIUS_Y*ART_H<r.y+r.h
+ );
+}
+function moveClamped(nx,ny){
+ nx=Math.max(.04,Math.min(.96,nx));ny=Math.max(.08,Math.min(.92,ny));
+ // Recover from an accidental furniture overlap first.
+ if(blocked(px,py)){
+   let recovered=false;
+   for(let radius=.004;radius<=.10&&!recovered;radius+=.004){
+     for(let a=0;a<Math.PI*2;a+=Math.PI/12){
+       const tx=Math.max(.04,Math.min(.96,px+Math.cos(a)*radius));
+       const ty=Math.max(.08,Math.min(.92,py+Math.sin(a)*radius));
+       if(!blocked(tx,ty)){px=tx;py=ty;recovered=true;break}
+     }
+   }
+ }
+ const sx=px,sy=py,dx=nx-sx,dy=ny-sy;
+ const distance=Math.hypot(dx,dy);
+ if(distance<.00001)return false;
+ // Sweep in small increments instead of testing only the final destination.
+ // This makes touch dragging physically move the actor until the first real obstacle.
+ const steps=Math.max(1,Math.ceil(distance/.0025));
+ let lx=sx,ly=sy,moved=false;
+ for(let i=1;i<=steps;i++){
+   const t=i/steps,tx=sx+dx*t,ty=sy+dy*t;
+   if(blocked(tx,ty))break;
+   lx=tx;ly=ty;moved=true;
+ }
+ if(moved){px=lx;py=ly;return true}
+ // If diagonal motion is blocked, slide along either open axis.
+ let ax=sx+dx,ay=sy, bx=sx,by=sy+dy;
+ if(!blocked(ax,ay)){px=ax;py=ay;return true}
+ if(!blocked(bx,by)){px=bx;py=by;return true}
+ return false;
+}
+function canReach(x,y){
+ // Check the whole approach, not just the destination.
+ const sx=px,sy=py,steps=Math.max(12,Math.ceil(Math.hypot(x-sx,y-sy)*80));
+ for(let i=1;i<=steps;i++){
+   const t=i/steps;
+   if(blocked(sx+(x-sx)*t,sy+(y-sy)*t))return false;
+ }
+ return !blocked(x,y);
+}
+const PATH_COLS=42,PATH_ROWS=24;
+function cellPoint(c,r){
+ return {x:(c+.5)/PATH_COLS,y:(r+.5)/PATH_ROWS};
+}
+function cellBlocked(c,r){
+ if(c<0||r<0||c>=PATH_COLS||r>=PATH_ROWS)return true;
+ const p=cellPoint(c,r);
+ return blocked(p.x,p.y);
+}
+function nearestOpenCell(x,y){
+ let c=Math.max(0,Math.min(PATH_COLS-1,Math.floor(x*PATH_COLS)));
+ let r=Math.max(0,Math.min(PATH_ROWS-1,Math.floor(y*PATH_ROWS)));
+ if(!cellBlocked(c,r))return {c,r};
+ for(let radius=1;radius<8;radius++){
+   for(let yy=r-radius;yy<=r+radius;yy++)for(let xx=c-radius;xx<=c+radius;xx++){
+     if(Math.abs(xx-c)!==radius&&Math.abs(yy-r)!==radius)continue;
+     if(!cellBlocked(xx,yy))return {c:xx,r:yy};
+   }
+ }
+ return null;
+}
+function findPath(sx,sy,tx,ty){
+ const s=nearestOpenCell(sx,sy),g=nearestOpenCell(tx,ty);
+ if(!s||!g)return null;
+ const key=(c,r)=>r*PATH_COLS+c;
+ const open=[{c:s.c,r:s.r,f:0,g:0}];
+ const came=new Map(),cost=new Map([[key(s.c,s.r),0]]);
+ const dirs=[[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],[1,1,1.414],[1,-1,1.414],[-1,1,1.414],[-1,-1,1.414]];
+ while(open.length){
+   open.sort((a,b)=>a.f-b.f);
+   const cur=open.shift(),ck=key(cur.c,cur.r);
+   if(cur.c===g.c&&cur.r===g.r){
+     const cells=[{c:cur.c,r:cur.r}];
+     let k=ck;
+     while(came.has(k)){const p=came.get(k);cells.push(p);k=key(p.c,p.r)}
+     cells.reverse();
+     const pts=[{x:sx,y:sy}];
+     for(const q of cells.slice(1,-1)){const p=cellPoint(q.c,q.r);pts.push(p)}
+     pts.push({x:tx,y:ty});
+     // Remove unnecessary corners while retaining collision-safe straight runs.
+     const smooth=[pts[0]];
+     for(let i=1;i<pts.length;i++){
+       let advanced=true;
+       while(i+1<pts.length&&canReachFrom(smooth[smooth.length-1],pts[i+1]))i++;
+       smooth.push(pts[i]);
+     }
+     return smooth;
+   }
+   for(const [dc,dr,step] of dirs){
+     const nc=cur.c+dc,nr=cur.r+dr;
+     if(cellBlocked(nc,nr))continue;
+     if(dc&&dr&&(cellBlocked(cur.c+dc,cur.r)||cellBlocked(cur.c,cur.r+dr)))continue;
+     const ng=cur.g+step,nk=key(nc,nr);
+     if(ng>=(cost.get(nk)??Infinity))continue;
+     cost.set(nk,ng);came.set(nk,{c:cur.c,r:cur.r});
+     const h=Math.hypot(nc-g.c,nr-g.r);
+     open.push({c:nc,r:nr,g:ng,f:ng+h});
+   }
+ }
+ return null;
+}
+function canReachFrom(a,b){
+ const steps=Math.max(6,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)*80));
+ for(let i=1;i<=steps;i++){
+   const t=i/steps;
+   if(blocked(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t))return false;
+ }
+ return true;
+}
+const npcs=[
+ {el:guest,role:"Guest1",x:.2,y:.2,path:[],i:0,t:0,speed:.00032},{el:porterNpc,role:"Porter",x:.2,y:.2,path:[],i:0,t:0,speed:.00024},{el:cleanerNpc,role:"Cleaner",x:.2,y:.2,path:[],i:0,t:0,speed:.00022},{el:maintenanceNpc,role:"Maintenance",x:.2,y:.2,path:[],i:0,t:0,speed:.0002},{el:receptionNpc,role:"Receptionist",x:.2,y:.2,path:[],i:0,t:0,speed:.00016},{el:loungeNpc1,role:"Guest2",x:.2,y:.2,path:[],i:0,t:0,speed:.00014},{el:loungeNpc2,role:"Guest3",x:.2,y:.2,path:[],i:0,t:0,speed:.00013}
+];
+const hotelGuests=npcs.filter((n,i)=>i===0||i===5||i===6).map((n,i)=>({npc:n,id:i+1,status:i===0?"waiting":"idle",room:null,serviceRequested:false,serviceDone:false,name:["Alex","Jordan","Taylor"][i],roleLabel:["Guest A","Guest B","Guest C"][i]}));
+function updateRoomMarker(i){const rm=guestRooms[i],el=rm.marker;if(!el)return;const label=rm.state==="occupied"?"OCCUPIED":rm.state==="dirty"?"DIRTY":rm.state==="reserved"?"READY":"AVAILABLE";el.className="roomStatus "+rm.state;el.textContent="ROOM "+rm.id+" • "+label}
+function roomPoint(rm){return GENERATED_POINTS["room"+rm.id]}
+function firstAvailableRoom(){return guestRooms.find(r=>r.state==="available")}
+function spawnWaitingGuest(){const g=hotelGuests.find(h=>h.status==="idle");if(!g||!firstAvailableRoom())return;g.status="waiting";g.room=null;g.serviceRequested=false;g.serviceDone=false;g.npc.x=GENERATED_POINTS.guest.x;g.npc.y=GENERATED_POINTS.guest.y;g.npc.path=[[g.npc.x,g.npc.y],[g.npc.x,g.npc.y]];g.npc.route=null;g.npc.i=0;g.npc.ri=1;g.npc.el.style.display="block";g.npc.el.classList.remove("walking");g.npc.el.dataset.guestId=g.id;taskState="waiting";taskEl.textContent=g.name+" ("+g.roleLabel+") waiting at reception"}
+function resetGeneratedActors(){
+ const p=GENERATED_POINTS;
+ npcs.forEach(n=>{n.x=p.guest.x;n.y=p.guest.y;n.path=[[n.x,n.y],[n.x,n.y]];n.i=0;n.route=null;n.ri=1;n.el.style.display="none";n.el.classList.remove("walking")});
+ guestRooms.forEach((rm,i)=>{rm.state="available";rm.guest=null;rm.marker=document.getElementById("roomStatus"+i);updateRoomMarker(i)});
+ hotelGuests.forEach((g,i)=>{g.status=i===0?"waiting":"idle";g.room=null;g.serviceRequested=false;g.serviceDone=false;g.npc.el.dataset.guestId=String(g.id);g.npc.el.style.display=i===0?"block":"none";g.npc.x=p.guest.x;g.npc.y=p.guest.y;g.npc.path=[[g.npc.x,g.npc.y],[g.npc.x,g.npc.y]]});
+ occupiedRooms=0;checkIns=0;luggageState=null;carrying=null;serviceTarget=null;cleaningTarget=null;taskState="waiting";const cb=player.querySelector(".carryBadge");if(cb)cb.style.display="none";
+}
+for(const n of npcs){
+ n.el.querySelector(".sprite").style.backgroundImage='url("'+SPRITES[n.role]+'")';n.el.querySelector(".sprite").style.backgroundSize="100% 100%";
+ n.route=null;n.ri=1;
+}
+hotelGuests.forEach(g=>{const nameEl=g.npc.el.querySelector(".name");if(nameEl)nameEl.textContent=g.roleLabel+" • "+g.name;});
+function positionActors(){
+ player.style.left=(px*100)+"%";player.style.top=(py*100)+"%";player.querySelector(".sprite").style.backgroundSize="100% 100%";const cb=player.querySelector(".carryBadge");if(cb){cb.style.display=carrying?"block":"none";cb.textContent=carrying==="luggage"?"🧳":carrying==="roomservice"?"🍽️":"🧹";}
+ for(const n of npcs){n.el.style.left=(n.x*100)+"%";n.el.style.top=(n.y*100)+"%";}
+ let action=null,ad=.19;const consider=(x,y,label,type,obj)=>{const d=Math.hypot(px-x,py-y);if(d<ad){ad=d;action={x,y,label,type,obj}}};
+ hotelGuests.forEach(g=>{if(g.npc.el.style.display!=="none"){if(g.status==="waiting")consider(g.npc.x,g.npc.y,"🔑 CHECK IN GUEST","checkin",g);if(g.status==="staying"&&g.serviceRequested)consider(g.npc.x,g.npc.y,serviceTarget===g&&carrying==="roomservice"?"🍽️ DELIVER ROOM SERVICE":"🍽️ GO TO KITCHEN","service",g)}});
+ if(luggageState&&luggageState.active)consider(luggageState.x,luggageState.y,carrying?"🧳 DELIVER LUGGAGE":"🧳 PICK UP LUGGAGE","luggage",luggageState);
+ if(serviceTarget&&serviceTarget.status==="staying"&&serviceTarget.serviceRequested&&!carrying)consider(GENERATED_POINTS.kitchen.x,GENERATED_POINTS.kitchen.y,"🍽️ COLLECT ROOM SERVICE","kitchen",serviceTarget);
+ if(cleaningTarget&&cleaningTarget.state==="dirty"&&carrying!=="cleaning")consider(GENERATED_POINTS.housekeeping.x,GENERATED_POINTS.housekeeping.y,"🧹 COLLECT CLEANING SUPPLIES","housekeeping",cleaningTarget);
+ guestRooms.forEach(rm=>{if(rm.state==="dirty")consider(roomPoint(rm).x,roomPoint(rm).y,"🧹 CLEAN ROOM "+rm.id,"clean",rm);if(carrying==="luggage"&&luggageState&&luggageState.room===rm.id)consider(roomPoint(rm).x,roomPoint(rm).y,"🧳 DELIVER TO ROOM "+rm.id,"deliver",rm)});
+ if(action){interact.style.display="block";interact.style.left=(action.x*100)+"%";interact.style.top=((action.y*100)-9)+"%";interact.textContent=action.label}else interact.style.display="none";
+}
+function updateNpcs(){
+ for(const n of npcs){
+   const hg=hotelGuests.find(g=>g.npc===n);
+   if(hg){
+     if(hg.status!=="walkingToRoom"){n.el.classList.remove("walking");continue;}
+     const dest=n.path[n.ri];
+     if(!dest){n.el.classList.remove("walking");continue;}
+     const dx=dest.x-n.x,dy=dest.y-n.y,d=Math.hypot(dx,dy),step=.0026;
+     n.el.classList.add("walking");
+     if(d<=step){
+       n.x=dest.x;n.y=dest.y;n.ri++;
+       if(n.ri>=n.path.length){
+         n.el.classList.remove("walking");
+         if(hg.onRoomArrival){const cb=hg.onRoomArrival;hg.onRoomArrival=null;cb();}
+       }
+     }else{
+       const nx=n.x+dx/d*step,ny=n.y+dy/d*step;
+       n.x=nx;n.y=ny;
+     }
+     continue;
+   }
+   n.el.classList.remove("walking");
+ }
+}
+function updateProgression(){
+ const newly=[];
+ if(!unlock.Porter&&earned>=400){unlock.Porter=true;newly.push("Porter");}
+ if(!unlock.RoomService&&earned>=650){unlock.RoomService=true;newly.push("Room Service");}
+ if(!unlock.Cleaner&&earned>=900){unlock.Cleaner=true;newly.push("Cleaner");}
+ if(!unlock.Maintenance&&earned>=1500){unlock.Maintenance=true;newly.push("Maintenance");}
+ if(newly.length)showToast("Staff unlocked: "+newly.join(", "));
+}
+function roomUpgrade(){
+ const cost=ROOM_UPGRADE_COSTS[upgradeRooms];
+ if(cost===undefined){showToast("All room upgrades purchased");return false}
+ if(money<cost){showToast("Need $"+cost.toLocaleString()+" for the next room upgrade");return false}
+ money-=cost;moneyEl.textContent="$"+money.toLocaleString();upgradeRooms++;roomCapacity+=2;
+ showToast("Hotel expanded: +2 guest rooms");return true;
+}
+function facilityUpgrade(kind,cost){
+ if(money<cost){showToast("Need $"+cost.toLocaleString()+" for "+kind);return false}
+ money-=cost;moneyEl.textContent="$"+money.toLocaleString();showToast(kind+" upgraded ✓");return true;
+}
+function setHotelTask(t){taskState=t;taskEl.textContent=t}
+function createLuggage(room){
+ const el=document.createElement("div");el.className="luggage";el.textContent="🧳";el.id="activeLuggage";level.appendChild(el);
+ luggageState={el,active:true,x:GENERATED_POINTS.reception.x,y:GENERATED_POINTS.reception.y,room:room.id};
+ el.style.left=(luggageState.x*ART_W-23)+"px";el.style.top=(luggageState.y*ART_H-19)+"px";
+}
+function removeLuggage(){if(luggageState&&luggageState.el)luggageState.el.remove();luggageState=null}
+function checkInGuest(g){
+ const rm=firstAvailableRoom();if(!rm){showToast("All rooms are occupied or need cleaning");return false}
+ rm.state="occupied";rm.guest=g;updateRoomMarker(guestRooms.indexOf(rm));g.status="luggage";g.room=rm;occupiedRooms++;
+ money+=100;earned+=100;checkIns++;rep++;moneyEl.textContent="$"+money.toLocaleString();updateProgression();
+ createLuggage(rm);if(unlock.Porter){setHotelTask("Porter is taking luggage to Room "+rm.id);setTimeout(()=>{if(playing&&luggageState&&luggageState.active)deliverLuggage(rm)},1800)}else{setHotelTask("🧳 Take luggage to Room "+rm.id)}showToast("+$100  Guest checked in");
+ return true;
+}
+function beginGuestStay(g,rm){
+ g.status="staying";g.npc.el.classList.remove("walking");
+ setHotelTask("Guest in Room "+rm.id+" • stay in progress");
+ showToast("Guest arrived at Room "+rm.id);
+ setTimeout(()=>{
+   if(!playing||g.status!=="staying")return;
+   g.serviceRequested=true;
+   if(unlock.RoomService){
+     setHotelTask("Room Service staff will handle Room "+rm.id);
+     setTimeout(()=>{if(playing&&g.serviceRequested){g.serviceRequested=false;g.serviceDone=true;money+=40;earned+=40;moneyEl.textContent="$"+money.toLocaleString();updateProgression();showToast("Room Service delivered by staff")}},1800);
+   }else{
+     setHotelTask("🍽️ Room "+rm.id+" is requesting room service");
+     showToast("Room "+rm.id+" requested room service");
+   }
+ },ROOM_SERVICE_DELAY_MS);
+}
+function deliverLuggage(rm){
+ if(!carrying||carrying!=="luggage"||!luggageState||luggageState.room!==rm.id)return false;
+ const g=rm.guest;carrying=null;removeLuggage();
+ g.status="walkingToRoom";
+ const rp=roomPoint(rm),roomX=(rm.x+rm.w/2)/ART_W;
+ // Follow the physical reception exit, central corridor, and the exact center of each room doorway.
+ const receptionDoorX=(70+350-18)/ART_W;
+ const receptionDoorY=(650+60)/ART_H;
+ // Use the open middle of the central corridor, not its top wall boundary.
+ const corridorY=(500+210)/ART_H;
+ const roomDoorY=(rm.y+rm.h-9)/ART_H;
+ g.npc.x=GENERATED_POINTS.guest.x;g.npc.y=GENERATED_POINTS.guest.y;
+ g.npc.path=[
+  {x:g.npc.x,y:g.npc.y},
+  {x:receptionDoorX,y:g.npc.y},
+  {x:receptionDoorX,y:receptionDoorY},
+  {x:receptionDoorX,y:corridorY},
+  {x:roomX,y:corridorY},
+  {x:roomX,y:roomDoorY},
+  {x:rp.x,y:rp.y}
+ ];
+ g.npc.ri=1;g.npc.route=null;g.npc.el.style.display="block";g.npc.el.classList.add("walking");
+ setHotelTask("Guest walking to Room "+rm.id);
+ showToast("Guest is heading to Room "+rm.id);
+ const finish=()=>{
+   if(g.status==="walkingToRoom"){g.npc.x=roomPoint(rm).x;g.npc.y=roomPoint(rm).y;beginGuestStay(g,rm)}
+ };
+ g.onRoomArrival=finish;
+ // If path has only a start point, arrive immediately; otherwise updateNpcs calls the callback.
+ // Guest must complete the visible corridor route; no teleport fallback.
+ setTimeout(()=>{
+   if(!playing||g.status!=="staying")return;
+   g.status="idle";g.serviceRequested=false;g.npc.el.style.display="none";occupiedRooms=Math.max(0,occupiedRooms-1);
+   if(unlock.Cleaner){rm.state="available";updateRoomMarker(guestRooms.indexOf(rm));setHotelTask("Room "+rm.id+" cleaned by staff");showToast("Cleaner serviced Room "+rm.id);setTimeout(()=>{if(playing)spawnWaitingGuest()},900)}
+   else{rm.state="dirty";setHotelTask("🧹 Room "+rm.id+" needs cleaning");showToast("Guest checked out — Room "+rm.id+" needs cleaning")}
+   rm.guest=null;updateRoomMarker(guestRooms.indexOf(rm));
+ },GUEST_STAY_MS+3000);
+ spawnWaitingGuest();return true;
+}
+function collectRoomService(){
+ if(!serviceTarget||serviceTarget.status!=="staying"||!serviceTarget.serviceRequested)return false;
+ carrying="roomservice";
+ const g=serviceTarget;
+ setHotelTask("🍽️ Carry room service to Room "+g.room.id);
+ showToast("Room service collected from kitchen");
+ positionActors();return true;
+}
+function deliverRoomService(g){
+ if(carrying!=="roomservice"||serviceTarget!==g||g.status!=="staying"||!g.serviceRequested)return false;
+ carrying=null;serviceTarget=null;g.serviceRequested=false;g.serviceDone=true;
+ money+=40;earned+=40;moneyEl.textContent="$"+money.toLocaleString();updateProgression();
+ showToast("+$40  Room service delivered");setHotelTask("Room "+g.room.id+" • guest staying");positionActors();return true;
+}
+function collectCleaningSupplies(){
+ if(!cleaningTarget||cleaningTarget.state!=="dirty")return false;
+ carrying="cleaning";
+ setHotelTask("🧹 Carry cleaning supplies to Room "+cleaningTarget.id);
+ showToast("Cleaning supplies collected");positionActors();return true;
+}
+function cleanRoom(rm){
+ if(carrying!=="cleaning"||cleaningTarget!==rm||rm.state!=="dirty")return false;
+ carrying=null;cleaningTarget=null;rm.state="available";updateRoomMarker(guestRooms.indexOf(rm));
+ money+=30;earned+=30;moneyEl.textContent="$"+money.toLocaleString();updateProgression();
+ showToast("+$30  Room "+rm.id+" cleaned");setHotelTask("Room "+rm.id+" is ready");positionActors();
+ setTimeout(()=>{if(playing)spawnWaitingGuest()},500);return true;
+}
+function showToast(t){toast.textContent=t;toast.style.display="block";clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.style.display="none",1800)}
+function startAudio(){if(!audioOn)return;music.volume=.34;ambience.volume=.2;Promise.allSettled([music.play(),ambience.play()]);document.getElementById("sound").textContent="🔊"}
+function toggleAudio(){audioOn=!audioOn;if(audioOn)startAudio();else{music.pause();ambience.pause()}document.getElementById("sound").textContent=audioOn?"🔊":"🔇"}
+function setTask(){taskEl.textContent=role==="Receptionist"?"Guest waiting at reception":role==="Porter"?"Collect luggage":"Complete your current hotel job"}
+function walkTo(x,y,onArrive=null){
+ const path=findPath(px,py,x,y);
+ if(!path){showToast("That area is blocked");return}
+ let index=1;
+ player.classList.add("walking");
+ const nextSegment=()=>{
+   if(index>=path.length){player.classList.remove("walking");onArrive?.();return}
+   const dest=path[index++],sx=px,sy=py,dx=dest.x-sx,dy=dest.y-sy,d=Math.hypot(dx,dy);
+   if(d<.006){nextSegment();return}
+   const dur=Math.min(850,Math.max(120,d*1200)),st=performance.now();
+   const tick=now=>{
+     const t=Math.min(1,(now-st)/dur);
+     moveClamped(sx+(dest.x-sx)*t,sy+(dest.y-sy)*t);positionActors();
+     if(t<1)requestAnimationFrame(tick);else nextSegment();
+   };
+   requestAnimationFrame(tick);
+ };
+ nextSegment();
+}
+function hit(x,y){return x>.42&&x<.58&&y>.36&&y<.60}
+const INTERACTABLES=[
+ {type:"guest",get x(){return GENERATED_POINTS.guest.x},get y(){return GENERATED_POINTS.guest.y},r:.09},
+ {type:"Kitchen",get x(){return GENERATED_POINTS.kitchen.x},get y(){return GENERATED_POINTS.kitchen.y},r:.10,reward:35},
+ {type:"Housekeeping",get x(){return GENERATED_POINTS.housekeeping.x},get y(){return GENERATED_POINTS.housekeeping.y},r:.10,reward:30},
+ {type:"Maintenance",get x(){return GENERATED_POINTS.maintenance.x},get y(){return GENERATED_POINTS.maintenance.y},r:.10,reward:45}
+];
+function nearestInteractable(x,y){
+ let best=null,bd=Infinity;
+ for(const q of INTERACTABLES){const d=Math.hypot(x-q.x,y-q.y);if(d<q.r&&d<bd){best=q;bd=d}}
+ return best;
+}
+function interactAt(x,y){
+ let best=null,bd=.19;
+ hotelGuests.forEach(g=>{if(g.npc.el.style.display!=="none"){const d=Math.hypot(px-g.npc.x,py-g.npc.y);if(d<bd){if(g.status==="waiting"){best={type:"checkin",g};bd=d}else if(g.status==="staying"&&g.serviceRequested){best={type:"service",g};bd=d}}}});
+ if(luggageState&&luggageState.active){const d=Math.hypot(px-luggageState.x,py-luggageState.y);if(d<bd){best={type:"luggage",l:luggageState};bd=d}}
+ // Kitchen pickup is available only when a guest has requested service and staff automation has not taken over.
+ if(serviceTarget&&serviceTarget.status==="staying"&&serviceTarget.serviceRequested&&!unlock.RoomService){
+   const kp=GENERATED_POINTS.kitchen,d=Math.hypot(px-kp.x,py-kp.y);
+   if(d<bd)best={type:"kitchen",g:serviceTarget},bd=d;
+ }
+ // Housekeeping pickup is required before any manual cleaning.
+ if(cleaningTarget&&cleaningTarget.state==="dirty"&&carrying!=="cleaning"){
+   const hp=GENERATED_POINTS.housekeeping,d=Math.hypot(px-hp.x,py-hp.y);
+   if(d<bd)best={type:"housekeeping",rm:cleaningTarget},bd=d;
+ }
+ guestRooms.forEach(rm=>{const rp=roomPoint(rm),d=Math.hypot(px-rp.x,py-rp.y);if(d<bd){
+   if(carrying==="luggage"&&luggageState&&luggageState.room===rm.id)best={type:"deliver",rm};
+   else if(carrying==="roomservice"&&serviceTarget&&serviceTarget.room&&serviceTarget.room.id===rm.id)best={type:"serviceDeliver",g:serviceTarget};
+   else if(rm.state==="dirty"&&carrying!=="cleaning"){best={type:"cleanStart",rm}}
+   else if(rm.state==="dirty"&&carrying==="cleaning"&&cleaningTarget===rm){best={type:"clean",rm}};
+   if(best)bd=d;
+ }});
+ if(!best){showToast("Move closer to the current task");return false}
+ if(best.type==="checkin")return checkInGuest(best.g);
+ if(best.type==="luggage"){if(!carrying){carrying="luggage";best.l.active=false;best.l.el.style.display="none";setHotelTask("🧳 Take luggage to Room "+best.l.room);showToast("Luggage picked up");positionActors();return true}}
+ if(best.type==="deliver")return deliverLuggage(best.rm);
+ if(best.type==="service"){serviceTarget=best.g;setHotelTask("🍽️ Go to the kitchen to collect Room "+best.g.room.id+" service");showToast("Kitchen pickup required");positionActors();return true}
+ if(best.type==="kitchen")return collectRoomService();
+ if(best.type==="serviceDeliver")return deliverRoomService(best.g);
+ if(best.type==="cleanStart"){cleaningTarget=best.rm;setHotelTask("🧹 Go to housekeeping to collect supplies for Room "+best.rm.id);showToast("Collect cleaning supplies first");positionActors();return true}
+ if(best.type==="housekeeping")return collectCleaningSupplies();
+ if(best.type==="clean")return cleanRoom(best.rm);
+ return false;
+}
+
+function pointer(e){
+ const r=world.parentElement.getBoundingClientRect();
+ return{x:e.clientX-r.left,y:e.clientY-r.top};
+}
+let lastStepSound=0;
+function playStepSound(){}
+function nudge(dx,dy){if(!playing)return;const moved=moveClamped(px+dx,py+dy);if(moved)player.classList.add("walking");positionActors()}
+addEventListener("keydown",e=>{
+ const k=e.key.toLowerCase();
+ if(!playing)return;
+ if(["arrowup","arrowdown","arrowleft","arrowright","w","a","s","d"].includes(k)){e.preventDefault();heldKeys.add(k)}
+ if(k==="e")interactAt(px,py);
+});
+addEventListener("keyup",e=>{heldKeys.delete(e.key.toLowerCase())});
+addEventListener("blur",()=>heldKeys.clear());
+function screenToWorld(p){
+ return{
+  x:Math.max(0,Math.min(1,((p.x-worldTransform.x)/worldTransform.zoom-worldLeft)/worldW)),
+  y:Math.max(0,Math.min(1,((p.y-worldTransform.y)/worldTransform.zoom-worldTop)/worldH))
+ }
+}
+let touchDrag=false,touchLastX=0,touchLastY=0,touchMoved=false,touchLastTime=0;
+const movePad=document.getElementById("movePad");
+const moveButtons=movePad?[...movePad.querySelectorAll("button")]:[];
+let padDX=0,padDY=0,padTimer=0;
+function stopPad(){padDX=0;padDY=0;padTimer=0;if(!touchDrag&&!heldKeys.size)player.classList.remove("walking")}
+function startPad(btn){
+ stopPad();
+ padDX=Number(btn.dataset.dx||0);padDY=Number(btn.dataset.dy||0);
+ padTimer=1;
+}
+moveButtons.forEach(btn=>{
+ btn.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();btn.setPointerCapture?.(e.pointerId);startPad(btn)},{passive:false});
+ btn.addEventListener("pointerup",e=>{e.preventDefault();e.stopPropagation();stopPad()},{passive:false});
+ btn.addEventListener("pointercancel",stopPad);
+ btn.addEventListener("pointerleave",()=>{});
+});
+world.addEventListener("pointerdown",e=>{
+ if(!playing)return;
+ touchDrag=true;touchMoved=false;touchLastX=e.clientX;touchLastY=e.clientY;touchLastTime=performance.now();
+ world.setPointerCapture?.(e.pointerId);
+});
+world.addEventListener("pointermove",e=>{
+ if(!playing||!touchDrag)return;
+ const now=performance.now(),dt=Math.max(8,Math.min(50,now-touchLastTime));
+ let dx=e.clientX-touchLastX,dy=e.clientY-touchLastY;
+ touchLastX=e.clientX;touchLastY=e.clientY;touchLastTime=now;
+ if(Math.abs(dx)+Math.abs(dy)>1)touchMoved=true;
+ const zoom=worldTransform.zoom||1;
+ const maxWorldStep=0.0025*(dt/16.67);
+ const wx=Math.max(-maxWorldStep,Math.min(maxWorldStep,dx/(zoom*worldW)));
+ const wy=Math.max(-maxWorldStep,Math.min(maxWorldStep,dy/(zoom*worldH)));
+ if(wx||wy){const moved=moveClamped(px+wx,py+wy);if(moved)player.classList.add("walking");positionActors();}
+});
+world.addEventListener("pointerup",e=>{
+ if(!touchDrag)return;
+ player.classList.remove("walking");
+ touchDrag=false;
+ if(!touchMoved){
+  const p=screenToWorld(pointer(e)),q=nearestInteractable(p.x,p.y);
+  if(q)interactAt(q.x,q.y);
+ }
+});
+world.addEventListener("pointercancel",()=>{touchDrag=false;player.classList.remove("walking")});
+
+try{buildLevel(Date.now()>>>0)}catch(err){console.error("Initial level build failed",err)}
+window.beginGame=function(){
+ if(playing)return true;
+ const title=document.getElementById("title"),playBtn=document.getElementById("play");
+ if(playBtn){playBtn.disabled=true;playBtn.textContent="LOADING SHIFT…";}
+ try{
+  levelSeed=(Date.now()>>>0)^Math.floor(Math.random()*0xffffffff);
+  buildLevel(levelSeed);
+  resetGeneratedActors();
+  money=1280;earned=0;rep=50;occupiedRooms=0;checkIns=0;carrying=null;luggageState=null;
+  moneyEl.textContent="$1,280";
+  setHotelTask("Guest waiting at reception");
+  px=GENERATED_POINTS.reception.x;py=GENERATED_POINTS.reception.y;
+  camera.x=px;camera.y=py;
+  lastAudioX=px;lastAudioY=py;lastStepSound=0;
+  playing=true;
+  positionActors();
+  updateWorld();
+  title.style.display="none";title.style.visibility="hidden";title.style.pointerEvents="none";
+  hint.classList.add("show");setTimeout(()=>hint.classList.remove("show"),3500);
+  startAudio();
+  requestAnimationFrame(loop);
+  return true;
+ }catch(err){
+  playing=false;
+  if(playBtn){playBtn.disabled=false;playBtn.textContent="▶ PLAY / CONTINUE";}
+  title.style.display="flex";title.style.visibility="visible";title.style.pointerEvents="auto";
+  console.error("Last Call startup error",err);
+  showToast("Startup error: "+(err&&err.message?err.message:"unknown"));
+  return false;
+ }
+}
+if(window.__lastCallStartQueued)window.beginGame();
+document.getElementById("sound").onclick=toggleAudio;
+function openPanel(type){
+ const panel=document.getElementById("panel"),card=document.getElementById("panelCard");panel.style.display="flex";
+ if(type==="menu")card.innerHTML='<h2>Menu</h2><p>Keep the shift simple.</p><button class="btn" id="resume">Back to Game</button><button class="btn alt" id="staff">Staff</button><button class="btn alt" id="upgrades">Hotel Upgrades</button><button class="btn alt" id="settings">Settings</button>';
+ if(type==="settings")card.innerHTML='<h2>Settings</h2><div class="row"><span>Music</span><input id="mv" class="range" type="range" min="0" max="1" step=".05" value="'+music.volume+'"></div><div class="row"><span>Ambience</span><input id="av" class="range" type="range" min="0" max="1" step=".05" value="'+ambience.volume+'"></div><button class="btn close" id="close">Back</button>';
+ if(type==="staff")card.innerHTML='<h2>Staff</h2><p>Earn money from hotel work to unlock new staff roles.</p><div class="staffGrid">'+Object.entries(unlock).map(([n,v])=>'<div class="staff '+(v?'':'locked')+'"><b>'+n+'</b><div class="mini">'+(v?'Unlocked':'Locked — earn more hotel income')+'</div></div>').join("")+'</div><button class="btn close" id="close">Back</button>';
+ if(type==="upgrades")card.innerHTML='<h2>Hotel Upgrades</h2><p>Starting capacity: 3 rooms. Each Guest Rooms purchase adds 2 rooms.</p><div class="staff"><b>Guest Rooms</b><div class="mini">Capacity '+roomCapacity+' rooms</div><button class="btn alt" id="buyRooms">'+(ROOM_UPGRADE_COSTS[upgradeRooms]!==undefined?"Expand +2 rooms  •  $"+ROOM_UPGRADE_COSTS[upgradeRooms].toLocaleString():"Fully upgraded")+'</button></div><div class="staff"><b>Kitchen & Room Service</b><div class="mini">Unlocks room-service work</div><button class="btn alt" id="buyKitchen">$3,500</button></div><div class="staff"><b>Maintenance Wing</b><div class="mini">Unlocks maintenance work</div><button class="btn alt" id="buyMaintenance">$5,000</button></div><button class="btn close" id="close">Back</button>';
+ if(type==="menu"){document.getElementById("resume").onclick=()=>panel.style.display="none";document.getElementById("staff").onclick=()=>openPanel("staff");document.getElementById("upgrades").onclick=()=>openPanel("upgrades");document.getElementById("settings").onclick=()=>openPanel("settings")}
+ if(type==="settings"){document.getElementById("close").onclick=()=>panel.style.display="none";document.getElementById("mv").oninput=e=>music.volume=+e.target.value;document.getElementById("av").oninput=e=>ambience.volume=+e.target.value}
+ if(type==="staff"||type==="upgrades")document.getElementById("close").onclick=()=>openPanel("menu");
+ if(type==="upgrades"){document.getElementById("buyRooms").onclick=()=>{if(roomUpgrade())openPanel("upgrades")};document.getElementById("buyKitchen").onclick=()=>{if(facilityUpgrade("Kitchen & Room Service",3500))openPanel("upgrades")};document.getElementById("buyMaintenance").onclick=()=>{if(facilityUpgrade("Maintenance Wing",5000))openPanel("upgrades")}}
+}
+document.getElementById("menu").onclick=()=>openPanel("menu");
+document.getElementById("titleSettings").onclick=()=>openPanel("settings");
+addEventListener("lastcall-settings",()=>openPanel("settings"));
+document.addEventListener("visibilitychange",()=>{if(document.hidden){music.pause();ambience.pause()}else if(playing&&audioOn)startAudio()});
+resize();positionActors();
+</script>
+</div>
+</body>
+</html>
