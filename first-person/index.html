@@ -283,7 +283,9 @@ async function loadCharacter(g){
     if(src.animations?.length){
       g.mixer=new THREE.AnimationMixer(g.mesh);
       const idle=src.animations.find(a=>/idle/i.test(a.name))||src.animations[0];
+      const walk=src.animations.find(a=>/walk|run/i.test(a.name));
       g.action=g.mixer.clipAction(idle);g.action.play();
+      if(walk)g.walkAction=g.mixer.clipAction(walk);
     }
     assetProgress();
   }catch(e){console.warn("character asset skipped",e);assetProgress()}
@@ -308,18 +310,21 @@ function beginGuestWalk(g){
   const entryZ=3;
   const doorX=p.side*5.0;
   g.walkPath=[
+    {x:-7.4,z:entryZ},
     {x:-5.0,z:entryZ},
     {x:0,z:entryZ},
     {x:0,z:p.z},
     {x:doorX,z:p.z}
   ];
   g.walkIndex=0;
+  g.walkServiceAt=0;
   g.state="walking";
+  if(g.mixer&&g.action&&g.walkAction){g.action.stop();g.walkAction.reset().play()}
 }
 function updateGuestWalk(g,dt){
   if(g.state!=="walking"||!g.mesh||!g.walkPath)return;
   const t=g.walkPath[g.walkIndex];
-  if(!t){g.state="staying";g.walkPath=null;setTask("Guest in Room "+g.room+" • stay in progress");return}
+  if(!t){g.state="staying";g.walkPath=null;g.walkServiceAt=performance.now()+6500;if(g.mixer&&g.action){g.action.stop();g.action.reset().play()}setTask("Guest in Room "+g.room+" • stay in progress");return}
   const dx=t.x-g.mesh.position.x,dz=t.z-g.mesh.position.z,dist=Math.hypot(dx,dz);
   if(dist<.08){g.mesh.position.x=t.x;g.mesh.position.z=t.z;g.walkIndex++;return}
   const speed=1.35,step=Math.min(dist,speed*dt);
@@ -394,7 +399,7 @@ function move(dt){
 function openMenu(){document.getElementById("panel").style.display="flex";panelBody();}function panelBody(){document.getElementById("panelTitle").textContent="Night Shift";document.getElementById("panelBody").innerHTML='<div class="row"><b>Hotel funds</b><span>$'+money.toLocaleString()+'</span></div><div class="row"><b>Reputation</b><span>★ '+rep+'</span></div><div class="row"><b>Room 101–103</b><span>Unlocked</span></div><div class="row"><b>Next room upgrade</b><span>$2,000 • +1 room</span><button class="action" id="upgrade">UPGRADE</button></div><div class="row"><b>Save</b><span>Save current night</span><button class="action" id="save">SAVE</button></div><div class="row"><b>Manual gameplay</b><span>No teleportation</span></div>';document.getElementById("upgrade").onclick=()=>{if(money>=2000&&!rooms.get(104).unlocked){money-=2000;rooms.get(104).unlocked=true;toast("Room 104 unlocked");ui();panelBody()}else toast("Need $2,000")};document.getElementById("save").onclick=save}
 document.getElementById("menu").onclick=openMenu;document.getElementById("close").onclick=()=>document.getElementById("panel").style.display="none";document.getElementById("use").onclick=()=>{const z=nearest();if(z)z.action()};
 let lastCheckoutId=0;
-function tickGuests(){for(const g of guests)updateGuestWalk(g,.016);const g=guests.find(x=>x.state==="checkout");if(g&&g.id!==lastCheckoutId){lastCheckoutId=g.id;finishCheckout()}if(!guests.some(x=>x.state==="waiting"||x.state==="luggage"||x.state==="walking")&&guests.some(x=>x.state==="idle"))spawnGuest()}
+function tickGuests(){for(const g of guests){if(g.state==="staying"&&g.walkServiceAt&&performance.now()>=g.walkServiceAt){g.walkServiceAt=0;g.state="service";serviceTarget=g;setTask("🍽️ CURRENT TASK: Collect room service in the kitchen, then deliver to Room "+g.room)}}const g=guests.find(x=>x.state==="checkout");if(g&&g.id!==lastCheckoutId){lastCheckoutId=g.id;finishCheckout()}if(!guests.some(x=>x.state==="waiting"||x.state==="luggage"||x.state==="walking")&&guests.some(x=>x.state==="idle"))spawnGuest()}
 let started=false;document.getElementById("start").addEventListener("click",()=>{started=true;document.getElementById("title").style.display="none";spawnGuest();setTask("🔑 CURRENT TASK: Check in Alex at reception")});
 let last=performance.now();function frame(now){const dt=Math.min(.04,(now-last)/1000);last=now;if(started){move(dt);camera.rotation.set(pitch,yaw,0,"YXZ");for(const g of guests){if(g.mixer)g.mixer.update(dt);updateGuestWalk(g,dt)}hands.rotation.y=0;const z=nearest();if(z){prompt.textContent=z.label;prompt.style.display="block";use.style.display="block"}else{prompt.style.display="none";use.style.display="none"}if(now-lastSave>15000){lastSave=now;localStorage.setItem("lcn-save",JSON.stringify({money,rep,rooms:[...rooms.values()].map(r=>({id:r.id,unlocked:r.unlocked,state:r.state,dirty:r.dirty}))}))}tickGuests()}renderer.render(scene,camera);requestAnimationFrame(frame)}requestAnimationFrame(frame);
 addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
