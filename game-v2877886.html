@@ -578,7 +578,8 @@ function deliverLuggage(rm){
    {x:roomFinalX,y:roomFinalY}
  ];
 
- if(g.motionTimer)clearInterval(g.motionTimer);
+ if(g.motionTimer&&typeof g.motionTimer.cancel==="function")g.motionTimer.cancel();
+ g.motionTimer=null;
  g.npc.path=path;
  g.npc.ri=1;
  g.npc.el.style.display="block";
@@ -589,8 +590,11 @@ function deliverLuggage(rm){
  showToast("Guest is heading to Room "+rm.id);
 
  let last=performance.now();
+ let rafId=0;
  const finish=()=>{
-   if(g.motionTimer){clearInterval(g.motionTimer);g.motionTimer=null;}
+   if(rafId)cancelAnimationFrame(rafId);
+   rafId=0;
+   g.motionTimer=null;
    g.npc.x=roomPoint(rm).x;
    g.npc.y=roomPoint(rm).y;
    g.npc.ri=path.length;
@@ -599,15 +603,15 @@ function deliverLuggage(rm){
    setTimeout(()=>{if(playing&&g.status==="staying")spawnWaitingGuest()},650);
  };
 
- g.motionTimer=setInterval(()=>{
-   if(!playing||g.status!=="walkingToRoom"){clearInterval(g.motionTimer);g.motionTimer=null;return;}
+ const moveGuest=()=>{
+   if(!playing||g.status!=="walkingToRoom"){rafId=0;g.motionTimer=null;return;}
    const now=performance.now();
-   const dt=Math.min(50,Math.max(12,now-last));
+   const dt=Math.min(50,Math.max(8,now-last));
    last=now;
    const target=path[g.npc.ri];
    if(!target){finish();return;}
    const dx=target.x-g.npc.x,dy=target.y-g.npc.y,d=Math.hypot(dx,dy);
-   if(d<=0.0005){
+   if(d<=0.001){
      g.npc.x=target.x;
      g.npc.y=target.y;
      g.npc.ri++;
@@ -618,7 +622,10 @@ function deliverLuggage(rm){
      g.npc.y+=dy/d*step;
    }
    positionActors();
- },16);
+   rafId=requestAnimationFrame(moveGuest);
+ };
+ g.motionTimer={cancel:()=>{if(rafId)cancelAnimationFrame(rafId);rafId=0;}};
+ rafId=requestAnimationFrame(moveGuest);
 
  setTimeout(()=>{
    if(!playing||g.status!=="staying")return;
