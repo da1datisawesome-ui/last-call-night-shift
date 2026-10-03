@@ -7,7 +7,7 @@
 #game{position:fixed;inset:0}canvas{display:block;width:100%;height:100%}
 #hud{position:fixed;inset:0;color:#fff;pointer-events:none}
 .pill{position:absolute;top:max(10px,env(safe-area-inset-top));padding:10px 14px;border-radius:18px;background:#071521d9;border:1px solid #ffffff22;box-shadow:0 8px 28px #0008;backdrop-filter:blur(14px);font-weight:850}
-#money{left:12px}#rep{left:145px}#task{left:50%;transform:translateX(-50%);max-width:min(620px,52vw);min-width:280px;white-space:normal;text-align:center;line-height:1.25;padding:11px 18px}
+#money{left:12px}#rep{left:145px}#task{left:50%;transform:translateX(-50%);max-width:min(560px,46vw);min-width:240px;white-space:normal;text-align:center;line-height:1.25;padding:11px 18px}
 #menu{position:absolute;right:12px;top:max(10px,env(safe-area-inset-top));width:46px;height:46px;border:1px solid #ffffff25;border-radius:15px;background:#071521d9;color:#fff;font-size:22px;pointer-events:auto}
 #cross{position:absolute;left:50%;top:50%;width:18px;height:18px;transform:translate(-50%,-50%);opacity:.85}
 #cross:before,#cross:after{content:"";position:absolute;background:#fff;box-shadow:0 0 8px #000}#cross:before{width:18px;height:2px;top:8px}#cross:after{width:2px;height:18px;left:8px}
@@ -35,7 +35,7 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.m
 
 const ART={floor:"#6a4a34",wall:"#d8c6a9",wood:"#75421f",dark:"#1d130d",brass:"#c99b4c",fabric:"#6f4149",cream:"#eee5d6"};
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,32,90);
-const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.05,120);camera.position.set(-13,1.72,8);camera.rotation.order="YXZ";
+const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.05,120);camera.position.set(-13,1.68,8);camera.rotation.order="YXZ";
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;document.getElementById("game").appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xffead0,0x162333,2.1));
 scene.add(new THREE.AmbientLight(0xffd8bd,0.45));
@@ -75,10 +75,20 @@ for(const p of [[-12,3.5,-11],[ -1,3.5,-11]]){const L=new THREE.PointLight(0xffd
 
 // Real CC0 furniture where available
 // First-person hands/forearms: visible interaction model
-const handMat=mat("#b8795d",.72), sleeveMat=mat("#233849",.85);const hands=new THREE.Group();camera.add(hands);scene.add(camera);function hand(side){const g=new THREE.Group();const fore=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.72,5,10),sleeveMat);fore.rotation.z=side*.16;fore.position.set(side*.18,-.13,-.72);fore.rotation.x=-.35;const palm=new THREE.Mesh(new THREE.SphereGeometry(.15,14,12),handMat);palm.position.set(side*.27,-.02,-1.02);g.add(fore,palm);for(let i=0;i<4;i++){const f=new THREE.Mesh(new THREE.CapsuleGeometry(.025,.16,4,7),handMat);f.position.set(side*(.24+(i%2)*.035),-.02-(i*.015),-1.12-i*.004);f.rotation.z=side*.15;g.add(f)}return g}hands.add(hand(-1),hand(1));hands.position.set(0,-.05,0);const BASE="https://raw.githubusercontent.com/pj4533/slopmancer/c0b535e9d90dfccaaef1e8bff12e56d514f7700e/public/assets/models/props/furniture/";
+const handMat=mat("#b8795d",.72), sleeveMat=mat("#233849",.85);const hands=new THREE.Group();camera.add(hands);scene.add(camera);function hand(side){const g=new THREE.Group();const fore=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.72,5,10),sleeveMat);fore.rotation.z=side*.16;fore.position.set(side*.18,-.13,-.72);fore.rotation.x=-.35;const palm=new THREE.Mesh(new THREE.SphereGeometry(.15,14,12),handMat);palm.position.set(side*.27,-.02,-1.02);g.add(fore,palm);for(let i=0;i<4;i++){const f=new THREE.Mesh(new THREE.CapsuleGeometry(.025,.16,4,7),handMat);f.position.set(side*(.24+(i%2)*.035),-.02-(i*.015),-1.12-i*.004);f.rotation.z=side*.15;g.add(f)}return g}hands.add(hand(-1),hand(1));hands.scale.set(.62,.62,.62);hands.position.set(0,-.24,-.02);const BASE="https://raw.githubusercontent.com/pj4533/slopmancer/c0b535e9d90dfccaaef1e8bff12e56d514f7700e/public/assets/models/props/furniture/";
 async function loadModel(file,x,y,z,target,rot=0){if(!loader)return;try{const g=await new Promise((res,rej)=>loader.load(BASE+file,res,undefined,rej));const o=g.scene.clone(true);const b=new THREE.Box3().setFromObject(o),sz=b.getSize(new THREE.Vector3()),m=Math.max(sz.x,sz.y,sz.z)||1;o.scale.setScalar(target/m);o.position.set(x,y,z);o.rotation.y=rot;o.traverse(q=>{if(q.isMesh){q.castShadow=true;q.receiveShadow=true}});scene.add(o)}catch(e){console.warn("asset skipped",file)}}
-const modelPlacements=[["bed_double_A.gltf",15,.08,-13,3.7,0],["bed_double_B.gltf",15,.08,-5,3.7,0],["bed_double_A.gltf",15,.08,3,3.7,0],["couch.gltf",-8,.08,2.5,3.2,Math.PI/2],["rug_rectangle_B.gltf",-8,.02,4,4.2,0],["lamp_table.gltf",-5,.05,2.5,1.2,0],["cabinet_small_decorated.gltf",19,.05,-13,2.0,Math.PI/2],["shelf_A_big.gltf",19,.05,-5,2.3,Math.PI/2]];
+const modelPlacements=[];
 import("https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js").then(m=>{loader=new m.GLTFLoader();modelPlacements.forEach(p=>loadModel(...p))}).catch(()=>{});
+
+
+function panel(x,z,w=3.2){box("wallPanel",x,2.05,z,w,3.05,.08,mat("#806044",.62),false);box("panelTrim",x,2.05,z,w+.12,3.18,.035,M.brass,false)}
+for(const x of[-18,-14,-10,-6,0,6,12,18])panel(x,-16.76,3.3);
+function sideTable(x,z){box("tableTop",x,.78,z,1.05,.12,.72,M.wood);for(const sx of[-.4,.4])for(const sz of[-.25,.25])box("tableLeg",x+sx,.38,z+sz,.09,.72,.09,M.brass,false)}
+for(const x of[-17,-11,-5,1,7,13,19]){sideTable(x,-14.6);cyl("lampBase",x,.91,-14.6,.16,.08,M.brass);cyl("lampShade",x,1.22,-14.6,.27,.42,mat("#ead9b8",.82))}
+function cushion(x,y,z,sx,sz){box("cushion",x,y,z,sx,.22,sz,mat("#6c4d46",.96))}
+for(const x of[-8,-5]){box("lobbySofa",x,.62,2.5,2.6,.7,1.0,mat("#38515a",.86));cushion(x,.99,2.5,2.35,.82)}
+function roomDress(z){box("nightstand",17,.68,z-1.2,1.0,1.1,.72,M.wood);cyl("lamp",17,.95,z-1.2,.11,.3,M.brass);box("lampshade",17,1.22,z-1.2,.38,.35,.38,mat("#e8d7b7",.82));box("pillow",14.05,1.05,z-.18,1.05,.18,.58,mat("#f4efe6",.92));box("throw",16.25,1.02,z+.25,1.55,.08,1.2,mat("#5c7180",.9));box("bench",17.2,.58,z+2.2,2.0,.42,.62,mat("#7d583b",.55));box("curtain",12.95,2.35,z-2.2,.08,3.1,2.2,mat("#7a4c45",.88))}
+for(const z of[-13,-5,3,11,-1,7,15])roomDress(z);
 
 // State
 const rooms=new Map([101,102,103,104,105,106,107].map(id=>[id,{id,unlocked:id<=103,state:"available",guest:null,dirty:false}]));
