@@ -727,6 +727,7 @@ function deliverLuggage(rm){
    if(!playing||g.status!=="staying")return;
    g.status="idle";
    g.serviceRequested=false;
+   if(serviceTarget===g){serviceTarget=null;carrying=null;}
    g.npc.el.style.display="none";
    occupiedRooms=Math.max(0,occupiedRooms-1);
    if(unlock.Cleaner){
