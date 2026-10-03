@@ -27,7 +27,7 @@
 #toast{position:fixed;left:50%;bottom:13%;transform:translateX(-50%);z-index:80;padding:12px 18px;border-radius:15px;background:#071521ee;border:1px solid #ffffff1f;display:none;font-weight:850}
 </style></head><body>
 <div id="title"><div class="titleCard"><div class="kicker">HOTEL MANAGEMENT • NIGHT SHIFT</div><div class="titleName">LAST CALL</div><div class="sub">Run the hotel yourself. Walk every corridor, carry every delivery and decide when upgrades are worth the cost.</div><button class="start" id="start">START NIGHT SHIFT</button></div></div>
-<div id="game"></div><div id="hud"><div id="controlsHint" style="position:fixed;left:18px;bottom:164px;z-index:12;color:#fff;background:#071521c9;border:1px solid #ffffff20;border-radius:14px;padding:8px 12px;font-size:11px;font-weight:800;pointer-events:none">MOVE: left joystick &nbsp; • &nbsp; LOOK: drag right side</div><div id="money" class="pill">$1,280</div><div id="rep" class="pill">★ 1</div><div id="task" class="pill">Night Shift • Ready</div><button id="menu">☰</button><div id="cross"></div><div id="prompt"></div><button id="use">USE</button><div id="joy"><div id="stick"></div></div><div id="look"></div></div>
+<div id="game"></div><div style="position:fixed;inset:0;pointer-events:none;z-index:9;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.34) 100%);mix-blend-mode:multiply"></div><div id="hud"><div id="controlsHint" style="position:fixed;left:18px;bottom:164px;z-index:12;color:#fff;background:#071521c9;border:1px solid #ffffff20;border-radius:14px;padding:8px 12px;font-size:11px;font-weight:800;pointer-events:none">MOVE: left joystick &nbsp; • &nbsp; LOOK: drag right side</div><div id="money" class="pill">$1,280</div><div id="rep" class="pill">★ 1</div><div id="task" class="pill">Night Shift • Ready</div><button id="menu">☰</button><div id="cross"></div><div id="prompt"></div><button id="use">USE</button><div id="joy"><div id="stick"></div></div><div id="look"></div></div>
 <div id="panel"><div class="card"><h2 id="panelTitle">Night Shift</h2><div id="panelBody"></div><button class="close" id="close">CLOSE</button></div></div><div id="toast"></div>
 
 <script type="module">
@@ -35,7 +35,7 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.m
 
 const ART={floor:"#6a4a34",wall:"#d8c6a9",wood:"#75421f",dark:"#1d130d",brass:"#c99b4c",fabric:"#6f4149",cream:"#eee5d6"};
 const BUILD="FP-FOUNDATION-2026-10-03";const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,32,90);
-const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.05,120);camera.position.set(-13,1.68,8);camera.rotation.order="YXZ";
+const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.04,140);camera.position.set(-13,1.68,8);camera.rotation.order="YXZ";
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;document.getElementById("game").appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xffead0,0x162333,2.1));
 scene.add(new THREE.AmbientLight(0xffd8bd,0.45));
@@ -63,8 +63,30 @@ for(const z of [2.5,5,7.5]){box("sofa",-8,.65,z,3,.9,.85,M.fabric);box("back",-8
 box("table",-8,.55,4,2.1,.25,1.2,M.wood);cyl("plant",-5,.65,2.3,.35,1.3,M.green);
 box("exit",-21.55,1.5,5,.18,3,2.5,M.wood);box("exitglass",-21.43,1.55,5,.08,2.5,1.8,M.glass);label("EXIT",-20.8,2.55,5,.45);
 function door(x,z,id){box("door",x,1.4,z,2.1,2.8,.18,M.wood);box("frame",x,1.42,z-.13,2.35,3,.06,M.brass);cyl("handle",x+.68,1.45,z-.15,.065,.16,M.brass);label("ROOM "+id,x,3.05,z-.2,.3)}
-function room(z,id,unlocked){box("roomwall",13.0,2.1,z,16.0,4.2,.3,M.wall);door(4.8,z,id);box("bed",15,.55,z,3.9,.85,2,M.cream);box("headboard",15,1.25,z-1,4,1.7,.16,M.wood);box("desk",19,.65,z+1.8,2.2,1.1,.9,M.wood);cyl("chair",19,.5,z+3,.4,.8,M.fabric);box("rug",15,.035,z+2.3,6,.05,2.5,M.fabric,false);box("painting",19,2.3,z-1.5,2,1.2,.1,M.blue,false);const L=new THREE.PointLight(0xffd8ae,2.3,9);L.position.set(15,3.5,z);scene.add(L);if(!unlocked){box("lock",4.8,1.4,z-.2,.8,.8,.2,M.brass);label("LOCKED",4.8,3.35,z-.15,.27)}}
+function room(z,id,unlocked){
+  // Room frontage has a genuine doorway opening instead of a solid wall behind the door.
+  box("roomwallA",13.0,2.1,z-5.9,16.0,4.2,4.0,M.wall);
+  box("roomwallB",13.0,2.1,z+5.9,16.0,4.2,4.0,M.wall);
+  box("roomLintel",13.0,3.55,z,16.0,1.3,.3,M.wall);
+  door(4.8,z,id);
+  box("bed",15,.55,z,3.9,.85,2,M.cream);box("headboard",15,1.25,z-1,4,1.7,.16,M.wood);
+  box("desk",19,.65,z+1.8,2.2,1.1,.9,M.wood);cyl("chair",19,.5,z+3,.4,.8,M.fabric);
+  box("rug",15,.035,z+2.3,6,.05,2.5,M.fabric,false);box("painting",19,2.3,z-1.5,2,1.2,.1,M.blue,false);
+  const L=new THREE.PointLight(0xffd8ae,2.3,9);L.position.set(15,3.5,z);scene.add(L);
+  if(!unlocked){box("lock",4.8,1.4,z-.2,.8,.8,.2,M.brass);label("LOCKED",4.8,3.35,z-.15,.27)}
+}
 room(-13,101,true);room(-5,102,true);room(3,103,true);room(11,104,false);room(-1,105,false);room(7,106,false);room(15,107,false);
+function oppositeRoom(z,id,unlocked){
+  box("oppWallA",-13.0,2.1,z-5.9,16.0,4.2,4.0,M.wall);
+  box("oppWallB",-13.0,2.1,z+5.9,16.0,4.2,4.0,M.wall);
+  box("oppLintel",-13.0,3.55,z,16.0,1.3,.3,M.wall);
+  door(-4.8,z,id);
+  box("oppBed",-15,.55,z,3.9,.85,2,M.cream);box("oppHeadboard",-15,1.25,z-1,4,1.7,.16,M.wood);
+  box("oppDesk",-19,.65,z+1.8,2.2,1.1,.9,M.wood);cyl("oppChair",-19,.5,z+3,.4,.8,M.fabric);
+  box("oppRug",-15,.035,z+2.3,6,.05,2.5,M.fabric,false);
+  const L=new THREE.PointLight(0xffd8ae,2.0,8);L.position.set(-15,3.5,z);scene.add(L);
+}
+oppositeRoom(-13,201,true);oppositeRoom(-5,202,true);oppositeRoom(3,203,true);oppositeRoom(11,204,false);oppositeRoom(-1,205,false);oppositeRoom(7,206,false);oppositeRoom(15,207,false);
 
 // Service wing with clear manual routes
 box("serviceWallL",-8.75,2.1,-12,10.5,4.2,.3,M.wall);box("serviceWallR",-2.75,2.1,-12,1.5,4.2,.3,M.wall);box("kitchen",-12,.8,-11,5,1.5,1,M.wood);box("kitchenDoor", -12,1.4,-12.05,2.2,2.8,.14,M.wood);box("kitchenTop",-12,1.6,-11,5.2,.18,1.15,M.brass);label("KITCHEN",-12,2.35,-10.35,.44);box("oven",-9.8,1,-11,1.3,1.8,.9,M.dark);box("house",-1,.9,-11,5,1.7,1,M.wood);box("houseDoor",-1,1.4,-12.05,2.2,2.8,.14,M.wood);label("HOUSEKEEPING",-1,2.35,-10.35,.38);
@@ -179,11 +201,14 @@ function lookEnd(){lastLook=null}
 look.addEventListener("pointerdown",lookStart);look.addEventListener("pointermove",lookMove);look.addEventListener("pointerup",lookEnd);look.addEventListener("pointercancel",lookEnd);look.addEventListener("lostpointercapture",lookEnd);
 function blocked(x,z){
   if(x<-21.15||x>21.15||z<-16.15||z>16.15)return true;
-  // Reception footprint and service-room frontage.
   if(x>-16.8&&x<-9.5&&z>3.8&&z<6.7)return true;
   if(x>-14.6&&x<-9.2&&z>-12.9&&z<-10.0)return true;
   if(x>-3.6&&x<1.5&&z>-12.9&&z<-10.0)return true;
-  // Keep the player in the guest circulation corridor; door openings remain usable.
+  // Guest-room thresholds: the corridor is open, but solid frontage begins away from each doorway.
+  const doors=[-13,-5,3,11,-1,7,15];
+  const nearDoor=doors.some(z0=>Math.abs(z-z0)<1.05);
+  if(x>5.85&&!nearDoor)return true;
+  if(x<-5.85&&!nearDoor)return true;
   return false;
 }
 function move(dt){
