@@ -607,10 +607,15 @@ function deliverLuggage(rm){
  setHotelTask("Guest walking to Room "+rm.id);
  showToast("Guest is heading to Room "+rm.id);
  const finish=()=>{
-   if(g.status==="walkingToRoom"){g.npc.x=roomPoint(rm).x;g.npc.y=roomPoint(rm).y;beginGuestStay(g,rm)}
+   if(g.status==="walkingToRoom"){
+     g.npc.x=roomPoint(rm).x;g.npc.y=roomPoint(rm).y;
+     beginGuestStay(g,rm);
+     setTimeout(()=>{if(playing&&g.status==="staying")spawnWaitingGuest()},650);
+   }
  };
  g.onRoomArrival=finish;
- // If path has only a start point, arrive immediately; otherwise updateNpcs calls the callback.
+ // Do not spawn the next waiting guest while this guest is travelling.
+ // The next guest is created only after this guest has reached the room.
  // Guest must complete the visible corridor route; no teleport fallback.
  setTimeout(()=>{
    if(!playing||g.status!=="staying")return;
@@ -619,7 +624,7 @@ function deliverLuggage(rm){
    else{rm.state="dirty";setHotelTask("🧹 Room "+rm.id+" needs cleaning");showToast("Guest checked out — Room "+rm.id+" needs cleaning")}
    rm.guest=null;updateRoomMarker(guestRooms.indexOf(rm));
  },GUEST_STAY_MS+3000);
- spawnWaitingGuest();return true;
+ return true;
 }
 function collectRoomService(){
  if(!serviceTarget||serviceTarget.status!=="staying"||!serviceTarget.serviceRequested)return false;
