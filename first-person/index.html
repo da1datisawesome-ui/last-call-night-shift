@@ -30,11 +30,12 @@
 <div id="game"></div><div style="position:fixed;inset:0;pointer-events:none;z-index:9;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.34) 100%);mix-blend-mode:multiply"></div><div id="hud"><div id="controlsHint" style="position:fixed;left:18px;bottom:164px;z-index:12;color:#fff;background:#071521c9;border:1px solid #ffffff20;border-radius:14px;padding:8px 12px;font-size:11px;font-weight:800;pointer-events:none">MOVE: left joystick &nbsp; • &nbsp; LOOK: drag right side</div><div id="money" class="pill">$1,280</div><div id="rep" class="pill">★ 1</div><div id="task" class="pill">Night Shift • Ready</div><button id="menu">☰</button><div id="cross"></div><div id="prompt"></div><button id="use">USE</button><div id="joy"><div id="stick"></div></div><div id="look"></div></div>
 <div id="panel"><div class="card"><h2 id="panelTitle">Night Shift</h2><div id="panelBody"></div><button class="close" id="close">CLOSE</button></div></div><div id="toast"></div>
 
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 const ART={floor:"#6a4a34",wall:"#d8c6a9",wood:"#75421f",dark:"#1d130d",brass:"#c99b4c",fabric:"#6f4149",cream:"#eee5d6"};
-const BUILD="AA-FIRST-PERSON-HOTEL-2026-10-03D";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
+const BUILD="AA-FIRST-PERSON-HOTEL-2026-10-03E";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
 const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.04,140);camera.position.set(-13,1.68,8);camera.rotation.order="YXZ";
 const renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:"high-performance",precision:mobile?"mediump":"highp"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.25:1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.physicallyCorrectLights=true;renderer.info.autoReset=false;document.getElementById("game").appendChild(renderer.domElement);
 const envLight=new THREE.HemisphereLight(0xffead0,0x172331,mobile?2.35:2.4);scene.add(envLight);
