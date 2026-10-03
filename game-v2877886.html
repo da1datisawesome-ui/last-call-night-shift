@@ -478,30 +478,19 @@ function updateNpcs(){
    const hg=hotelGuests.find(g=>g.npc===n);
    if(hg){
      if(hg.status!=="walkingToRoom"){n.el.classList.remove("walking");continue;}
-     const target=hg.room?roomPoint(hg.room):null;
-     if(!target){n.el.classList.remove("walking");continue;}
-     if(!n.path||n.ri>=n.path.length){
-       n.path=findPath(n.x,n.y,target.x,target.y)||[{x:n.x,y:n.y},{x:target.x,y:target.y}];
-       n.ri=1;
-     }
-     let dest=n.path[n.ri];
+     const dest=n.path[n.ri];
      if(!dest){n.el.classList.remove("walking");continue;}
      const dx=dest.x-n.x,dy=dest.y-n.y,d=Math.hypot(dx,dy),step=.0026;
      n.el.classList.add("walking");
      if(d<=step){
        n.x=dest.x;n.y=dest.y;n.ri++;
+       if(n.ri>=n.path.length){
+         n.el.classList.remove("walking");
+         if(hg.onRoomArrival){const cb=hg.onRoomArrival;hg.onRoomArrival=null;cb();}
+       }
      }else{
        const nx=n.x+dx/d*step,ny=n.y+dy/d*step;
-       if(!npcBlocked(nx,ny)){
-         n.x=nx;n.y=ny;
-       }else{
-         const replanned=findPath(n.x,n.y,target.x,target.y);
-         if(replanned&&replanned.length>1){n.path=replanned;n.ri=1;}
-       }
-     }
-     if(n.ri>=n.path.length){
-       n.x=target.x;n.y=target.y;n.el.classList.remove("walking");
-       if(hg.onRoomArrival){const cb=hg.onRoomArrival;hg.onRoomArrival=null;cb();}
+       n.x=nx;n.y=ny;
      }
      continue;
    }
@@ -561,17 +550,23 @@ function deliverLuggage(rm){
  if(!carrying||carrying!=="luggage"||!luggageState||luggageState.room!==rm.id)return false;
  const g=rm.guest;carrying=null;removeLuggage();
  g.status="walkingToRoom";
- const rp=roomPoint(rm);
+ const rp=roomPoint(rm),roomX=(rm.x+rm.w/2)/ART_W;
+ // Follow the physical reception exit, central corridor, and the exact center of each room doorway.
+ const receptionDoorX=(70+350-18)/ART_W;
+ const receptionDoorY=(650+60)/ART_H;
+ // Use the open middle of the central corridor, not its top wall boundary.
+ const corridorY=(500+210)/ART_H;
+ const roomDoorY=(rm.y+rm.h-9)/ART_H;
  g.npc.x=GENERATED_POINTS.guest.x;g.npc.y=GENERATED_POINTS.guest.y;
- // Use the same collision-aware pathfinder as player movement. The previous
- // hand-written corridor route could stop on a wall/door edge; this route
- // is recalculated from the guest's actual position to the actual room point.
- g.npc.path=findPath(g.npc.x,g.npc.y,rp.x,rp.y);
- if(!g.npc.path||g.npc.path.length<2){
-   showToast("Guest route unavailable — recalculating");
-   g.status="luggage";
-   return false;
- }
+ g.npc.path=[
+  {x:g.npc.x,y:g.npc.y},
+  {x:receptionDoorX,y:g.npc.y},
+  {x:receptionDoorX,y:receptionDoorY},
+  {x:receptionDoorX,y:corridorY},
+  {x:roomX,y:corridorY},
+  {x:roomX,y:roomDoorY},
+  {x:rp.x,y:rp.y}
+ ];
  g.npc.ri=1;g.npc.route=null;g.npc.el.style.display="block";g.npc.el.classList.add("walking");
  setHotelTask("Guest walking to Room "+rm.id);
  showToast("Guest is heading to Room "+rm.id);
