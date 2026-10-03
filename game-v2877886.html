@@ -154,8 +154,8 @@ function buildLevel(seed){
  rooms.forEach((room,i)=>{GENERATED_ROOMS[i]=room;});
  roomFloor(70,500,350,420,"Reception");
  roomFloor(455,500,420,420,"Grand Lobby • CENTRAL CORRIDOR");
- roomFloor(875,500,765,420,"CENTRAL GUEST CORRIDOR");
- roomFloor(1640,500,500,350,"Staff Room • Service Hub");
+ roomFloor(875,455,1265,465,"CENTRAL GUEST CORRIDOR");
+ roomFloor(1640,965,500,350,"Staff Room • Service Hub");
  roomFloor(70,105,350,350,"Night Bar");
  roomFloor(520,105,500,350,"Guest Room 101");
  roomFloor(1080,105,500,350,"Guest Room 102");
@@ -188,14 +188,15 @@ function buildLevel(seed){
  door(402,1090,28,90);
  // Staff/service hub has a wide double-width opening to the corridor.
  // Staff/service hub has real collision openings, not just visual door overlays.
- const staffDoorX=1640,staffDoorY=625,staffDoorW=38,staffDoorH=130;
- const staffTopDoorX=1830,staffTopDoorW=120;
- wall(staffDoorX,500,18,staffDoorY-500);
- wall(staffDoorX,staffDoorY+staffDoorH,18,832-(staffDoorY+staffDoorH));
- wall(1640,500,staffTopDoorX-1640,18);
- wall(staffTopDoorX+staffTopDoorW,500,2122-(staffTopDoorX+staffTopDoorW),18);
- wall(2122,500,18,350);wall(1640,832,500,18);
- door(1632,625,38,130);door(staffTopDoorX-10,490,staffTopDoorW,28);
+ // Staff/service hub is below the main corridor and is never part of guest circulation.
+ const staffRm={x:1640,y:965,w:500,h:350};
+ wall(staffRm.x,staffRm.y,staffRm.w,18);
+ wall(staffRm.x,staffRm.y,18,staffRm.h);
+ wall(staffRm.x+staffRm.w-18,staffRm.y,18,staffRm.h);
+ const staffDoorW=120,staffDoorX=staffRm.x+staffRm.w/2-staffDoorW/2;
+ wall(staffRm.x,staffRm.y+staffRm.h-18,staffDoorX-staffRm.x,18);
+ wall(staffDoorX+staffDoorW,staffRm.y+staffRm.h-18,staffRm.x+staffRm.w-(staffDoorX+staffDoorW),18);
+ door(staffDoorX,staffRm.y+staffRm.h-28,staffDoorW,28);
 
  // Reception furniture stays inside reception; the corridor remains empty.
  const reception=rooms[0];
@@ -218,12 +219,12 @@ function buildLevel(seed){
  add("levelCart",rooms[7].x+rooms[7].w/2-52,rooms[7].y+210,105,70,"",true);
  add("levelSofa",rooms[5].x+60,rooms[5].y+65,220,85,"",true);
  add("levelRug",rooms[5].x+70,rooms[5].y+185,rooms[5].w-140,105);
- add("levelDesk",rooms[8].x+60,rooms[8].y+65,165,75,"",true);
- add("levelDesk",rooms[8].x+rooms[8].w-225,rooms[8].y+65,165,75,"",true);
- add("levelPlant",rooms[8].x+rooms[8].w/2-22,rooms[8].y+210,44,44);
+ add("levelDesk",1640+60,965+65,165,75,"",true);
+ add("levelDesk",1640+500-225,965+65,165,75,"",true);
+ add("levelPlant",1640+250-22,965+210,44,44);
 
  // Decorative variation is seeded, but NEVER placed in the central corridor or guest-room door approaches.
- const decorZones=[rooms[0],rooms[1],rooms[5],rooms[6],rooms[7],rooms[8],rooms[10],rooms[11]];
+ const decorZones=[rooms[0],rooms[1],rooms[5],rooms[6],rooms[7],rooms[10],rooms[11]];
  for(let i=0;i<10;i++){
    const rm=decorZones[Math.floor(seeded()*decorZones.length)];
    const px=rm.x+35+seeded()*Math.max(20,rm.w-70),py=rm.y+35+seeded()*Math.max(20,rm.h-70);
@@ -586,12 +587,9 @@ function deliverLuggage(rm){
     guestRoomPoint
    ]);
  }else{
-   // Room 103 sits above the staff hub. Use its real left and top openings.
+   // Room 103 opens directly onto the same main corridor as Rooms 101 and 102.
    g.npc.path=base.concat([
-    {x:1680/ART_W,y:corridorY},
-    {x:1680/ART_W,y:540/ART_H},
-    {x:1890/ART_W,y:540/ART_H},
-    {x:1890/ART_W,y:450/ART_H},
+    {x:roomX,y:corridorY},
     {x:roomX,y:roomApproachY},
     {x:guestRoomPoint.x,y:roomApproachY},
     guestRoomPoint
