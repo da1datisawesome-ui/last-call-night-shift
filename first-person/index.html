@@ -10,7 +10,7 @@
 #money{left:12px}#rep{left:145px}#task{left:50%;transform:translateX(-50%);max-width:46%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #menu{position:absolute;right:12px;top:max(10px,env(safe-area-inset-top));width:46px;height:46px;border:1px solid #ffffff25;border-radius:15px;background:#071521d9;color:#fff;font-size:22px;pointer-events:auto}
 #cross{position:absolute;left:50%;top:50%;width:18px;height:18px;transform:translate(-50%,-50%);opacity:.85}
-#cross:before,#cross:after{content:"";position:absolute;background:#fff;box-shadow:0 0 8px #000}.#cross:before{width:18px;height:2px;top:8px}.#cross:after{width:2px;height:18px;left:8px}
+#cross:before,#cross:after{content:"";position:absolute;background:#fff;box-shadow:0 0 8px #000}#cross:before{width:18px;height:2px;top:8px}.#cross:after{width:2px;height:18px;left:8px}
 #prompt{position:absolute;left:50%;bottom:22%;transform:translateX(-50%);padding:12px 18px;border-radius:15px;background:#f6efe2;color:#102638;font-weight:950;box-shadow:0 10px 30px #0009;display:none}
 #use{position:absolute;right:22px;bottom:25px;width:82px;height:82px;border-radius:50%;border:2px solid #ffffff35;background:#0c344ddd;color:#fff;font-weight:950;pointer-events:auto;display:none;box-shadow:0 12px 30px #0009}
 #joy{position:absolute;left:20px;bottom:22px;width:132px;height:132px;border-radius:50%;background:#082235b8;border:2px solid #ffffff35;pointer-events:auto}
@@ -46,7 +46,7 @@ function box(n,x,y,z,w,h,d,m,sh=true){const o=new THREE.Mesh(new THREE.BoxGeomet
 function cyl(n,x,y,z,r,h,m){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,24),m);o.name=n;o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o}
 const M={floor:mat(ART.floor,.8),wall:mat(ART.wall,.92),wood:mat(ART.wood,.5),dark:mat(ART.dark,.48),brass:mat(ART.brass,.24,.65),fabric:mat(ART.fabric,.92),cream:mat(ART.cream,.84),glass:new THREE.MeshPhysicalMaterial({color:0x5f8da5,roughness:.12,transmission:.25,transparent:true,opacity:.75}),green:mat("#315c3b",.9),blue:mat("#294f6a",.6)};
 box("floor",0,-.1,0,44,.2,34,M.floor,false);box("ceiling",0,4.2,0,44,.15,34,M.dark,false);
-box("north",0,2.1,-17,44,4.2,.3,M.wall);box("south",0,2.1,17,44,4.2,.3,M.wall);box("west",-22,2.1,0,.3,4.2,34,M.wall);box("east",22,2.1,0,.3,4.2,34,M.wall);
+box("north",0,2.1,-17,44,4.2,.3,M.wall);box("south",0,2.1,17,44,4.2,.3,M.wall);box("westA",-22,2.1,-6.25,.3,4.2,21.5,M.wall);box("westB",-22,2.1,13.75,.3,4.2,6.5,M.wall);box("east",22,2.1,0,.3,4.2,34,M.wall);
 for(let x=-20;x<=20;x+=4){box("trim",x,.42,-16.8,3.3,.16,.08,M.wood,false);box("trim",x,.42,16.8,3.3,.16,.08,M.wood,false)}
 for(let x=-18;x<=18;x+=6){box("beam",x,4.02,0,4.7,.18,.2,M.dark,false);const L=new THREE.PointLight(0xffd4a4,2.2,9);L.position.set(x,3.6,0);scene.add(L)}
 
@@ -57,11 +57,11 @@ for(const z of [2.5,5,7.5]){box("sofa",-8,.65,z,3,.9,.85,M.fabric);box("back",-8
 box("table",-8,.55,4,2.1,.25,1.2,M.wood);cyl("plant",-5,.65,2.3,.35,1.3,M.green);
 box("exit",-21.55,1.5,5,.18,3,2.5,M.wood);box("exitglass",-21.43,1.55,5,.08,2.5,1.8,M.glass);label("EXIT",-20.8,2.55,5,.45);
 function door(x,z,id){box("door",x,1.4,z,2.1,2.8,.18,M.wood);box("frame",x,1.42,z-.13,2.35,3,.06,M.brass);cyl("handle",x+.68,1.45,z-.15,.065,.16,M.brass);label("ROOM "+id,x,3.05,z-.2,.3)}
-function room(z,id,unlocked){box("roomwall",13,2.1,z,18,4.2,.3,M.wall);door(4.8,z,id);box("bed",15,.55,z,3.9,.85,2,M.cream);box("headboard",15,1.25,z-1,4,1.7,.16,M.wood);box("desk",19,.65,z+1.8,2.2,1.1,.9,M.wood);cyl("chair",19,.5,z+3,.4,.8,M.fabric);box("rug",15,.035,z+2.3,6,.05,2.5,M.fabric,false);box("painting",19,2.3,z-1.5,2,1.2,.1,M.blue,false);const L=new THREE.PointLight(0xffd8ae,2.3,9);L.position.set(15,3.5,z);scene.add(L);if(!unlocked){box("lock",4.8,1.4,z-.2,.8,.8,.2,M.brass);label("LOCKED",4.8,3.35,z-.15,.27)}}
+function room(z,id,unlocked){box("roomwall",13.0,2.1,z,16.0,4.2,.3,M.wall);door(4.8,z,id);box("bed",15,.55,z,3.9,.85,2,M.cream);box("headboard",15,1.25,z-1,4,1.7,.16,M.wood);box("desk",19,.65,z+1.8,2.2,1.1,.9,M.wood);cyl("chair",19,.5,z+3,.4,.8,M.fabric);box("rug",15,.035,z+2.3,6,.05,2.5,M.fabric,false);box("painting",19,2.3,z-1.5,2,1.2,.1,M.blue,false);const L=new THREE.PointLight(0xffd8ae,2.3,9);L.position.set(15,3.5,z);scene.add(L);if(!unlocked){box("lock",4.8,1.4,z-.2,.8,.8,.2,M.brass);label("LOCKED",4.8,3.35,z-.15,.27)}}
 room(-13,101,true);room(-5,102,true);room(3,103,true);room(11,104,false);room(-1,105,false);room(7,106,false);room(15,107,false);
 
 // Service wing with clear manual routes
-box("serviceWall",-8,2.1,-12,12,4.2,.3,M.wall);box("kitchen",-12,.8,-11,5,1.5,1,M.wood);box("kitchenTop",-12,1.6,-11,5.2,.18,1.15,M.brass);label("KITCHEN",-12,2.35,-10.35,.44);box("oven",-9.8,1,-11,1.3,1.8,.9,M.dark);box("house",-1,.9,-11,5,1.7,1,M.wood);label("HOUSEKEEPING",-1,2.35,-10.35,.38);
+box("serviceWallL",-8.75,2.1,-12,10.5,4.2,.3,M.wall);box("serviceWallR",-2.75,2.1,-12,1.5,4.2,.3,M.wall);box("kitchen",-12,.8,-11,5,1.5,1,M.wood);box("kitchenDoor", -12,1.4,-12.05,2.2,2.8,.14,M.wood);box("kitchenTop",-12,1.6,-11,5.2,.18,1.15,M.brass);label("KITCHEN",-12,2.35,-10.35,.44);box("oven",-9.8,1,-11,1.3,1.8,.9,M.dark);box("house",-1,.9,-11,5,1.7,1,M.wood);box("houseDoor",-1,1.4,-12.05,2.2,2.8,.14,M.wood);label("HOUSEKEEPING",-1,2.35,-10.35,.38);
 for(const x of [-2.2,-.8,.6])box("supply",x,.7,-12,.8,1.25,.7,M.cream);
 for(const p of [[-12,3.5,-11],[ -1,3.5,-11]]){const L=new THREE.PointLight(0xffd3a0,3,9);L.position.set(...p);scene.add(L)}
 
