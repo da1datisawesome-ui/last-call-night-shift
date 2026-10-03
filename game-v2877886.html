@@ -570,59 +570,64 @@ function deliverLuggage(rm){
  if(!carrying||carrying!=="luggage"||!luggageState||luggageState.room!==rm.id)return false;
  const g=rm.guest;carrying=null;removeLuggage();
  g.status="walkingToRoom";
- const corridorEntryX=(reception.x+reception.w+70)/ART_W;
+
+ const corridorEntryX=(reception.x+reception.w+55)/ART_W;
  const corridorEntryY=(reception.y+reception.h*.50)/ART_H;
  const roomEntryX=(rm.x+rm.w/2)/ART_W;
  const roomEntryY=(rm.y<500 ? rm.y+rm.h+34 : rm.y-34)/ART_H;
  const roomFinalX=(rm.x+rm.w*.28)/ART_W;
  const roomFinalY=(rm.y+rm.h*.72)/ART_H;
+
+ // One movement system only: updateNpcs() owns this route.
+ // Keep the route deliberately simple and wide; there is no second rAF loop
+ // competing with updateNpcs().
  const path=[
-   // Guaranteed-clear guest route: leave reception through the wide opening,
-   // enter the main corridor, then approach the assigned room from its doorway.
    {x:GENERATED_POINTS.guest.x,y:GENERATED_POINTS.guest.y},
    {x:(reception.x+reception.w-25)/ART_W,y:(reception.y+reception.h*.82)/ART_H},
    {x:(reception.x+reception.w-25)/ART_W,y:(reception.y+reception.h*.50)/ART_H},
-   {x:(reception.x+reception.w+55)/ART_W,y:corridorEntryY},
+   {x:corridorEntryX,y:corridorEntryY},
    {x:roomEntryX,y:corridorEntryY},
    {x:roomEntryX,y:roomEntryY},
    {x:roomFinalX,y:roomEntryY},
    {x:roomFinalX,y:roomFinalY}
  ];
- g.npc.x=path[0].x;g.npc.y=path[0].y;g.npc.el.style.display="block";g.npc.el.classList.add("walking");
- g.npc.path=null;g.npc.ri=0;g.onRoomArrival=null;
- setHotelTask("Guest walking to Room "+rm.id);
- showToast("Guest is heading to Room "+rm.id);
- let segment=1,last=performance.now();
- const finish=()=>{
-   g.npc.x=roomPoint(rm).x;g.npc.y=roomPoint(rm).y;g.npc.el.classList.remove("walking");
+
+ g.npc.x=path[0].x;
+ g.npc.y=path[0].y;
+ g.npc.path=path;
+ g.npc.ri=1;
+ g.npc.el.style.display="block";
+ g.npc.el.classList.add("walking");
+ g.onRoomArrival=()=>{
+   g.npc.x=roomPoint(rm).x;
+   g.npc.y=roomPoint(rm).y;
+   g.npc.el.classList.remove("walking");
    beginGuestStay(g,rm);
    setTimeout(()=>{if(playing&&g.status==="staying")spawnWaitingGuest()},650);
  };
- const tick=now=>{
-   if(!playing||g.status!=="walkingToRoom")return;
-   const dt=Math.min(50,Math.max(8,now-last));last=now;
-   const target=path[segment];
-   if(!target){finish();return}
-   const dx=target.x-g.npc.x,dy=target.y-g.npc.y,d=Math.hypot(dx,dy);
-   const step=Math.min(d,.00115*dt/16.67);
-   if(d<=.0002){g.npc.x=target.x;g.npc.y=target.y;segment++;if(segment>=path.length){finish();return}}
-   else{
-     // This route is deliberately laid out through the clear reception
-     // doorway and the unobstructed main corridor. Do not feed the guest
-     // back into the collision/pathfinding loop while it is travelling.
-     g.npc.x+=dx/d*step;
-     g.npc.y+=dy/d*step;
-   }
-   positionActors();
-   requestAnimationFrame(tick);
- };
- requestAnimationFrame(tick);
+
+ setHotelTask("Guest walking to Room "+rm.id);
+ showToast("Guest is heading to Room "+rm.id);
+
  setTimeout(()=>{
    if(!playing||g.status!=="staying")return;
-   g.status="idle";g.serviceRequested=false;g.npc.el.style.display="none";occupiedRooms=Math.max(0,occupiedRooms-1);
-   if(unlock.Cleaner){rm.state="available";updateRoomMarker(guestRooms.indexOf(rm));setHotelTask("Room "+rm.id+" cleaned by staff");showToast("Cleaner serviced Room "+rm.id);setTimeout(()=>{if(playing)spawnWaitingGuest()},900)}
-   else{rm.state="dirty";setHotelTask("🧹 Room "+rm.id+" needs cleaning");showToast("Guest checked out — Room "+rm.id+" needs cleaning")}
-   rm.guest=null;updateRoomMarker(guestRooms.indexOf(rm));
+   g.status="idle";
+   g.serviceRequested=false;
+   g.npc.el.style.display="none";
+   occupiedRooms=Math.max(0,occupiedRooms-1);
+   if(unlock.Cleaner){
+     rm.state="available";
+     updateRoomMarker(guestRooms.indexOf(rm));
+     setHotelTask("Room "+rm.id+" cleaned by staff");
+     showToast("Cleaner serviced Room "+rm.id);
+     setTimeout(()=>{if(playing)spawnWaitingGuest()},900);
+   }else{
+     rm.state="dirty";
+     setHotelTask("🧹 Room "+rm.id+" needs cleaning");
+     showToast("Guest checked out — Room "+rm.id+" needs cleaning");
+   }
+   rm.guest=null;
+   updateRoomMarker(guestRooms.indexOf(rm));
  },GUEST_STAY_MS+3000);
  return true;
 }
