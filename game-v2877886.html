@@ -41,6 +41,39 @@
 .roomStatus.available{background:#174b35}.roomStatus.occupied{background:#254e72}.roomStatus.dirty{background:#713b2c}.roomStatus.locked{background:#4b4b4b}
 .luggage{position:absolute;z-index:12;width:50px;height:42px;border-radius:9px;background:linear-gradient(135deg,#9d673f,#5f3925);border:4px solid #3e281c;box-shadow:0 7px 11px #0005;color:#f7e7c9;font-size:27px;text-align:center;line-height:34px;pointer-events:none}
 .carryBadge{position:absolute;z-index:16;left:50%;bottom:54px;transform:translateX(-50%);font-size:24px;filter:drop-shadow(0 2px 2px #0008);display:none}
+/* Premium visual pass: richer materials, depth, lighting and atmosphere */
+#level{background:radial-gradient(circle at 50% 20%,#f6ead0 0,#c8ad82 52%,#765f4b 100%)}
+.levelFloor{
+ background:
+  radial-gradient(ellipse at 18% 20%,rgba(255,255,255,.22),transparent 32%),
+  linear-gradient(135deg,rgba(255,255,255,.08),transparent 42%),
+  repeating-linear-gradient(90deg,rgba(92,63,37,.035) 0 3px,transparent 3px 38px),
+  linear-gradient(180deg,#ead9b9,#c4a77c);
+ box-shadow:inset 0 0 0 5px rgba(57,39,25,.24),inset 0 25px 50px rgba(255,255,255,.18),inset 0 -35px 55px rgba(39,25,15,.22),0 14px 30px rgba(0,0,0,.18);
+}
+.levelFloor:after{inset:10px;background:linear-gradient(120deg,rgba(255,255,255,.13),transparent 25%,rgba(255,255,255,.035) 58%,rgba(0,0,0,.08));box-shadow:inset 0 0 0 2px rgba(255,255,255,.1),inset 0 0 35px rgba(0,0,0,.08)}
+.levelWall{
+ background:linear-gradient(180deg,#fffaf0 0,#eadbc1 28%,#c9b394 70%,#9e876d 100%);
+ border:3px solid rgba(61,43,29,.42);
+ box-shadow:0 16px 24px rgba(26,18,11,.32),inset 0 3px 0 rgba(255,255,255,.9),inset 0 -7px 12px rgba(72,48,28,.15);
+}
+.levelDoor{
+ background:linear-gradient(90deg,#281810,#6e4228 22%,#a66a3c 50%,#60351f 78%,#281810);
+ border:5px solid #21140e;
+ box-shadow:0 12px 22px rgba(0,0,0,.55),inset 0 0 0 3px #c48750,inset 0 0 0 7px #3d2418,inset 0 0 18px rgba(255,210,140,.16);
+}
+.levelWindow{background:linear-gradient(135deg,#69b5d8,#eafaff 42%,#4c8eaf);box-shadow:inset 0 0 0 3px rgba(255,255,255,.85),inset 0 0 24px rgba(135,220,255,.5),0 10px 20px rgba(0,0,0,.3)}
+.levelRug{box-shadow:0 13px 20px rgba(0,0,0,.38),inset 0 0 0 3px #e4b687,inset 0 0 20px rgba(42,24,14,.28)}
+.levelTable,.levelDesk{box-shadow:0 15px 20px rgba(0,0,0,.38),inset 0 3px 0 #edbd7c,inset 0 -8px 12px rgba(38,20,10,.18)}
+.levelCounter{box-shadow:0 16px 22px rgba(0,0,0,.42),inset 0 4px 0 #e4b57b,inset 0 -10px 14px rgba(42,22,10,.2)}
+.levelBed{box-shadow:0 15px 22px rgba(0,0,0,.35),inset 0 2px 0 #fff}
+.levelPlant{box-shadow:0 11px 17px rgba(0,0,0,.4),inset 0 4px 9px rgba(255,255,255,.18)}
+.levelCart{box-shadow:0 11px 17px rgba(0,0,0,.38),inset 0 2px 0 rgba(255,255,255,.45)}
+.levelSofa{box-shadow:0 14px 20px rgba(0,0,0,.4),inset 0 3px 0 rgba(255,255,255,.22),inset 0 -10px 15px rgba(40,15,25,.22)}
+.levelLamp{filter:drop-shadow(0 0 10px rgba(255,211,120,.55))}
+.actor .sprite{filter:drop-shadow(0 8px 5px rgba(0,0,0,.28))}
+.shadow{background:radial-gradient(ellipse,rgba(0,0,0,.6),rgba(0,0,0,0) 72%);filter:blur(3px)}
+.roomStatus{box-shadow:0 8px 18px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.2)}
 .levelFloor{z-index:0}.levelWall{z-index:2}.levelDoor{z-index:3}.levelTable,.levelDesk,.levelBed,.levelCounter,.levelPlant,.levelCart,.levelSofa,.levelRug,.levelWindow,.levelLamp{z-index:4}
 .movePad{position:absolute;left:14px;bottom:max(14px,env(safe-area-inset-bottom));width:156px;height:156px;pointer-events:auto;display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);opacity:.92}
 .movePad button{width:52px;height:52px;border-radius:14px;background:#092f4eea;color:#fff;border:1px solid #ffffff35;font-size:25px;font-weight:900;box-shadow:0 4px 14px #0006;touch-action:none;-webkit-user-select:none;user-select:none}
@@ -576,46 +609,21 @@ function deliverLuggage(rm){
  const g=rm.guest;
  if(!g||!g.npc)return false;
 
+ // Deliberately teleport the guest to the assigned room after luggage delivery.
+ // This removes the unreliable NPC corridor-navigation system from the critical path.
  carrying=null;
  removeLuggage();
  g.status="walkingToRoom";
-
- // Restore the movement system that previously worked: updateNpcs()
- // owns guest movement and advances one waypoint every game frame.
- // The route follows the actual hotel circulation rather than a direct
- // line through walls/furniture.
- const receptionExitX=(GENERATED_ROOMS[0].x+GENERATED_ROOMS[0].w+20)/ART_W;
- const receptionExitY=(650+60)/ART_H;
- const corridorY=(GENERATED_ROOMS[1].y+GENERATED_ROOMS[1].h*.50)/ART_H;
- const roomX=(rm.x+rm.w*.50)/ART_W;
- const roomDoorY=(rm.y<700 ? rm.y+rm.h-9 : rm.y+9)/ART_H;
- const rp=roomPoint(rm);
-
- g.npc.x=GENERATED_POINTS.guest.x;
- g.npc.y=GENERATED_POINTS.guest.y;
- g.npc.path=[
-   {x:g.npc.x,y:g.npc.y},
-   {x:receptionExitX,y:g.npc.y},
-   {x:receptionExitX,y:receptionExitY},
-   {x:receptionExitX,y:corridorY},
-   {x:roomX,y:corridorY},
-   {x:roomX,y:roomDoorY},
-   {x:rp.x,y:rp.y}
- ];
- g.npc.ri=1;
+ const p=roomPoint(rm);
+ g.npc.x=p.x;
+ g.npc.y=p.y;
+ g.npc.path=[];
+ g.npc.ri=0;
  g.npc.route=null;
  g.npc.el.style.display="block";
- g.npc.el.classList.add("walking");
-
- setHotelTask("Guest walking to Room "+rm.id);
- showToast("Guest is heading to Room "+rm.id);
-
- g.onRoomArrival=()=>{
-   if(g.status!=="walkingToRoom")return;
-   g.npc.x=rp.x;
-   g.npc.y=rp.y;
-   beginGuestStay(g,rm);
- };
+ g.npc.el.classList.remove("walking");
+ positionActors();
+ beginGuestStay(g,rm);
 
  setTimeout(()=>{
    if(!playing||g.status!=="staying")return;
@@ -623,7 +631,6 @@ function deliverLuggage(rm){
    g.serviceRequested=false;
    g.npc.el.style.display="none";
    occupiedRooms=Math.max(0,occupiedRooms-1);
-
    if(unlock.Cleaner){
      rm.state="available";
      updateRoomMarker(guestRooms.indexOf(rm));
