@@ -259,7 +259,8 @@ const music=document.getElementById("music"),ambience=document.getElementById("a
 let W=0,H=0,playing=false,role="Receptionist",money=1280,rep=50,earned=0,audioOn=true,px=.582,py=.527,gx=.60,gy=.34,drag=false,target=null,pendingInteraction=null,lastStep=0;
 let unlock={Receptionist:true,Porter:false,RoomService:false,Cleaner:false,Maintenance:false};
 let roomCapacity=3,occupiedRooms=0,checkIns=0,upgradeRooms=0;
-const ROOM_UPGRADE_COSTS=[2000,3500,5000];\nconst ROOM_UPGRADE_ADDS=[1,2,1];
+const ROOM_UPGRADE_COSTS=[2000,3500,5000];
+const ROOM_UPGRADE_ADDS=[1,2,1];
 const GUEST_STAY_MS=90000,ROOM_SERVICE_DELAY_MS=25000;
 const guestRooms=[101,102,103,104,105,106,107].map((id,i)=>({id,state:"available",guest:null,marker:null,unlocked:i<3}));
 let luggageState=null,carrying=null,taskState="waiting",serviceTarget=null,cleaningTarget=null;
