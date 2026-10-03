@@ -13,7 +13,7 @@ canvas{display:block;width:100%;height:100%}
 #money{left:16px}#task{left:50%;transform:translateX(-50%);max-width:58%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #cross{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%)}
 #cross:before,#cross:after{content:"";position:absolute;background:#fff;border-radius:2px;box-shadow:0 0 8px #000}
-#cross:before{width:20px;height:2px;top:9px}.#cross:after{height:20px;width:2px;left:9px}
+#cross:before{width:20px;height:2px;top:9px}#cross:after{height:20px;width:2px;left:9px}
 #prompt{position:absolute;left:50%;bottom:24%;transform:translateX(-50%);padding:13px 20px;border-radius:15px;background:#f7f1e5;color:#10283a;font-weight:900;box-shadow:0 10px 30px #0008;display:none}
 #joystick{position:absolute;left:22px;bottom:25px;width:132px;height:132px;border-radius:50%;background:#0b2638aa;border:2px solid #ffffff35;pointer-events:auto}
 #stick{position:absolute;width:58px;height:58px;left:37px;top:37px;border-radius:50%;background:#e9eef2dd;box-shadow:0 8px 20px #0008}
@@ -37,6 +37,7 @@ canvas{display:block;width:100%;height:100%}
 </div>
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+import {GLTFLoader} from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
 
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x111820);
@@ -50,8 +51,18 @@ renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.12;
+renderer.toneMappingExposure=1.22;
 document.getElementById("game").appendChild(renderer.domElement);
+// High-fidelity 3D presentation layer
+renderer.domElement.style.imageRendering="auto";
+const ambientDust=new THREE.Group();scene.add(ambientDust);
+for(let i=0;i<90;i++){
+ const q=new THREE.Mesh(new THREE.SphereGeometry(.018,6,6),new THREE.MeshBasicMaterial({color:0xffe7c7,transparent:true,opacity:.035,depthWrite:false}));
+ q.position.set((Math.random()-.5)*42,1+Math.random()*3,(Math.random()-.5)*30);ambientDust.add(q);
+}
+const gltfBase="https://raw.githubusercontent.com/pj4533/slopmancer/c0b535e9d90dfccaaef1e8bff12e56d514f7700e/public/assets/models/props/furniture/";
+const loaderScript=document.createElement("script");
+
 
 const hemi=new THREE.HemisphereLight(0xffe7c4,0x182738,1.9);scene.add(hemi);
 const key=new THREE.DirectionalLight(0xffd3a0,3.2);key.position.set(-12,14,10);key.castShadow=true;key.shadow.mapSize.set(2048,2048);key.shadow.camera.left=-25;key.shadow.camera.right=25;key.shadow.camera.top=25;key.shadow.camera.bottom=-25;scene.add(key);
@@ -136,10 +147,53 @@ box("housekeeping",-1,.9,-11,5,1.7,1,mats.wood);
 label("HOUSEKEEPING",-1,2.35,-10.35,.4);
 for(let x=-2.4;x<=.4;x+=1.4){box("supply",x,.65,-12.0,.8,1.2,.7,mats.white)}
 light(-1,3.4,-11,0xffd4a0,2.8,9);
+
+// Architectural detail pass: wall moulding, ceiling coffers, door hardware and framed artwork.
+for(let x=-20;x<=20;x+=4){box("wallTrim",x,.42,-16.78,3.4,.18,.06,mats.wood,false);box("wallTrim",x,.42,16.78,3.4,.18,.06,mats.wood,false)}
+for(let x=-18;x<=18;x+=6){
+ box("ceilingBeam",x,4.02,0,4.8,.18,.22,mats.dark,false);
+ light(x,3.75,0,0xffd7ad,2.0,8);
+}
+for(const z of [-13,-5,3,11]){
+ box("doorFrameL",3.65,1.5,z,.14,3.0,.35,mats.brass);
+ box("doorFrameR",5.95,1.5,z,.14,3.0,.35,mats.brass);
+ cyl("handle",5.55,1.45,z-.18,.07,.16,mats.brass);
+}
+for(const z of [-13,-5,3,11]){
+ box("artFrame",19.4,2.25,z-1.45,2.2,1.45,.12,mats.brass,false);
+ box("artCanvas",19.4,2.25,z-1.38,1.9,1.15,new THREE.MeshStandardMaterial({color:0x476b75,roughness:.8}),false);
+}
 // Lobby exit
 box("exitDoor",-21.55,1.5,5,0.18,3.0,2.5,mats.wood);
 box("exitGlass",-21.43,1.55,5,.08,2.5,1.8,mats.glass);
 label("EXIT",-21.0,2.5,5,.5);
+
+// Real game-ready furniture assets (CC0 KayKit Furniture Bits), layered into the first-person hotel.
+const gltf=new GLTFLoader(),modelCache=new Map();
+async function model(name,x,y,z,target,rot=0){
+ try{
+  const data=await new Promise((resolve,reject)=>gltf.load(gltfBase+name,resolve,undefined,reject));
+  const root=data.scene.clone(true);
+  const box3=new THREE.Box3().setFromObject(root),size=box3.getSize(new THREE.Vector3());
+  const max=Math.max(size.x,size.y,size.z)||1;root.scale.setScalar(target/max);
+  const center=box3.getCenter(new THREE.Vector3());root.position.set(x-center.x*root.scale.x,y-center.y*root.scale.y,z-center.z*root.scale.z);
+  root.rotation.y=rot;root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material)o.material.needsUpdate=true}});
+  scene.add(root);return root;
+ }catch(e){console.warn("Furniture asset unavailable",name,e)}
+}
+const modelPlacements=[
+ ["bed_double_A.gltf",15,.05,-13,3.9,0],
+ ["bed_double_B.gltf",15,.05,-5,3.9,0],
+ ["bed_double_A.gltf",15,.05,3,3.9,0],
+ ["bed_double_B.gltf",15,.05,11,3.9,0],
+ ["couch.gltf",-8,.05,1,3.4,Math.PI/2],
+ ["couch.gltf",-8,.05,7,3.4,Math.PI/2],
+ ["rug_rectangle_B.gltf",-8,.02,4,4.4,0],
+ ["lamp_table.gltf",-5,.05,2.5,1.35,0],
+ ["cabinet_small_decorated.gltf",18,.05,-13,2.1,Math.PI/2],
+ ["shelf_A_big.gltf",19,.05,-5,2.5,Math.PI/2]
+];
+Promise.all(modelPlacements.map(p=>model(...p)));
 // Guests / luggage
 const guestMat=new THREE.MeshStandardMaterial({color:0xd88765,roughness:.75});
 function person(x,z,shirt=guestMat){const g=new THREE.Group();g.position.set(x,.0,z);const legs=box("legs",0,.42,0,.45,.8,.35,mats.dark);const body=box("body",0,1.05,0,.75,1.1,.5,shirt);const head=cyl("head",0,1.9,0,.34,.48,new THREE.MeshStandardMaterial({color:0x9c6047,roughness:.8}));g.add(legs,body,head);scene.add(g);return g}
