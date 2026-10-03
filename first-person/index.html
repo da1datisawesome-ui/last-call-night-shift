@@ -138,8 +138,8 @@ for(let z=-15;z<=15;z+=2.5){
 for(let z=-15;z<=15;z+=4){
   box("corridorWallPanelL",-21.78,2.0,z, .06,3.0,3.25,mat("#8f7356",.65),false);
   box("corridorWallPanelR",21.78,2.0,z, .06,3.0,3.25,mat("#8f7356",.65),false);
-  const wl=new THREE.PointLight(0xffc994,1.05,6); wl.position.set(-20.8,2.55,z); scene.add(wl);
-  const wr=new THREE.PointLight(0xffc994,1.05,6); wr.position.set(20.8,2.55,z); scene.add(wr);
+  if(!mobile){const wl=new THREE.PointLight(0xffc994,1.05,6);wl.position.set(-20.8,2.55,z);scene.add(wl)}
+  if(!mobile){const wr=new THREE.PointLight(0xffc994,1.05,6);wr.position.set(20.8,2.55,z);scene.add(wr)}
 }
 for(let z=-15;z<=15;z+=5){
   box("ceilingPanel",0,4.02,z,3.7,.045,3.4,mat("#2d3438",.35,.2),false);
@@ -162,7 +162,7 @@ for(const z of[-13,-5,3,11,-1,7,15]){
   box("rightDoorReveal",5.92,1.72,z-1.42,.12,3.45,.16,M.brass,false);
   box("rightDoorRevealTop",5.92,3.38,z,.12,.14,2.95,M.brass,false);
 }
-for(let z=-15;z<=15;z+=5){
+if(!mobile)for(let z=-15;z<=15;z+=5){
   const a=new THREE.PointLight(0xffd2a1,0.8,5);a.position.set(-2.2,2.9,z);scene.add(a);
   const b=new THREE.PointLight(0xffd2a1,0.8,5);b.position.set(2.2,2.9,z);scene.add(b);
 }
