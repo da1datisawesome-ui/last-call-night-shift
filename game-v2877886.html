@@ -17,7 +17,7 @@
 .levelFloor:after{content:"";position:absolute;inset:12px;background:linear-gradient(90deg,rgba(255,255,255,.07),transparent 30%,rgba(255,255,255,.05));border-radius:12px;pointer-events:none}
 .levelWall{position:absolute;box-sizing:border-box;background:linear-gradient(180deg,#f7efe0 0,#d9c9ad 55%,#bda98b 100%);box-shadow:0 10px 18px rgba(30,22,16,.28),inset 0 2px 0 #fff8;border:3px solid rgba(82,62,43,.34);border-radius:3px}
 .levelSofa{position:absolute;box-sizing:border-box;border-radius:18px;background:linear-gradient(180deg,#b77c62 0,#7b4b3d 58%,#4c3029 100%);border:5px solid #3a241d;box-shadow:0 14px 18px rgba(25,16,10,.42),inset 0 3px 0 rgba(255,235,210,.45)}.levelSofa:before{content:"";position:absolute;left:10px;right:10px;top:9px;height:28px;border-radius:12px;background:linear-gradient(180deg,#d7a080,#9b614d)}.levelSofa:after{content:"";position:absolute;left:12px;right:12px;bottom:8px;height:18px;border-radius:8px;background:linear-gradient(180deg,#8b5545,#5b382f)}
-.levelDoor{position:absolute;box-sizing:border-box;background:linear-gradient(90deg,#3e271b,#855333 45%,#5c3824);border:5px solid #302016;border-radius:9px 9px 3px 3px;box-shadow:0 8px 14px #0005,inset 0 0 0 3px #a26b42,inset 0 0 0 7px #4b2e20}
+.hotelArt{position:absolute!important;z-index:6!important;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:none}.artDoor{border:6px solid #2b1a12!important;border-radius:10px 10px 4px 4px!important;background:linear-gradient(90deg,#28150d,#684126 18%,#b47745 48%,#87532e 78%,#2a170e)!important;box-shadow:0 12px 18px rgba(0,0,0,.45),inset 0 0 0 3px #d39a5c!important;color:#fff;font:900 12px system-ui;text-align:center;padding-top:7px;text-shadow:0 2px 3px #000}.artDoor:after{content:"";position:absolute;right:13px;top:50%;width:9px;height:9px;border-radius:50%;background:#e7bd61;box-shadow:0 1px 2px #000}.artRug{border:8px solid #39251d!important;border-radius:18px!important;background:repeating-linear-gradient(45deg,#7b3f3f 0 10px,#9e6650 10px 20px)!important;box-shadow:0 12px 18px rgba(0,0,0,.38),inset 0 0 0 4px #d3a074!important}.artBed{border:5px solid #715844!important;border-radius:14px!important;background:linear-gradient(#fff,#e6ddd0 55%,#aebed0)!important;box-shadow:0 12px 18px rgba(0,0,0,.35)!important}.artBed:before{content:"";position:absolute;left:10px;right:10px;top:8px;height:28px;border-radius:9px;background:#fff;box-shadow:inset 0 -2px #bbb}.artTable{border:5px solid #402719!important;border-radius:12px!important;background:linear-gradient(#c4864d,#70401f)!important;box-shadow:0 13px 17px rgba(0,0,0,.42)!important}.artTable:after{content:"";position:absolute;left:10%;right:10%;bottom:-22px;height:24px;background:linear-gradient(90deg,#432719 0 18%,transparent 18% 82%,#432719 82%);z-index:-1}.artChair{border:5px solid #38241b!important;border-radius:10px!important;background:linear-gradient(#b9784d,#643a27)!important;box-shadow:0 8px 12px rgba(0,0,0,.4)!important}.artPainting{border:8px solid #3a2417!important;border-radius:4px!important;background:linear-gradient(135deg,#365a6c,#d49b61 48%,#4b6b4b)!important;box-shadow:0 8px 12px rgba(0,0,0,.4)!important;color:#fff;font:900 10px system-ui;text-align:center;padding-top:20px;text-shadow:0 2px 3px #000}.levelDoor{position:absolute;box-sizing:border-box;background:linear-gradient(90deg,#3e271b,#855333 45%,#5c3824);border:5px solid #302016;border-radius:9px 9px 3px 3px;box-shadow:0 8px 14px #0005,inset 0 0 0 3px #a26b42,inset 0 0 0 7px #4b2e20}
 .levelDoor:after{content:"";position:absolute;right:12px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:#e1b86a;box-shadow:0 1px 2px #000}
 .levelWindow{position:absolute;box-sizing:border-box;background:linear-gradient(135deg,#8fcbe5,#e8f7fa 55%,#79b6d0);border:6px solid #6c5039;border-radius:7px;box-shadow:inset 0 0 0 3px #fff9,0 7px 12px #0003}
 .levelRug{position:absolute;border-radius:20px;background:radial-gradient(ellipse at center,#b97855 0 18%,#8e5b42 19% 36%,#c28b61 37% 40%,#8a573e 41% 68%,#6a4232 69%);border:8px solid #4d3025;box-shadow:0 9px 15px #0004,inset 0 0 0 3px #d0a176}
@@ -337,8 +337,10 @@ function buildLevel(seed){
  add("levelCounter",staff.x+45,staff.y+55,staff.w-90,70,"",true);
  // Dedicated kitchen station: the pickup point is deliberately in open floor,
  // below the furniture cluster, so it always has a collision-safe route from the corridor.
- add("levelCounter",staff.x+staff.w-235,staff.y+staff.h-105,175,62,"KITCHEN",true);
- add("levelLabel",staff.x+staff.w-220,staff.y+staff.h-150,145,24,"KITCHEN");
+ add("levelCounter",staff.x+staff.w-245,staff.y+staff.h-120,185,72,"KITCHEN",true);
+ add("levelLabel",staff.x+staff.w-235,staff.y+staff.h-158,165,28,"🍽️ KITCHEN",false);
+ add("levelCounter",staff.x+55,staff.y+staff.h-120,185,72,"HOUSEKEEPING",true);
+ add("levelLabel",staff.x+60,staff.y+staff.h-158,175,28,"🧹 HOUSEKEEPING",false);
  add("levelDesk",staff.x+55,staff.y+185,170,75,"",true);add("levelDesk",staff.x+staff.w-225,staff.y+185,170,75,"",true);
  add("levelCart",staff.x+staff.w/2-52,staff.y+250,105,70,"",true);
  add("levelSofa",bar.x+60,bar.y+65,220,85,"",true);add("levelRug",bar.x+70,bar.y+185,bar.w-140,105);
@@ -355,6 +357,25 @@ function buildLevel(seed){
  add("levelTable",reception.x+105,reception.y+195,150,75,"",true);
  add("levelPlant",reception.x+285,reception.y+100,48,52);
  add("levelDoor",staff.x+staff.w/2-95,staff.y-10,190,32);
+ // Explicit hotel art layer: doors, furniture, chairs, rugs and paintings are local and always rendered.
+ const art=(cls,x,y,w,h,label="")=>add("hotelArt "+cls,x,y,w,h,label,false);
+ roomSlots.forEach((rm)=>{
+   const dx=rm.x+rm.w/2-60;
+   art("artDoor",dx,rm.y<500?rm.y+rm.h-34:rm.y-2,120,34,"ROOM "+rm.id);
+   art("artRug",rm.x+75,rm.y+175,330,100);
+   art("artBed",rm.x+50,rm.y+55,145,95);
+   art("artBed",rm.x+rm.w-195,rm.y+55,145,95);
+   art("artTable",rm.x+rm.w/2-70,rm.y+215,140,58);
+   art("artChair",rm.x+rm.w/2-125,rm.y+220,42,42);
+   art("artChair",rm.x+rm.w/2+83,rm.y+220,42,42);
+   art("artPainting",rm.x+rm.w/2-52,rm.y+18,104,55,"ART");
+ });
+ art("artDoor",staff.x+staff.w/2-95,staff.y-2,190,34,"STAFF");
+ art("artTable",reception.x+95,reception.y+205,160,65);
+ art("artChair",reception.x+72,reception.y+213,42,42);
+ art("artChair",reception.x+235,reception.y+213,42,42);
+ art("artRug",reception.x+50,reception.y+290,250,90);
+ art("artPainting",reception.x+105,reception.y+120,140,65,"WELCOME");
  const roomNames=roomSlots.map(r=>r.id);
  roomSlots.forEach((rm,i)=>{const el=document.createElement("div");el.className="roomStatus "+(i<3?"available":"locked");el.id="roomStatus"+i;el.style.left=(rm.x+rm.w*.18)+"px";el.style.top=(rm.y+rm.h*.12)+"px";el.textContent="ROOM "+rm.id+" • "+(i<3?"AVAILABLE":"LOCKED");level.appendChild(el);});
 }
@@ -368,7 +389,12 @@ interact.addEventListener("pointerup",e=>{
   else if(a.type==="checkin")checkInGuest(a.obj);
   else if(a.type==="luggage"){
     if(luggageState){carrying="luggage";luggageState.active=false;luggageState.el.style.display="none";setHotelTask("🧳 Take luggage to Room "+luggageState.room);showToast("Luggage picked up");positionActors();}
-  }else if(a.type==="service"||a.type==="kitchen"||a.type==="housekeeping"||a.type==="cleanStart"||a.type==="clean"||a.type==="serviceDeliver")interactAt(px,py);
+  }else if(a.type==="service") { serviceTarget=a.obj; setHotelTask("🍽️ Go to the kitchen to collect Room "+a.obj.room.id+" service"); showToast("Kitchen pickup required"); positionActors(); }
+  else if(a.type==="kitchen") collectRoomService();
+  else if(a.type==="serviceDeliver") deliverRoomService(a.obj);
+  else if(a.type==="housekeeping") collectCleaningSupplies();
+  else if(a.type==="cleanStart") { cleaningTarget=a.obj; setHotelTask("🧹 Go to housekeeping to collect supplies for Room "+a.obj.id); showToast("Collect cleaning supplies first"); positionActors(); }
+  else if(a.type==="clean") cleanRoom(a.obj);
 },{passive:false})
 const moneyEl=document.getElementById("money"),taskEl=document.getElementById("task"),toast=document.getElementById("toast"),hint=document.getElementById("hint");
 const music=document.getElementById("music"),ambience=document.getElementById("ambience"),step=document.getElementById("step");
@@ -595,7 +621,7 @@ function positionActors(){
  player.style.left=(px*100)+"%";player.style.top=(py*100)+"%";player.querySelector(".sprite").style.backgroundSize="100% 100%";const cb=player.querySelector(".carryBadge");if(cb){cb.style.display=carrying?"block":"none";cb.textContent=carrying==="luggage"?"🧳":carrying==="roomservice"?"🍽️":"🧹";}
  for(const n of npcs){n.el.style.left=(n.x*100)+"%";n.el.style.top=(n.y*100)+"%";}
  let action=null,ad=.19;const consider=(x,y,label,type,obj)=>{const d=Math.hypot(px-x,py-y);if(d<ad){ad=d;action={x,y,label,type,obj}}};
- hotelGuests.forEach(g=>{if(g.npc.el.style.display!=="none"){if(g.status==="waiting")consider(g.npc.x,g.npc.y,"🔑 CHECK IN GUEST","checkin",g);if(g.status==="staying"&&g.serviceRequested)consider(g.npc.x,g.npc.y,serviceTarget===g&&carrying==="roomservice"?"🍽️ DELIVER ROOM SERVICE":"🍽️ GO TO KITCHEN","service",g)}});
+ hotelGuests.forEach(g=>{if(g.npc.el.style.display!=="none"){if(g.status==="waiting")consider(g.npc.x,g.npc.y,"🔑 CHECK IN GUEST","checkin",g);if(g.status==="staying"&&g.serviceRequested)consider(g.npc.x,g.npc.y,serviceTarget===g&&carrying==="roomservice"?"🍽️ DELIVER ROOM SERVICE":"🍽️ GO TO KITCHEN",serviceTarget===g&&carrying==="roomservice"?"serviceDeliver":"service",g)}});
  if(luggageState&&luggageState.active)consider(luggageState.x,luggageState.y,carrying?"🧳 DELIVER LUGGAGE":"🧳 PICK UP LUGGAGE","luggage",luggageState);
  if(serviceTarget&&serviceTarget.status==="staying"&&serviceTarget.serviceRequested&&!carrying)consider(GENERATED_POINTS.kitchen.x,GENERATED_POINTS.kitchen.y,"🍽️ COLLECT ROOM SERVICE","kitchen",serviceTarget);
  if(cleaningTarget&&cleaningTarget.state==="dirty"&&carrying!=="cleaning")consider(GENERATED_POINTS.housekeeping.x,GENERATED_POINTS.housekeeping.y,"🧹 COLLECT CLEANING SUPPLIES","housekeeping",cleaningTarget);
@@ -782,7 +808,7 @@ function interactAt(x,y){
  hotelGuests.forEach(g=>{if(g.npc.el.style.display!=="none"){const d=Math.hypot(px-g.npc.x,py-g.npc.y);if(d<bd){if(g.status==="waiting"){best={type:"checkin",g};bd=d}else if(g.status==="staying"&&g.serviceRequested){best={type:"service",g};bd=d}}}});
  if(luggageState&&luggageState.active){const d=Math.hypot(px-luggageState.x,py-luggageState.y);if(d<bd){best={type:"luggage",l:luggageState};bd=d}}
  // Kitchen pickup is available only when a guest has requested service and staff automation has not taken over.
- if(serviceTarget&&serviceTarget.status==="staying"&&serviceTarget.serviceRequested&&!unlock.RoomService){
+ if(serviceTarget&&serviceTarget.status==="staying"&&serviceTarget.serviceRequested&&carrying!=="roomservice"){
    const kp=GENERATED_POINTS.kitchen,d=Math.hypot(px-kp.x,py-kp.y);
    if(d<bd)best={type:"kitchen",g:serviceTarget},bd=d;
  }
