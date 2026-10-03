@@ -376,26 +376,83 @@ function buildLevel(seed){
  art("artChair",reception.x+235,reception.y+213,42,42);
  art("artRug",reception.x+50,reception.y+290,250,90);
  art("artPainting",reception.x+105,reception.y+120,140,65,"WELCOME");
+ // Guaranteed local SVG art layer: doors, beds, tables, chairs, rugs and paintings.
+ const oldSvg=document.getElementById("hotelSvg");if(oldSvg)oldSvg.remove();
+ const svgHost=document.createElement("div");svgHost.id="hotelSvg";
+ svgHost.style.cssText="position:absolute;inset:0;width:100%;height:100%;z-index:20;pointer-events:none;overflow:visible";
+ svgHost.innerHTML=`
+ <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ART_W} ${ART_H}" width="100%" height="100%" preserveAspectRatio="none">
+ <defs>
+  <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2b160d"/><stop offset=".35" stop-color="#9a5b30"/><stop offset=".55" stop-color="#d49a5d"/><stop offset=".8" stop-color="#70401f"/><stop offset="1" stop-color="#241209"/></linearGradient>
+  <linearGradient id="cloth" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fffdf7"/><stop offset=".55" stop-color="#e6ded2"/><stop offset="1" stop-color="#9daebd"/></linearGradient>
+  <linearGradient id="table" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#d39959"/><stop offset="1" stop-color="#603719"/></linearGradient>
+  <linearGradient id="rug" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9a5d54"/><stop offset=".5" stop-color="#593a46"/><stop offset="1" stop-color="#3d2830"/></linearGradient>
+  <filter id="shadow"><feDropShadow dx="0" dy="12" stdDeviation="8" flood-opacity=".42"/></filter>
+ </defs>
+ <g filter="url(#shadow)">
+ ${roomSlots.map(r=>`
+   <g>
+    <rect x="${r.x+70}" y="${r.y+170}" width="${r.w-140}" height="120" rx="18" fill="url(#rug)" stroke="#d6a47b" stroke-width="7"/>
+    <rect x="${r.x+45}" y="${r.y+45}" width="160" height="105" rx="14" fill="url(#cloth)" stroke="#715844" stroke-width="7"/>
+    <rect x="${r.x+r.w-205}" y="${r.y+45}" width="160" height="105" rx="14" fill="url(#cloth)" stroke="#715844" stroke-width="7"/>
+    <rect x="${r.x+45}" y="${r.y+45}" width="55" height="105" rx="12" fill="#f9f6ef" stroke="#c9c0b5" stroke-width="3"/>
+    <rect x="${r.x+r.w-100}" y="${r.y+45}" width="55" height="105" rx="12" fill="#f9f6ef" stroke="#c9c0b5" stroke-width="3"/>
+    <rect x="${r.x+r.w/2-70}" y="${r.y+215}" width="140" height="55" rx="12" fill="url(#table)" stroke="#3e2518" stroke-width="7"/>
+    <path d="M${r.x+r.w/2-50} ${r.y+270}v30M${r.x+r.w/2+50} ${r.y+270}v30" stroke="#412719" stroke-width="13"/>
+    <rect x="${r.x+r.w/2-130}" y="${r.y+218}" width="42" height="42" rx="8" fill="#9b603d" stroke="#38231a" stroke-width="6"/>
+    <rect x="${r.x+r.w/2+88}" y="${r.y+218}" width="42" height="42" rx="8" fill="#9b603d" stroke="#38231a" stroke-width="6"/>
+    <rect x="${r.x+r.w/2-54}" y="${r.y+12}" width="108" height="58" rx="3" fill="#33576c" stroke="#3a2417" stroke-width="9"/>
+    <path d="M${r.x+r.w/2-42} ${r.y+58}l28-26 18 16 20-22" fill="none" stroke="#d7a45e" stroke-width="7"/>
+    <rect x="${r.x+r.w/2-60}" y="${r.y<500?r.y+r.h-40:r.y-4}" width="120" height="40" rx="7" fill="url(#wood)" stroke="#2b180e" stroke-width="8"/>
+    <circle cx="${r.x+r.w/2+38}" cy="${r.y<500?r.y+r.h-20:r.y+16}" r="6" fill="#edc96c"/>
+   </g>`).join("")}
+   <g>
+    <rect x="${reception.x+55}" y="${reception.y+70}" width="300" height="82" rx="16" fill="url(#wood)" stroke="#2a180e" stroke-width="9"/>
+    <rect x="${reception.x+80}" y="${reception.y+205}" width="150" height="65" rx="12" fill="url(#table)" stroke="#402719" stroke-width="8"/>
+    <path d="M${reception.x+100} ${reception.y+270}v38M${reception.x+210} ${reception.y+270}v38" stroke="#432719" stroke-width="13"/>
+    <rect x="${reception.x+65}" y="${reception.y+215}" width="40" height="40" rx="8" fill="#9b603d" stroke="#38231a" stroke-width="6"/>
+    <rect x="${reception.x+205}" y="${reception.y+215}" width="40" height="40" rx="8" fill="#9b603d" stroke="#38231a" stroke-width="6"/>
+    <rect x="${reception.x+110}" y="${reception.y+120}" width="140" height="65" fill="#31566b" stroke="#392318" stroke-width="9"/>
+    <path d="M${reception.x+125} ${reception.y+170}l35-30 25 18 25-25" fill="none" stroke="#d8a65f" stroke-width="7"/>
+   </g>
+   <g>
+    <rect x="${staff.x+45}" y="${staff.y+55}" width="150" height="65" rx="12" fill="url(#table)" stroke="#402719" stroke-width="8"/>
+    <rect x="${staff.x+staff.w-245}" y="${staff.y+staff.h-125}" width="185" height="72" rx="12" fill="url(#table)" stroke="#402719" stroke-width="8"/>
+    <rect x="${staff.x+55}" y="${staff.y+staff.h-125}" width="185" height="72" rx="12" fill="url(#table)" stroke="#402719" stroke-width="8"/>
+    <text x="${staff.x+staff.w-152}" y="${staff.y+staff.h-82}" text-anchor="middle" fill="#fff" font-family="system-ui" font-weight="900" font-size="22">KITCHEN</text>
+    <text x="${staff.x+147}" y="${staff.y+staff.h-82}" text-anchor="middle" fill="#fff" font-family="system-ui" font-weight="900" font-size="17">HOUSEKEEPING</text>
+    <rect x="${staff.x+staff.w/2-95}" y="${staff.y-5}" width="190" height="40" rx="7" fill="url(#wood)" stroke="#2b180e" stroke-width="8"/>
+   </g>
+ </g>
+ </svg>`;
+ level.appendChild(svgHost);
  const roomNames=roomSlots.map(r=>r.id);
  roomSlots.forEach((rm,i)=>{const el=document.createElement("div");el.className="roomStatus "+(i<3?"available":"locked");el.id="roomStatus"+i;el.style.left=(rm.x+rm.w*.18)+"px";el.style.top=(rm.y+rm.h*.12)+"px";el.textContent="ROOM "+rm.id+" • "+(i<3?"AVAILABLE":"LOCKED");level.appendChild(el);});
 }
 const player=document.getElementById("player"),guest=document.getElementById("guest"),porterNpc=document.getElementById("porterNpc"),cleanerNpc=document.getElementById("cleanerNpc"),maintenanceNpc=document.getElementById("maintenanceNpc"),receptionNpc=document.getElementById("receptionNpc"),loungeNpc1=document.getElementById("loungeNpc1"),loungeNpc2=document.getElementById("loungeNpc2"),interact=document.getElementById("interact");
 interact.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();},{passive:false});
 interact.addEventListener("pointerup",e=>{
-  e.preventDefault();e.stopPropagation();
-  const a=window.__lastCallAction;
-  if(!a){showToast("Move closer to the current task");return}
-  if(a.type==="deliver")deliverLuggage(a.obj);
-  else if(a.type==="checkin")checkInGuest(a.obj);
-  else if(a.type==="luggage"){
-    if(luggageState){carrying="luggage";luggageState.active=false;luggageState.el.style.display="none";setHotelTask("🧳 Take luggage to Room "+luggageState.room);showToast("Luggage picked up");positionActors();}
-  }else if(a.type==="service") { serviceTarget=a.obj; setHotelTask("🍽️ Go to the kitchen to collect Room "+a.obj.room.id+" service"); showToast("Kitchen pickup required"); positionActors(); }
-  else if(a.type==="kitchen") collectRoomService();
-  else if(a.type==="serviceDeliver") deliverRoomService(a.obj);
-  else if(a.type==="housekeeping") collectCleaningSupplies();
-  else if(a.type==="cleanStart") { cleaningTarget=a.obj; setHotelTask("🧹 Go to housekeeping to collect supplies for Room "+a.obj.id); showToast("Collect cleaning supplies first"); positionActors(); }
-  else if(a.type==="clean") cleanRoom(a.obj);
-},{passive:false})
+ e.preventDefault();e.stopPropagation();
+ const a=window.__lastCallAction;
+ if(!a){showToast("Move closer to the current task");return}
+ const go=(x,y,cb)=>{walkTo(x,y,cb)};
+ if(a.type==="checkin"){checkInGuest(a.obj);return}
+ if(a.type==="service"){
+   const g=a.obj;serviceTarget=g;setHotelTask("🍽️ Going to kitchen for Room "+g.room.id+" service");
+   go(GENERATED_POINTS.kitchen.x,GENERATED_POINTS.kitchen.y,()=>collectRoomService());return;
+ }
+ if(a.type==="kitchen"){go(GENERATED_POINTS.kitchen.x,GENERATED_POINTS.kitchen.y,()=>collectRoomService());return}
+ if(a.type==="serviceDeliver"){const g=a.obj;go(roomPoint(g.room).x,roomPoint(g.room).y,()=>deliverRoomService(g));return}
+ if(a.type==="luggage"){
+   if(!luggageState)return;
+   go(luggageState.x,luggageState.y,()=>{if(luggageState){carrying="luggage";luggageState.active=false;luggageState.el.style.display="none";setHotelTask("🧳 Take luggage to Room "+luggageState.room);showToast("Luggage picked up");positionActors();}});
+   return;
+ }
+ if(a.type==="deliver"){const rm=a.obj;go(roomPoint(rm).x,roomPoint(rm).y,()=>deliverLuggage(rm));return}
+ if(a.type==="housekeeping"){go(GENERATED_POINTS.housekeeping.x,GENERATED_POINTS.housekeeping.y,()=>collectCleaningSupplies());return}
+ if(a.type==="cleanStart"){const rm=a.obj;cleaningTarget=rm;go(GENERATED_POINTS.housekeeping.x,GENERATED_POINTS.housekeeping.y,()=>collectCleaningSupplies());return}
+ if(a.type==="clean"){const rm=a.obj;go(roomPoint(rm).x,roomPoint(rm).y,()=>cleanRoom(rm));return}
+},{passive:false});
 const moneyEl=document.getElementById("money"),taskEl=document.getElementById("task"),toast=document.getElementById("toast"),hint=document.getElementById("hint");
 const music=document.getElementById("music"),ambience=document.getElementById("ambience"),step=document.getElementById("step");
 let W=0,H=0,playing=false,role="Receptionist",money=1280,rep=50,earned=0,audioOn=true,px=.582,py=.527,gx=.60,gy=.34,drag=false,target=null,pendingInteraction=null,lastStep=0;
@@ -625,7 +682,7 @@ function positionActors(){
  if(luggageState&&luggageState.active)consider(luggageState.x,luggageState.y,carrying?"🧳 DELIVER LUGGAGE":"🧳 PICK UP LUGGAGE","luggage",luggageState);
  if(serviceTarget&&serviceTarget.status==="staying"&&serviceTarget.serviceRequested&&!carrying)consider(GENERATED_POINTS.kitchen.x,GENERATED_POINTS.kitchen.y,"🍽️ COLLECT ROOM SERVICE","kitchen",serviceTarget);
  if(cleaningTarget&&cleaningTarget.state==="dirty"&&carrying!=="cleaning")consider(GENERATED_POINTS.housekeeping.x,GENERATED_POINTS.housekeeping.y,"🧹 COLLECT CLEANING SUPPLIES","housekeeping",cleaningTarget);
- guestRooms.forEach(rm=>{if(rm.state==="dirty")consider(roomPoint(rm).x,roomPoint(rm).y,"🧹 CLEAN ROOM "+rm.id,"clean",rm);if(carrying==="luggage"&&luggageState&&luggageState.room===rm.id)consider(roomPoint(rm).x,roomPoint(rm).y,"🧳 DELIVER TO ROOM "+rm.id,"deliver",rm)});
+ guestRooms.forEach(rm=>{if(rm.state==="dirty"&&carrying==="cleaning")consider(roomPoint(rm).x,roomPoint(rm).y,"🧹 CLEAN ROOM "+rm.id,"clean",rm);if(carrying==="luggage"&&luggageState&&luggageState.room===rm.id)consider(roomPoint(rm).x,roomPoint(rm).y,"🧳 DELIVER TO ROOM "+rm.id,"deliver",rm)});
  if(action){
   window.__lastCallAction=action;
   interact.style.display="block";
