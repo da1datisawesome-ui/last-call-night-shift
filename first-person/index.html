@@ -34,7 +34,7 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 const ART={floor:"#6a4a34",wall:"#d8c6a9",wood:"#75421f",dark:"#1d130d",brass:"#c99b4c",fabric:"#6f4149",cream:"#eee5d6"};
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,32,90);
+const BUILD="FP-FOUNDATION-2026-10-03";const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,32,90);
 const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.05,120);camera.position.set(-13,1.68,8);camera.rotation.order="YXZ";
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;document.getElementById("game").appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xffead0,0x162333,2.1));
@@ -78,16 +78,19 @@ for(const p of [[-12,3.5,-11],[ -1,3.5,-11]]){const L=new THREE.PointLight(0xffd
 const handMat=mat("#b8795d",.72), sleeveMat=mat("#233849",.85);const hands=new THREE.Group();camera.add(hands);scene.add(camera);function hand(side){const g=new THREE.Group();const fore=new THREE.Mesh(new THREE.CapsuleGeometry(.065,.38,5,10),sleeveMat);fore.position.set(side*.25,-.30,-.62);fore.rotation.z=side*.12;fore.rotation.x=-.35;const palm=new THREE.Mesh(new THREE.SphereGeometry(.105,16,12),handMat);palm.position.set(side*.29,-.28,-.91);g.add(fore,palm);for(let i=0;i<4;i++){const f=new THREE.Mesh(new THREE.CapsuleGeometry(.016,.12,4,7),handMat);f.position.set(side*(.24+(i%2)*.035),-.28-(i*.012),-.99-i*.004);f.rotation.z=side*.15;g.add(f)}return g}hands.position.set(0,-.24,-.02);let loader=null;const BASE="https://raw.githubusercontent.com/pj4533/slopmancer/c0b535e9d90dfccaaef1e8bff12e56d514f7700e/public/assets/models/props/furniture/";
 async function loadModel(file,x,y,z,target,rot=0){if(!loader)return;try{const g=await new Promise((res,rej)=>loader.load(BASE+file,res,undefined,rej));const o=g.scene.clone(true);const b=new THREE.Box3().setFromObject(o),sz=b.getSize(new THREE.Vector3()),m=Math.max(sz.x,sz.y,sz.z)||1;o.scale.setScalar(target/m);o.position.set(x,y,z);o.rotation.y=rot;o.traverse(q=>{if(q.isMesh){q.castShadow=true;q.receiveShadow=true}});scene.add(o)}catch(e){console.warn("asset skipped",file)}}
 const modelPlacements=[
-["bed_double_A.gltf",15,.08,-13,3.9,0],
-["bed_double_B.gltf",15,.08,-5,3.9,0],
-["bed_double_A.gltf",15,.08,3,3.9,0],
-["couch.gltf",-8,.08,2.5,3.4,Math.PI/2],
-["rug_rectangle_B.gltf",-8,.02,4,4.4,0],
-["lamp_table.gltf",-5,.05,2.5,1.25,0],
-["cabinet_small_decorated.gltf",19,.05,-13,2.2,Math.PI/2],
-["shelf_A_big.gltf",19,.05,-5,2.4,Math.PI/2],["potted_plant_01_1k.gltf",-18,.05,2.2,2.2,0],["metal_office_desk_1k.gltf",-13,.08,2.4,2.2,0],["bar_chair_round_01_1k.gltf",-10,.08,2.4,1.3,Math.PI/2],["wine_bottles_01_1k.gltf",-2,.08,-8.9,1.3,0],
-["table_A.gltf",-13,.08,2.4,2.0,0],
-["chair_A.gltf",-11,.08,2.4,1.3,Math.PI/2]
+["bed_double_A.gltf",15,.08,-13,3.9,0],["bed_double_B.gltf",15,.08,-5,3.9,0],["bed_double_A.gltf",15,.08,3,3.9,0],
+["bed_double_B.gltf",15,.08,11,3.9,0],["bed_double_A.gltf",15,.08,-1,3.9,0],["bed_double_B.gltf",15,.08,7,3.9,0],["bed_double_A.gltf",15,.08,15,3.9,0],
+["couch.gltf",-8,.08,2.5,3.4,Math.PI/2],["couch.gltf",-8,.08,7.5,3.4,Math.PI/2],
+["rug_rectangle_B.gltf",-8,.02,4,4.4,0],["rug_rectangle_B.gltf",-8,.02,9,4.4,0],
+["lamp_table.gltf",-5,.05,2.5,1.25,0],["lamp_table.gltf",-5,.05,7.5,1.25,0],
+["cabinet_small_decorated.gltf",19,.05,-13,2.2,Math.PI/2],["cabinet_small_decorated.gltf",19,.05,-5,2.2,Math.PI/2],
+["cabinet_small_decorated.gltf",19,.05,3,2.2,Math.PI/2],["cabinet_small_decorated.gltf",19,.05,11,2.2,Math.PI/2],
+["shelf_A_big.gltf",19,.05,-1,2.4,Math.PI/2],["shelf_A_big.gltf",19,.05,7,2.4,Math.PI/2],
+["shelf_A_big.gltf",19,.05,15,2.4,Math.PI/2],
+["pictureframe_large_B.gltf",19.0,1.55,-13,1.1,Math.PI/2],["pictureframe_large_B.gltf",19.0,1.55,-5,1.1,Math.PI/2],
+["pictureframe_large_B.gltf",19.0,1.55,3,1.1,Math.PI/2],["pictureframe_large_B.gltf",19.0,1.55,11,1.1,Math.PI/2],
+["pictureframe_large_B.gltf",19.0,1.55,-1,1.1,Math.PI/2],["pictureframe_large_B.gltf",19.0,1.55,7,1.1,Math.PI/2],
+["pictureframe_large_B.gltf",19.0,1.55,15,1.1,Math.PI/2]
 ];
 import("https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js").then(m=>{loader=new m.GLTFLoader();modelPlacements.forEach(p=>loadModel(...p));guests.forEach(g=>loadCharacter(g))}).catch(e=>console.warn("GLTF unavailable",e));
 
@@ -100,6 +103,30 @@ function cushion(x,y,z,sx,sz){box("cushion",x,y,z,sx,.22,sz,mat("#6c4d46",.96))}
 for(const x of[-8,-5]){box("lobbySofa",x,.62,2.5,2.6,.7,1.0,mat("#38515a",.86));cushion(x,.99,2.5,2.35,.82)}
 function roomDress(z){box("nightstand",17,.68,z-1.2,1.0,1.1,.72,M.wood);cyl("lamp",17,.95,z-1.2,.11,.3,M.brass);box("lampshade",17,1.22,z-1.2,.38,.35,.38,mat("#e8d7b7",.82));box("pillow",14.05,1.05,z-.18,1.05,.18,.58,mat("#f4efe6",.92));box("throw",16.25,1.02,z+.25,1.55,.08,1.2,mat("#5c7180",.9));box("bench",17.2,.58,z+2.2,2.0,.42,.62,mat("#7d583b",.55));box("curtain",12.95,2.35,z-2.2,.08,3.1,2.2,mat("#7a4c45",.88))}
 for(const z of[-13,-5,3,11,-1,7,15])roomDress(z);
+
+// Premium corridor dressing: continuous guest circulation, repeated architectural rhythm and layered practical lighting.
+const runnerMat=mat("#574039",.88,0);
+for(let z=-15;z<=15;z+=2.5){
+  box("corridorRunner",0,.012,z,3.25,.035,2.15,runnerMat,false);
+  box("runnerBorderL",-1.63,.035,z,.055,.045,2.12,M.brass,false);
+  box("runnerBorderR",1.63,.035,z,.055,.045,2.12,M.brass,false);
+}
+for(let z=-15;z<=15;z+=4){
+  box("corridorWallPanelL",-21.78,2.0,z, .06,3.0,3.25,mat("#8f7356",.65),false);
+  box("corridorWallPanelR",21.78,2.0,z, .06,3.0,3.25,mat("#8f7356",.65),false);
+  const wl=new THREE.PointLight(0xffc994,1.05,6); wl.position.set(-20.8,2.55,z); scene.add(wl);
+  const wr=new THREE.PointLight(0xffc994,1.05,6); wr.position.set(20.8,2.55,z); scene.add(wr);
+}
+for(let z=-15;z<=15;z+=5){
+  box("ceilingPanel",0,4.02,z,3.7,.045,3.4,mat("#2d3438",.35,.2),false);
+  box("ceilingGlow",0,3.96,z,2.35,.025,1.2,mat("#fff0d3",.18),false);
+}
+function roomCard(id,z,unlocked){
+  const base=unlocked?"#183c48":"#392c2a";
+  box("roomCard",4.8,2.55,z-.2,1.45,.62,.06,mat(base,.38),false);
+  label((unlocked?"ROOM ":"LOCKED • ")+id,4.8,2.58,z-.28,.22);
+}
+for(const [id,z] of [[101,-13],[102,-5],[103,3],[104,11],[105,-1],[106,7],[107,15]]) roomCard(id,z,id<=103);
 
 // State
 const rooms=new Map([101,102,103,104,105,106,107].map(id=>[id,{id,unlocked:id<=103,state:"available",guest:null,dirty:false}]));
@@ -117,12 +144,12 @@ guests.forEach(g=>g.mesh=guestMesh(g));guests[0].mesh.visible=true;guests[1].mes
 let luggage=null;function spawnGuest(){if(guests.some(g=>g.state==="waiting"||g.state==="luggage"))return;const g=guests.find(x=>x.state==="idle");if(!g)return;g.state="waiting";g.room=null;g.mesh.position.set(-7.4,0,6.5);g.mesh.visible=true;setTask("🔑 CURRENT TASK: Check in "+g.name+" at reception")}
 function checkIn(g){const r=firstRoom();if(!r){toast("No clean unlocked rooms available");return}r.state="occupied";r.guest=g;g.room=r.id;g.state="luggage";money+=100;rep++;luggage=box("luggage",-7.5,.55,5,.7,1,.5,M.blue);setTask("🧳 CURRENT TASK: Pick up luggage for Room "+r.id+" at reception");toast("+$100 • Guest checked in");ui()}
 function pickupLuggage(){if(!luggage)return;carrying="luggage";scene.remove(luggage);luggage=null;setTask("🧳 CURRENT TASK: Walk to Room "+guests.find(g=>g.state==="luggage").room+" and deliver the luggage")}
-function deliverLuggage(){const g=guests.find(x=>x.state==="luggage"&&x.room);if(!g||carrying!=="luggage")return;carrying=null;g.state="staying";g.mesh.visible=false;setTask("Guest in Room "+g.room+" • stay in progress");toast("Luggage delivered manually");setTimeout(()=>{if(g.state==="staying"){g.state="service";serviceTarget=g;setTask("🍽️ CURRENT TASK: Collect room service in the kitchen, then deliver to Room "+g.room)}},6500)}
+function deliverLuggage(){const g=guests.find(x=>x.state==="luggage"&&x.room);if(!g||carrying!=="luggage")return;carrying=null;g.state="staying";g.mesh.position.set(5.0,0,g.room===101?-13:g.room===102?-5:g.room===103?3:g.room===104?11:g.room===105?-1:g.room===106?7:15);g.mesh.rotation.y=Math.PI;g.mesh.visible=true;setTask("Guest in Room "+g.room+" • stay in progress");toast("Luggage delivered manually");setTimeout(()=>{if(g.state==="staying"){g.state="service";serviceTarget=g;setTask("🍽️ CURRENT TASK: Collect room service in the kitchen, then deliver to Room "+g.room)}},6500)}
 function collectService(){if(!serviceTarget||carrying)return;carrying="roomservice";setTask("🍽️ CURRENT TASK: Carry room service to Room "+serviceTarget.room);toast("Room service collected")}
 function deliverService(){if(carrying!=="roomservice"||!serviceTarget)return;carrying=null;serviceTarget.state="staying";setTask("Room Service delivered to Room "+serviceTarget.room);money+=40;rep++;toast("+$40 • Room service delivered");ui();setTimeout(()=>{if(serviceTarget){serviceTarget.state="checkout";setTask("Guest in Room "+serviceTarget.room+" is checking out")}},5500)}
-function collectClean(){if(carrying)return;carrying="cleaning";setTask("🧹 CURRENT TASK: Carry cleaning supplies to Room "+cleaningTarget.id);toast("Cleaning supplies collected")}
+function collectClean(){if(carrying||!cleaningTarget)return;carrying="cleaning";setTask("🧹 CURRENT TASK: Carry cleaning supplies to Room "+cleaningTarget.id);toast("Cleaning supplies collected")}
 function clean(){if(carrying!=="cleaning"||!cleaningTarget)return;carrying=null;cleaningTarget.dirty=false;cleaningTarget.state="available";cleaningTarget=null;money+=55;rep++;setTask("Room cleaned • ready for next guest");toast("+$55 • Room cleaned");ui()}
-function finishCheckout(){const g=guests.find(x=>x.state==="checkout");if(!g)return;const r=rooms.get(g.room);r.state="dirty";r.dirty=true;g.state="idle";g.room=null;serviceTarget=null;setTask("🧹 Room "+r.id+" needs cleaning");toast("Guest checked out • room needs cleaning");setTimeout(spawnGuest,1800)}
+function finishCheckout(){const g=guests.find(x=>x.state==="checkout");if(!g)return;const r=rooms.get(g.room);if(!r)return;r.state="dirty";r.dirty=true;g.state="idle";g.room=null;serviceTarget=null;cleaningTarget=r;setTask("🧹 CURRENT TASK: Collect cleaning supplies for Room "+r.id);toast("Guest checked out • room needs cleaning");ui();setTimeout(spawnGuest,1800)}
 
 // Interaction zones are proximity-based; actions never move the player.
 const zones=[
@@ -132,7 +159,7 @@ const zones=[
  {name:"Housekeeping",pos:new THREE.Vector3(-1,1,-11),range:3,action:collectClean,label:"🧹 COLLECT CLEANING SUPPLIES"},
 ];
 function roomZone(){if(carrying==="luggage"){const g=guests.find(x=>x.state==="luggage");if(g)return {pos:new THREE.Vector3(4.8,1,g.room===101?-13:g.room===102?-5:g.room===103?3:11),range:3,action:deliverLuggage,label:"🧳 DELIVER LUGGAGE"}}
-if(carrying==="roomservice"&&serviceTarget)return {pos:new THREE.Vector3(4.8,1,serviceTarget.room===101?-13:serviceTarget.room===102?-5:3),range:3,action:deliverService,label:"🍽️ DELIVER ROOM SERVICE"};
+if(carrying==="roomservice"&&serviceTarget){const rz={101:-13,102:-5,103:3,104:11,105:-1,106:7,107:15}[serviceTarget.room];return {pos:new THREE.Vector3(4.8,1,rz),range:3,action:deliverService,label:"🍽️ DELIVER ROOM SERVICE"}}
 if(carrying==="cleaning"&&cleaningTarget){const z=cleaningTarget.id===101?-13:cleaningTarget.id===102?-5:cleaningTarget.id===103?3:cleaningTarget.id===104?11:cleaningTarget.id===105?-1:cleaningTarget.id===106?7:15;return {pos:new THREE.Vector3(4.8,1,z),range:3,action:clean,label:"🧹 CLEAN ROOM "+cleaningTarget.id}}
 return null}
 function nearest(){let best=null,bd=999;for(const z of zones){const d=camera.position.distanceTo(z.pos);if(d<z.range&&d<bd){if(z.name==="Reception"&&!guests.some(g=>g.state==="waiting"))continue;if(z.name==="Luggage"&&!luggage)continue;if(z.name==="Kitchen"&&(!serviceTarget||carrying))continue;if(z.name==="Housekeeping"&&(!cleaningTarget||carrying))continue;best=z;bd=d}}const rz=roomZone();if(rz){const d=camera.position.distanceTo(rz.pos);if(d<rz.range&&d<bd)best=rz}return best}
@@ -150,10 +177,26 @@ function lookStart(e){if(e.pointerType==="mouse"&&e.button!==0)return;lastLook={
 function lookMove(e){if(!lastLook)return;const dx=e.clientX-lastLook.x,dy=e.clientY-lastLook.y;lastLook={x:e.clientX,y:e.clientY};yaw-=dx*.006;pitch=Math.max(-1.15,Math.min(1.15,pitch-dy*.0045))}
 function lookEnd(){lastLook=null}
 look.addEventListener("pointerdown",lookStart);look.addEventListener("pointermove",lookMove);look.addEventListener("pointerup",lookEnd);look.addEventListener("pointercancel",lookEnd);look.addEventListener("lostpointercapture",lookEnd);
-function move(dt){let f=joyY*-1+(keys.w?1:0)-(keys.s?1:0),r=joyX+(keys.d?1:0)-(keys.a?1:0),l=Math.hypot(f,r)||1;f/=l;r/=l;const sp=3.5*dt,dx=(Math.sin(yaw)*f+Math.cos(yaw)*r)*sp,dz=(Math.cos(yaw)*f-Math.sin(yaw)*r)*sp;const p=camera.position,nx=p.x+dx,nz=p.z+dz;if(Math.abs(nx)<21&&Math.abs(nz)<16){p.x=nx;p.z=nz}}
+function blocked(x,z){
+  if(x<-21.15||x>21.15||z<-16.15||z>16.15)return true;
+  // Reception footprint and service-room frontage.
+  if(x>-16.8&&x<-9.5&&z>3.8&&z<6.7)return true;
+  if(x>-14.6&&x<-9.2&&z>-12.9&&z<-10.0)return true;
+  if(x>-3.6&&x<1.5&&z>-12.9&&z<-10.0)return true;
+  // Keep the player in the guest circulation corridor; door openings remain usable.
+  return false;
+}
+function move(dt){
+  let f=joyY*-1+(keys.w?1:0)-(keys.s?1:0),r=joyX+(keys.d?1:0)-(keys.a?1:0),l=Math.hypot(f,r)||1;
+  f/=l;r/=l;const sp=3.5*dt,dx=(Math.sin(yaw)*f+Math.cos(yaw)*r)*sp,dz=(Math.cos(yaw)*f-Math.sin(yaw)*r)*sp;
+  const p=camera.position,nx=p.x+dx,nz=p.z+dz;
+  if(!blocked(nx,p.z))p.x=nx;
+  if(!blocked(p.x,nz))p.z=nz;
+}
 function openMenu(){document.getElementById("panel").style.display="flex";panelBody();}function panelBody(){document.getElementById("panelTitle").textContent="Night Shift";document.getElementById("panelBody").innerHTML='<div class="row"><b>Hotel funds</b><span>$'+money.toLocaleString()+'</span></div><div class="row"><b>Reputation</b><span>★ '+rep+'</span></div><div class="row"><b>Room 101–103</b><span>Unlocked</span></div><div class="row"><b>Next room upgrade</b><span>$2,000 • +1 room</span><button class="action" id="upgrade">UPGRADE</button></div><div class="row"><b>Save</b><span>Save current night</span><button class="action" id="save">SAVE</button></div><div class="row"><b>Manual gameplay</b><span>No teleportation</span></div>';document.getElementById("upgrade").onclick=()=>{if(money>=2000&&!rooms.get(104).unlocked){money-=2000;rooms.get(104).unlocked=true;toast("Room 104 unlocked");ui();panelBody()}else toast("Need $2,000")};document.getElementById("save").onclick=save}
 document.getElementById("menu").onclick=openMenu;document.getElementById("close").onclick=()=>document.getElementById("panel").style.display="none";document.getElementById("use").onclick=()=>{const z=nearest();if(z)z.action()};
-function tickGuests(){const g=guests.find(x=>x.state==="checkout");if(g)finishCheckout();if(!guests.some(x=>x.state==="waiting"||x.state==="luggage")&&guests.some(x=>x.state==="idle"))spawnGuest()}
+let lastCheckoutId=0;
+function tickGuests(){const g=guests.find(x=>x.state==="checkout");if(g&&g.id!==lastCheckoutId){lastCheckoutId=g.id;finishCheckout()}if(!guests.some(x=>x.state==="waiting"||x.state==="luggage")&&guests.some(x=>x.state==="idle"))spawnGuest()}
 let started=false;document.getElementById("start").addEventListener("click",()=>{started=true;document.getElementById("title").style.display="none";spawnGuest();setTask("🔑 CURRENT TASK: Check in Alex at reception")});
 let last=performance.now();function frame(now){const dt=Math.min(.04,(now-last)/1000);last=now;if(started){move(dt);camera.rotation.set(pitch,yaw,0,"YXZ");for(const g of guests)if(g.mixer)g.mixer.update(dt);hands.rotation.y=0;const z=nearest();if(z){prompt.textContent=z.label;prompt.style.display="block";use.style.display="block"}else{prompt.style.display="none";use.style.display="none"}if(now-lastSave>15000){lastSave=now;localStorage.setItem("lcn-save",JSON.stringify({money,rep,rooms:[...rooms.values()].map(r=>({id:r.id,unlocked:r.unlocked,state:r.state,dirty:r.dirty}))}))}tickGuests()}renderer.render(scene,camera);requestAnimationFrame(frame)}requestAnimationFrame(frame);
 addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
