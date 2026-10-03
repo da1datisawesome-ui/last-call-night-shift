@@ -187,8 +187,15 @@ function buildLevel(seed){
  wall(70,965,350,18);wall(70,965,18,350);wall(402,965,18,350);
  door(402,1090,28,90);
  // Staff/service hub has a wide double-width opening to the corridor.
- wall(1640,500,500,18);wall(2122,500,18,350);wall(1640,832,500,18);wall(1640,500,18,350);
- door(1632,625,38,130);
+ // Staff/service hub has real collision openings, not just visual door overlays.
+ const staffDoorX=1640,staffDoorY=625,staffDoorW=38,staffDoorH=130;
+ const staffTopDoorX=1830,staffTopDoorW=120;
+ wall(staffDoorX,500,18,staffDoorY-500);
+ wall(staffDoorX,staffDoorY+staffDoorH,18,832-(staffDoorY+staffDoorH));
+ wall(1640,500,staffTopDoorX-1640,18);
+ wall(staffTopDoorX+staffTopDoorW,500,2122-(staffTopDoorX+staffTopDoorW),18);
+ wall(2122,500,18,350);wall(1640,832,500,18);
+ door(1632,625,38,130);door(staffTopDoorX-10,490,staffTopDoorW,28);
 
  // Reception furniture stays inside reception; the corridor remains empty.
  const reception=rooms[0];
@@ -490,7 +497,14 @@ function updateNpcs(){
        }
      }else{
        const nx=n.x+dx/d*step,ny=n.y+dy/d*step;
-       n.x=nx;n.y=ny;
+       if(!npcBlocked(nx,ny)){
+         n.x=nx;n.y=ny;
+       }else{
+         // Slide along an open axis instead of vibrating against furniture/walls.
+         const ax=n.x+dx/d*step,ay=n.y,bx=n.x,by=n.y+dy/d*step;
+         if(!npcBlocked(ax,ay))n.x=ax;
+         else if(!npcBlocked(bx,by))n.y=by;
+       }
      }
      continue;
    }
@@ -551,22 +565,38 @@ function deliverLuggage(rm){
  const g=rm.guest;carrying=null;removeLuggage();
  g.status="walkingToRoom";
  const rp=roomPoint(rm),roomX=(rm.x+rm.w/2)/ART_W;
- // Follow the physical reception exit, central corridor, and the exact center of each room doorway.
  const receptionDoorX=(70+350-18)/ART_W;
  const receptionDoorY=(650+60)/ART_H;
- // Use the open middle of the central corridor, not its top wall boundary.
  const corridorY=(500+210)/ART_H;
- const roomDoorY=(rm.y+rm.h-9)/ART_H;
+ // Stop at a clear point inside the room, away from the desk collision.
+ const guestRoomPoint={x:(rm.x+50)/ART_W,y:(rm.y+220)/ART_H};
+ const roomApproachY=(rm.y+300)/ART_H;
  g.npc.x=GENERATED_POINTS.guest.x;g.npc.y=GENERATED_POINTS.guest.y;
- g.npc.path=[
+ const base=[
   {x:g.npc.x,y:g.npc.y},
   {x:receptionDoorX,y:g.npc.y},
   {x:receptionDoorX,y:receptionDoorY},
-  {x:receptionDoorX,y:corridorY},
-  {x:roomX,y:corridorY},
-  {x:roomX,y:roomDoorY},
-  {x:rp.x,y:rp.y}
+  {x:receptionDoorX,y:corridorY}
  ];
+ if(rm.id<103){
+   g.npc.path=base.concat([
+    {x:roomX,y:corridorY},
+    {x:roomX,y:roomApproachY},
+    {x:guestRoomPoint.x,y:roomApproachY},
+    guestRoomPoint
+   ]);
+ }else{
+   // Room 103 sits above the staff hub. Use its real left and top openings.
+   g.npc.path=base.concat([
+    {x:1680/ART_W,y:corridorY},
+    {x:1680/ART_W,y:540/ART_H},
+    {x:1890/ART_W,y:540/ART_H},
+    {x:1890/ART_W,y:450/ART_H},
+    {x:roomX,y:roomApproachY},
+    {x:guestRoomPoint.x,y:roomApproachY},
+    guestRoomPoint
+   ]);
+ }
  g.npc.ri=1;g.npc.route=null;g.npc.el.style.display="block";g.npc.el.classList.add("walking");
  setHotelTask("Guest walking to Room "+rm.id);
  showToast("Guest is heading to Room "+rm.id);
