@@ -16,6 +16,7 @@
 .levelFloor{position:absolute;box-sizing:border-box;border-radius:16px;background:linear-gradient(180deg,#e1cfad,#c7ad83);box-shadow:inset 0 0 0 4px rgba(75,53,34,.24),inset 0 -20px 35px rgba(45,31,20,.13)}
 .levelFloor:after{content:"";position:absolute;inset:12px;background:linear-gradient(90deg,rgba(255,255,255,.07),transparent 30%,rgba(255,255,255,.05));border-radius:12px;pointer-events:none}
 .levelWall{position:absolute;box-sizing:border-box;background:linear-gradient(180deg,#f7efe0 0,#d9c9ad 55%,#bda98b 100%);box-shadow:0 10px 18px rgba(30,22,16,.28),inset 0 2px 0 #fff8;border:3px solid rgba(82,62,43,.34);border-radius:3px}
+.levelSofa{position:absolute;box-sizing:border-box;border-radius:18px;background:linear-gradient(180deg,#b77c62 0,#7b4b3d 58%,#4c3029 100%);border:5px solid #3a241d;box-shadow:0 14px 18px rgba(25,16,10,.42),inset 0 3px 0 rgba(255,235,210,.45)}.levelSofa:before{content:"";position:absolute;left:10px;right:10px;top:9px;height:28px;border-radius:12px;background:linear-gradient(180deg,#d7a080,#9b614d)}.levelSofa:after{content:"";position:absolute;left:12px;right:12px;bottom:8px;height:18px;border-radius:8px;background:linear-gradient(180deg,#8b5545,#5b382f)}
 .levelDoor{position:absolute;box-sizing:border-box;background:linear-gradient(90deg,#3e271b,#855333 45%,#5c3824);border:5px solid #302016;border-radius:9px 9px 3px 3px;box-shadow:0 8px 14px #0005,inset 0 0 0 3px #a26b42,inset 0 0 0 7px #4b2e20}
 .levelDoor:after{content:"";position:absolute;right:12px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:#e1b86a;box-shadow:0 1px 2px #000}
 .levelWindow{position:absolute;box-sizing:border-box;background:linear-gradient(135deg,#8fcbe5,#e8f7fa 55%,#79b6d0);border:6px solid #6c5039;border-radius:7px;box-shadow:inset 0 0 0 3px #fff9,0 7px 12px #0003}
@@ -311,7 +312,7 @@ function buildLevel(seed){
  });
  // Staff/service room is outside the guest-room run and has its own controlled opening.
  wall(staff.x,staff.y,staff.w,18);wall(staff.x,staff.y,18,staff.h);wall(staff.x+staff.w-18,staff.y,18,staff.h);
- const sdw=140,sdx=staff.x+staff.w/2-sdw/2,sty=staff.y;
+ const sdw=190,sdx=staff.x+staff.w/2-sdw/2,sty=staff.y;
  wall(staff.x,sty,sdx-staff.x,18);wall(sdx+sdw,sty,staff.x+staff.w-(sdx+sdw),18);door(sdx,sty-10,sdw,28);
  // Conference and bar are enclosed side facilities; neither is a guest-room expansion slot.
  [bar,conference].forEach((rm)=>{
@@ -347,8 +348,13 @@ function buildLevel(seed){
  for(let i=0;i<7;i++){const rm=decorZones[Math.floor(seeded()*decorZones.length)];add("levelPlant",rm.x+rm.w-70,rm.y+rm.h-70,44,44);}
  GENERATED_POINTS.reception=safe(reception,.80,.52);GENERATED_POINTS.guest=safe(reception,.55,.78);
  roomSlots.forEach(rm=>{GENERATED_POINTS["room"+rm.id]=safe(rm,.28,.72);});
- GENERATED_POINTS.lounge=center(bar);GENERATED_POINTS.housekeeping=center(staff);GENERATED_POINTS.kitchen=safe(staff,.80,.84);GENERATED_POINTS.maintenance=safe(staff,.75,.55);
+ GENERATED_POINTS.lounge=center(bar);GENERATED_POINTS.housekeeping=safe(staff,.24,.38);GENERATED_POINTS.kitchen=safe(staff,.76,.38);GENERATED_POINTS.maintenance=safe(staff,.50,.70);
  GENERATED_POINTS.staff=center(staff);GENERATED_POINTS.garden=safe(staff,.50,.50);GENERATED_POINTS.conference=center(conference);GENERATED_POINTS.bar=center(bar);
+ add("levelSofa",reception.x+65,reception.y+95,120,72,"",true);
+ add("levelSofa",reception.x+205,reception.y+95,120,72,"",true);
+ add("levelTable",reception.x+105,reception.y+195,150,75,"",true);
+ add("levelPlant",reception.x+285,reception.y+100,48,52);
+ add("levelDoor",staff.x+staff.w/2-95,staff.y-10,190,32);
  const roomNames=roomSlots.map(r=>r.id);
  roomSlots.forEach((rm,i)=>{const el=document.createElement("div");el.className="roomStatus "+(i<3?"available":"locked");el.id="roomStatus"+i;el.style.left=(rm.x+rm.w*.18)+"px";el.style.top=(rm.y+rm.h*.12)+"px";el.textContent="ROOM "+rm.id+" • "+(i<3?"AVAILABLE":"LOCKED");level.appendChild(el);});
 }
@@ -362,8 +368,7 @@ interact.addEventListener("pointerup",e=>{
   else if(a.type==="checkin")checkInGuest(a.obj);
   else if(a.type==="luggage"){
     if(luggageState){carrying="luggage";luggageState.active=false;luggageState.el.style.display="none";setHotelTask("🧳 Take luggage to Room "+luggageState.room);showToast("Luggage picked up");positionActors();}
-  }else if(a.type==="service")interactAt(px,py);
-  else if(a.type==="clean")interactAt(px,py);
+  }else if(a.type==="service"||a.type==="kitchen"||a.type==="housekeeping"||a.type==="cleanStart"||a.type==="clean"||a.type==="serviceDeliver")interactAt(px,py);
 },{passive:false})
 const moneyEl=document.getElementById("money"),taskEl=document.getElementById("task"),toast=document.getElementById("toast"),hint=document.getElementById("hint");
 const music=document.getElementById("music"),ambience=document.getElementById("ambience"),step=document.getElementById("step");
@@ -687,66 +692,13 @@ function beginGuestStay(g,rm){
 }
 function deliverLuggage(rm){
  if(!luggageState||luggageState.room!==rm.id||(!luggageState.active&&carrying!=="luggage"))return false;
- const g=rm.guest;
- if(!g||!g.npc)return false;
-
- // HARD ARRIVAL: once the luggage is delivered, the guest is placed in the room
- // immediately. No pathfinding, collision, or walking state is involved.
- carrying=null;
- removeLuggage();
-
+ const g=rm.guest;if(!g||!g.npc)return false;
+ carrying=null;removeLuggage();
  const p=roomPoint(rm);
- g.status="staying";
- g.npc.x=p.x;
- g.npc.y=p.y;
- g.npc.path=[];
- g.npc.ri=0;
- g.npc.route=null;
- g.npc.el.style.display="block";
- g.npc.el.classList.remove("walking");
- g.npc.el.style.left=(p.x*100)+"%";
- g.npc.el.style.top=(p.y*100)+"%";
- positionActors();
-
- setHotelTask("Guest in Room "+rm.id+" • stay in progress");
- showToast("Guest arrived at Room "+rm.id);
-
- setTimeout(()=>{
-   if(!playing||g.status!=="staying")return;
-   g.serviceRequested=true;
-   if(unlock.RoomService){
-     setHotelTask("Room Service staff will handle Room "+rm.id);
-     setTimeout(()=>{if(playing&&g.serviceRequested){g.serviceRequested=false;g.serviceDone=true;money+=40;earned+=40;moneyEl.textContent="$"+money.toLocaleString();updateProgression();showToast("Room Service delivered by staff")}},1800);
-   }else{
-     setHotelTask("🍽️ Room "+rm.id+" is requesting room service");
-     showToast("Room "+rm.id+" requested room service");
-   }
- },ROOM_SERVICE_DELAY_MS);
-
- setTimeout(()=>{
-   if(!playing||g.status!=="staying")return;
-   g.status="idle";
-   g.serviceRequested=false;
-   if(serviceTarget===g){serviceTarget=null;carrying=null;}
-   g.npc.el.style.display="none";
-   occupiedRooms=Math.max(0,occupiedRooms-1);
-   if(unlock.Cleaner){
-     rm.state="available";
-     updateRoomMarker(guestRooms.indexOf(rm));
-     setHotelTask("Room "+rm.id+" cleaned by staff");
-     showToast("Cleaner serviced Room "+rm.id);
-   }else{
-     rm.state="dirty";
-     setHotelTask("🧹 Room "+rm.id+" needs cleaning");
-     showToast("Guest checked out — Room "+rm.id+" needs cleaning");
-   }
-   // Always look for another available room after checkout. Cleaning is optional;
-   // a dirty room stays unavailable, but the remaining unlocked rooms can receive guests.
-   setTimeout(()=>{if(playing)spawnWaitingGuest()},900);
-   rm.guest=null;
-   updateRoomMarker(guestRooms.indexOf(rm));
- },GUEST_STAY_MS+3000);
-
+ g.status="staying";g.npc.x=p.x;g.npc.y=p.y;g.npc.path=[];g.npc.ri=0;g.npc.route=null;
+ g.npc.el.style.display="block";g.npc.el.classList.remove("walking");
+ positionActors();beginGuestStay(g,rm);
+ setTimeout(()=>{if(playing)spawnWaitingGuest()},900);
  return true;
 }
 function collectRoomService(){
