@@ -51,8 +51,8 @@ const M={floor:detailMat("#594036",.9,0,texture("carpet"),"carpet"),wall:detailM
 box("floor",0,-.1,0,44,.2,34,M.floor,false);box("ceiling",0,4.2,0,44,.15,34,M.dark,false);
 box("north",0,2.1,-17,44,4.2,.3,M.wall);box("south",0,2.1,17,44,4.2,.3,M.wall);box("westA",-22,2.1,-6.25,.3,4.2,21.5,M.wall);box("westB",-22,2.1,13.75,.3,4.2,6.5,M.wall);box("east",22,2.1,0,.3,4.2,34,M.wall);
 for(let x=-20;x<=20;x+=4){box("trim",x,.42,-16.8,3.3,.16,.08,M.wood,false);box("trim",x,.42,16.8,3.3,.16,.08,M.wood,false)}
-for(let x=-18;x<=18;x+=9){box("beam",x,4.02,0,4.7,.18,.2,M.dark,false);const L=new THREE.PointLight(0xffd4a4,2.5,10);L.position.set(x,3.55,0);scene.add(L);box("ceilingFixture",x,3.94,0,1.25,.08,.35,M.brass,false);box("ceilingGlow",x,3.89,0,.9,.035,.18,mat("#fff1d5",.2),false)}
-for(const x of [-19,-7,5,17]){box("wallSconce",x,2.65,-16.72,.28,.65,.1,M.brass,false);const q=new THREE.PointLight(0xffc88f,1.25,5);q.position.set(x,2.7,-16.2);scene.add(q)}
+for(let x=-18;x<=18;x+=9){box("beam",x,4.02,0,4.7,.18,.2,M.dark,false);const L=new THREE.PointLight(0xffd4a4,mobile?1.7:2.5,10);L.position.set(x,3.55,0);scene.add(L);box("ceilingFixture",x,3.94,0,1.25,.08,.35,M.brass,false);box("ceilingGlow",x,3.89,0,.9,.035,.18,mat("#fff1d5",.2),false)}
+for(const x of [-19,-7,5,17]){box("wallSconce",x,2.65,-16.72,.28,.65,.1,M.brass,false);const q=new THREE.PointLight(0xffc88f,mobile?.85:1.25,5);q.position.set(x,2.7,-16.2);scene.add(q)}
 
 function label(t,x,y,z,size=.38){const c=document.createElement("canvas");c.width=512;c.height=128;const g=c.getContext("2d");g.font="900 48px system-ui";g.textAlign="center";g.textBaseline="middle";g.fillStyle="#fff";g.shadowColor="#000";g.shadowBlur=12;g.fillText(t,256,64);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false}));s.position.set(x,y,z);s.scale.set(size*4,size,1);scene.add(s)}
 // Detailed lobby dressing
@@ -74,7 +74,7 @@ function room(z,id,unlocked,side=1){
   door(doorX,z,id);
   const ix=15*sx;
   // Detailed furniture is supplied by the imported asset layer; keep only architectural lighting here.
-  const L=new THREE.PointLight(0xffd8ae,mobile?1.6:2.3,9);L.position.set(ix,3.5,z);scene.add(L);
+  const L=new THREE.PointLight(0xffd8ae,mobile?1.2:2.3,9);L.position.set(ix,3.5,z);scene.add(L);
   if(!unlocked){box("lock",doorX,1.4,z-.2,.8,.8,.2,M.brass);label("LOCKED",doorX,3.35,z-.15,.27)}
 }
 const roomLayout={101:{z:-13,side:1},102:{z:-5,side:-1},103:{z:3,side:1},104:{z:11,side:-1},105:{z:-1,side:1},106:{z:7,side:-1},107:{z:15,side:1}};
@@ -116,7 +116,7 @@ const modelPlacements=[
 ["chair_B_wood.gltf",-18.6,.05,-6.3,1.2,0]
 ];
 assetTotal=modelPlacements.length+3;
-import("https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js").then(m=>{loader=new m.GLTFLoader();modelPlacements.forEach(p=>loadModel(...p));guests.forEach(g=>loadCharacter(g))}).catch(e=>{console.warn("GLTF unavailable",e);if(statusEl)statusEl.textContent="Hotel ready • detailed fallback active"});
+import("https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js").then(m=>{loader=new m.GLTFLoader();let loadQueue=modelPlacements.slice();let loading=false;async function drainAssets(){if(loading)return;loading=true;while(loadQueue.length){await loadModel(...loadQueue.shift());await new Promise(r=>setTimeout(r,0))}for(const g of guests)await loadCharacter(g)}drainAssets()}).catch(e=>{console.warn("GLTF unavailable",e);if(statusEl)statusEl.textContent="Hotel ready • detailed fallback active"});
 
 
 function panel(x,z,w=3.2){box("wallPanel",x,2.05,z,w,3.05,.08,mat("#806044",.62),false);box("panelTrim",x,2.05,z,w+.12,3.18,.035,M.brass,false)}
@@ -326,7 +326,7 @@ function updateGuestWalk(g,dt){
   if(!t){g.state="staying";g.walkPath=null;g.walkServiceAt=performance.now()+6500;if(g.mixer&&g.action){g.action.stop();g.action.reset().play()}setTask("Guest in Room "+g.room+" • stay in progress");return}
   const dx=t.x-g.mesh.position.x,dz=t.z-g.mesh.position.z,dist=Math.hypot(dx,dz);
   if(dist<.08){g.mesh.position.x=t.x;g.mesh.position.z=t.z;g.walkIndex++;return}
-  const speed=1.65,step=Math.min(dist,speed*dt);
+  const speed=1.8,step=Math.min(dist,speed*dt);
   g.mesh.position.x+=dx/dist*step;g.mesh.position.z+=dz/dist*step;
   faceGuest(g,t.x,t.z);
 }
@@ -390,7 +390,7 @@ function blocked(x,z){
 }
 function move(dt){
   let f=joyY*-1+(keys.w?1:0)-(keys.s?1:0),r=joyX+(keys.d?1:0)-(keys.a?1:0),l=Math.hypot(f,r)||1;
-  f/=l;r/=l;const sp=5.0*dt,dx=(Math.sin(yaw)*f+Math.cos(yaw)*r)*sp,dz=(Math.cos(yaw)*f-Math.sin(yaw)*r)*sp;
+  f/=l;r/=l;const sp=5.8*dt,dx=(Math.sin(yaw)*f+Math.cos(yaw)*r)*sp,dz=(Math.cos(yaw)*f-Math.sin(yaw)*r)*sp;
   const p=camera.position,nx=p.x+dx,nz=p.z+dz;
   if(!blocked(nx,p.z))p.x=nx;
   if(!blocked(p.x,nz))p.z=nz;
