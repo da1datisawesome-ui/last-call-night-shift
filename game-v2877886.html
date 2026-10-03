@@ -985,7 +985,7 @@ resize();positionActors();
   const key=new THREE.DirectionalLight(0xffe0b0,4.2);key.position.set(-900,1500,700);scene.add(key);
   const fill=new THREE.DirectionalLight(0x9fd7ff,2.1);fill.position.set(900,900,-500);scene.add(fill);
   const loader=new GLTFLoader();
-  const BASE='https://raw.githubusercontent.com/pj4533/slopmancer/c0b535e9d90dfcf0c9e2dd9c96d7ef2f79ecb32/public/assets/models/props/furniture/';
+  const BASE='https://raw.githubusercontent.com/pj4533/slopmancer/c0b535e9d90dfccaaef1e8bff12e56d514f7700e/public/assets/models/props/furniture/';
   const cache=new Map();
   async function load(name){if(cache.has(name))return cache.get(name);const p=new Promise((resolve,reject)=>loader.load(BASE+name,resolve,undefined,reject));cache.set(name,p);return p}
   function fit(root,target){
