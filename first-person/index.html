@@ -34,7 +34,7 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 const ART={floor:"#6a4a34",wall:"#d8c6a9",wood:"#75421f",dark:"#1d130d",brass:"#c99b4c",fabric:"#6f4149",cream:"#eee5d6"};
-const BUILD="FP-VISUAL-PASS-2026-10-03-R2";const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,32,90);
+const BUILD="FP-FINAL-PRESENTATION-2026-10-03";const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,32,90);
 const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.04,140);camera.position.set(-13,1.68,8);camera.rotation.order="YXZ";
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.physicallyCorrectLights=true;document.getElementById("game").appendChild(renderer.domElement);
 const envLight=new THREE.HemisphereLight(0xffead0,0x172331,2.4);scene.add(envLight);
@@ -302,10 +302,34 @@ function faceGuest(g,targetX,targetZ){
   if(!g.mesh)return;
   g.mesh.rotation.y=Math.atan2(targetX-g.mesh.position.x,targetZ-g.mesh.position.z);
 }
+function beginGuestWalk(g){
+  const p=roomLayout[g.room];
+  if(!p||!g.mesh)return;
+  const entryZ=3;
+  const doorX=p.side*5.0;
+  g.walkPath=[
+    {x:-5.0,z:entryZ},
+    {x:0,z:entryZ},
+    {x:0,z:p.z},
+    {x:doorX,z:p.z}
+  ];
+  g.walkIndex=0;
+  g.state="walking";
+}
+function updateGuestWalk(g,dt){
+  if(g.state!=="walking"||!g.mesh||!g.walkPath)return;
+  const t=g.walkPath[g.walkIndex];
+  if(!t){g.state="staying";g.walkPath=null;setTask("Guest in Room "+g.room+" • stay in progress");return}
+  const dx=t.x-g.mesh.position.x,dz=t.z-g.mesh.position.z,dist=Math.hypot(dx,dz);
+  if(dist<.08){g.mesh.position.x=t.x;g.mesh.position.z=t.z;g.walkIndex++;return}
+  const speed=1.35,step=Math.min(dist,speed*dt);
+  g.mesh.position.x+=dx/dist*step;g.mesh.position.z+=dz/dist*step;
+  faceGuest(g,t.x,t.z);
+}
 function spawnGuest(){if(guests.some(g=>g.state==="waiting"||g.state==="luggage"))return;const g=guests.find(x=>x.state==="idle");if(!g)return;g.state="waiting";g.room=null;g.mesh.position.set(-7.4,0,6.5);g.mesh.visible=true;setTask("🔑 CURRENT TASK: Check in "+g.name+" at reception")}
 function checkIn(g){const r=firstRoom();if(!r){toast("No clean unlocked rooms available");return}r.state="occupied";r.guest=g;g.room=r.id;g.state="luggage";money+=100;rep++;luggage=box("luggage",-7.5,.55,5,.7,1,.5,M.blue);setTask("🧳 CURRENT TASK: Pick up luggage for Room "+r.id+" at reception");toast("+$100 • Guest checked in");ui()}
 function pickupLuggage(){if(!luggage)return;carrying="luggage";scene.remove(luggage);luggage=null;setTask("🧳 CURRENT TASK: Walk to Room "+guests.find(g=>g.state==="luggage").room+" and deliver the luggage")}
-function deliverLuggage(){const g=guests.find(x=>x.state==="luggage"&&x.room);if(!g||carrying!=="luggage")return;carrying=null;g.state="staying";const rp=roomPosition(g.room);g.mesh.position.set(rp.x,0,rp.z);g.mesh.rotation.y=Math.PI;g.mesh.visible=true;setTask("Guest in Room "+g.room+" • stay in progress");toast("Luggage delivered manually");setTimeout(()=>{if(g.state==="staying"){g.state="service";serviceTarget=g;setTask("🍽️ CURRENT TASK: Collect room service in the kitchen, then deliver to Room "+g.room)}},6500)}
+function deliverLuggage(){const g=guests.find(x=>x.state==="luggage"&&x.room);if(!g||carrying!=="luggage")return;carrying=null;g.mesh.visible=true;beginGuestWalk(g);setTask("Guest walking to Room "+g.room);toast("Luggage delivered • guest walking to room")}
 function collectService(){if(!serviceTarget||carrying)return;carrying="roomservice";setTask("🍽️ CURRENT TASK: Carry room service to Room "+serviceTarget.room);toast("Room service collected")}
 function deliverService(){if(carrying!=="roomservice"||!serviceTarget)return;carrying=null;serviceTarget.state="staying";setTask("Room Service delivered to Room "+serviceTarget.room);money+=40;rep++;toast("+$40 • Room service delivered");ui();setTimeout(()=>{if(serviceTarget){serviceTarget.state="checkout";setTask("Guest in Room "+serviceTarget.room+" is checking out")}},5500)}
 function collectClean(){if(carrying||!cleaningTarget)return;carrying="cleaning";setTask("🧹 CURRENT TASK: Carry cleaning supplies to Room "+cleaningTarget.id);toast("Cleaning supplies collected")}
@@ -370,9 +394,9 @@ function move(dt){
 function openMenu(){document.getElementById("panel").style.display="flex";panelBody();}function panelBody(){document.getElementById("panelTitle").textContent="Night Shift";document.getElementById("panelBody").innerHTML='<div class="row"><b>Hotel funds</b><span>$'+money.toLocaleString()+'</span></div><div class="row"><b>Reputation</b><span>★ '+rep+'</span></div><div class="row"><b>Room 101–103</b><span>Unlocked</span></div><div class="row"><b>Next room upgrade</b><span>$2,000 • +1 room</span><button class="action" id="upgrade">UPGRADE</button></div><div class="row"><b>Save</b><span>Save current night</span><button class="action" id="save">SAVE</button></div><div class="row"><b>Manual gameplay</b><span>No teleportation</span></div>';document.getElementById("upgrade").onclick=()=>{if(money>=2000&&!rooms.get(104).unlocked){money-=2000;rooms.get(104).unlocked=true;toast("Room 104 unlocked");ui();panelBody()}else toast("Need $2,000")};document.getElementById("save").onclick=save}
 document.getElementById("menu").onclick=openMenu;document.getElementById("close").onclick=()=>document.getElementById("panel").style.display="none";document.getElementById("use").onclick=()=>{const z=nearest();if(z)z.action()};
 let lastCheckoutId=0;
-function tickGuests(){const g=guests.find(x=>x.state==="checkout");if(g&&g.id!==lastCheckoutId){lastCheckoutId=g.id;finishCheckout()}if(!guests.some(x=>x.state==="waiting"||x.state==="luggage")&&guests.some(x=>x.state==="idle"))spawnGuest()}
+function tickGuests(){for(const g of guests)updateGuestWalk(g,.016);const g=guests.find(x=>x.state==="checkout");if(g&&g.id!==lastCheckoutId){lastCheckoutId=g.id;finishCheckout()}if(!guests.some(x=>x.state==="waiting"||x.state==="luggage"||x.state==="walking")&&guests.some(x=>x.state==="idle"))spawnGuest()}
 let started=false;document.getElementById("start").addEventListener("click",()=>{started=true;document.getElementById("title").style.display="none";spawnGuest();setTask("🔑 CURRENT TASK: Check in Alex at reception")});
-let last=performance.now();function frame(now){const dt=Math.min(.04,(now-last)/1000);last=now;if(started){move(dt);camera.rotation.set(pitch,yaw,0,"YXZ");for(const g of guests)if(g.mixer)g.mixer.update(dt);hands.rotation.y=0;const z=nearest();if(z){prompt.textContent=z.label;prompt.style.display="block";use.style.display="block"}else{prompt.style.display="none";use.style.display="none"}if(now-lastSave>15000){lastSave=now;localStorage.setItem("lcn-save",JSON.stringify({money,rep,rooms:[...rooms.values()].map(r=>({id:r.id,unlocked:r.unlocked,state:r.state,dirty:r.dirty}))}))}tickGuests()}renderer.render(scene,camera);requestAnimationFrame(frame)}requestAnimationFrame(frame);
+let last=performance.now();function frame(now){const dt=Math.min(.04,(now-last)/1000);last=now;if(started){move(dt);camera.rotation.set(pitch,yaw,0,"YXZ");for(const g of guests){if(g.mixer)g.mixer.update(dt);updateGuestWalk(g,dt)}hands.rotation.y=0;const z=nearest();if(z){prompt.textContent=z.label;prompt.style.display="block";use.style.display="block"}else{prompt.style.display="none";use.style.display="none"}if(now-lastSave>15000){lastSave=now;localStorage.setItem("lcn-save",JSON.stringify({money,rep,rooms:[...rooms.values()].map(r=>({id:r.id,unlocked:r.unlocked,state:r.state,dirty:r.dirty}))}))}tickGuests()}renderer.render(scene,camera);requestAnimationFrame(frame)}requestAnimationFrame(frame);
 addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 ui();
 </script></body></html>
