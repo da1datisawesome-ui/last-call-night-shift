@@ -557,76 +557,95 @@ function beginGuestStay(g,rm){
 }
 function deliverLuggage(rm){
  if(!carrying||carrying!=="luggage"||!luggageState||luggageState.room!==rm.id)return false;
- const g=rm.guest;carrying=null;removeLuggage();
+
+ const g=rm.guest;
+ if(!g||!g.npc)return false;
+
+ // Luggage has been delivered. From this point the guest uses this function
+ // exclusively; no pathfinder, collision code, or updateNpcs() is involved.
+ carrying=null;
+ removeLuggage();
  g.status="walkingToRoom";
-
- const receptionRoom=GENERATED_ROOMS[0];
- const corridorEntryX=(receptionRoom.x+receptionRoom.w+55)/ART_W;
- const corridorEntryY=(receptionRoom.y+receptionRoom.h*.50)/ART_H;
- const roomEntryX=(rm.x+rm.w/2)/ART_W;
- const roomEntryY=(rm.y<500 ? rm.y+rm.h+34 : rm.y-34)/ART_H;
- const roomFinalX=(rm.x+rm.w*.28)/ART_W;
- const roomFinalY=(rm.y+rm.h*.72)/ART_H;
-
- const path=[
-   {x:g.npc.x,y:g.npc.y},
-   {x:(reception.x+reception.w-25)/ART_W,y:(reception.y+reception.h*.82)/ART_H},
-   {x:(reception.x+reception.w-25)/ART_W,y:(reception.y+reception.h*.50)/ART_H},
-   {x:corridorEntryX,y:corridorEntryY},
-   {x:roomEntryX,y:corridorEntryY},
-   {x:roomEntryX,y:roomEntryY},
-   {x:roomFinalX,y:roomEntryY},
-   {x:roomFinalX,y:roomFinalY}
- ];
+ g.npc.el.style.display="block";
+ g.npc.el.classList.add("walking");
 
  if(g.motionTimer&&typeof g.motionTimer.cancel==="function")g.motionTimer.cancel();
  g.motionTimer=null;
- g.npc.path=path;
- g.npc.ri=1;
- g.npc.el.style.display="block";
- g.npc.el.classList.add("walking");
- g.onRoomArrival=null;
 
- setHotelTask("Guest walking to Room "+rm.id);
- showToast("Guest is heading to Room "+rm.id);
+ // The hotel geometry is fixed: reception opens directly into the main
+ // corridor. Walk to the corridor centre first, then horizontally to the
+ // room, then through that room's doorway and into the room.
+ const corridorY=(GENERATED_ROOMS[1].y+GENERATED_ROOMS[1].h*.50)/ART_W;
+ const roomX=(rm.x+rm.w*.50)/ART_W;
+ const roomDoorY=(rm.y<500 ? rm.y+rm.h+30 : rm.y-30)/ART_H;
+ const roomInsideX=(rm.x+rm.w*.28)/ART_W;
+ const roomInsideY=(rm.y+rm.h*.72)/ART_H;
 
+ const waypoints=[
+   {x:(GENERATED_ROOMS[0].x+GENERATED_ROOMS[0].w+35)/ART_W,y:g.npc.y},
+   {x:(GENERATED_ROOMS[0].x+GENERATED_ROOMS[0].w+35)/ART_W,y:corridorY},
+   {x:roomX,y:corridorY},
+   {x:roomX,y:roomDoorY},
+   {x:roomInsideX,y:roomDoorY},
+   {x:roomInsideX,y:roomInsideY}
+ ];
+
+ let wi=0;
+ let raf=0;
  let last=performance.now();
- let rafId=0;
- const finish=()=>{
-   if(rafId)cancelAnimationFrame(rafId);
-   rafId=0;
+ const speed=.00030;
+
+ const stop=()=>{
+   if(raf)cancelAnimationFrame(raf);
+   raf=0;
    g.motionTimer=null;
-   g.npc.x=roomPoint(rm).x;
-   g.npc.y=roomPoint(rm).y;
-   g.npc.ri=path.length;
    g.npc.el.classList.remove("walking");
+ };
+
+ const arrive=()=>{
+   stop();
+   const p=roomPoint(rm);
+   g.npc.x=p.x;
+   g.npc.y=p.y;
+   g.npc.ri=waypoints.length;
+   positionActors();
    beginGuestStay(g,rm);
    setTimeout(()=>{if(playing&&g.status==="staying")spawnWaitingGuest()},650);
  };
 
- const moveGuest=()=>{
-   if(!playing||g.status!=="walkingToRoom"){rafId=0;g.motionTimer=null;return;}
-   const now=performance.now();
-   const dt=Math.min(50,Math.max(8,now-last));
-   last=now;
-   const target=path[g.npc.ri];
-   if(!target){finish();return;}
-   const dx=target.x-g.npc.x,dy=target.y-g.npc.y,d=Math.hypot(dx,dy);
-   if(d<=0.001){
+ const step=()=>{
+   if(!playing||g.status!=="walkingToRoom"){stop();return;}
+   const target=waypoints[wi];
+   if(!target){arrive();return;}
+
+   const dx=target.x-g.npc.x;
+   const dy=target.y-g.npc.y;
+   const d=Math.hypot(dx,dy);
+
+   if(d<0.002){
      g.npc.x=target.x;
      g.npc.y=target.y;
-     g.npc.ri++;
-     if(g.npc.ri>=path.length){finish();return;}
+     wi++;
+     g.npc.ri=wi;
+     if(wi>=waypoints.length){arrive();return;}
    }else{
-     const step=Math.min(d,0.00022*dt);
-     g.npc.x+=dx/d*step;
-     g.npc.y+=dy/d*step;
+     const now=performance.now();
+     const dt=Math.min(50,Math.max(8,now-last));
+     last=now;
+     const move=Math.min(d,speed*dt);
+     g.npc.x+=dx/d*move;
+     g.npc.y+=dy/d*move;
    }
+
    positionActors();
-   rafId=requestAnimationFrame(moveGuest);
+   raf=requestAnimationFrame(step);
  };
- g.motionTimer={cancel:()=>{if(rafId)cancelAnimationFrame(rafId);rafId=0;}};
- rafId=requestAnimationFrame(moveGuest);
+
+ g.motionTimer={cancel:()=>{if(raf)cancelAnimationFrame(raf);raf=0;}};
+ g.npc.ri=0;
+ setHotelTask("Guest walking to Room "+rm.id);
+ showToast("Guest is heading to Room "+rm.id);
+ raf=requestAnimationFrame(step);
 
  setTimeout(()=>{
    if(!playing||g.status!=="staying")return;
@@ -634,6 +653,7 @@ function deliverLuggage(rm){
    g.serviceRequested=false;
    g.npc.el.style.display="none";
    occupiedRooms=Math.max(0,occupiedRooms-1);
+
    if(unlock.Cleaner){
      rm.state="available";
      updateRoomMarker(guestRooms.indexOf(rm));
@@ -648,6 +668,7 @@ function deliverLuggage(rm){
    rm.guest=null;
    updateRoomMarker(guestRooms.indexOf(rm));
  },GUEST_STAY_MS+3000);
+
  return true;
 }
 function collectRoomService(){
