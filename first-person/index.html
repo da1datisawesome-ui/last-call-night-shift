@@ -442,7 +442,18 @@ function panelBody(){
   document.getElementById("panelTitle").textContent="Night Shift";
   const next=upgradeSteps.find(x=>!rooms.get(x.room).unlocked);
   const unlocked=[...rooms.values()].filter(r=>r.unlocked).length;
-  document.getElementById("panelBody").innerHTML='<div class="row"><b>Hotel funds</b><span>
+  const nextText=next?"Room "+next.room+" • $"+next.cost+" • +1 room":"All seven rooms unlocked";
+  document.getElementById("panelBody").innerHTML=[
+    '<div class="row"><b>Hotel funds</b><span>$'+money.toLocaleString()+'</span></div>',
+    '<div class="row"><b>Reputation</b><span>★ '+rep+'</span></div>',
+    '<div class="row"><b>Guest rooms</b><span>'+unlocked+' / 7 unlocked</span></div>',
+    '<div class="row"><b>Next room upgrade</b><span>'+nextText+'</span>'+(next?'<button class="action" id="upgrade">UPGRADE</button>':'')+'</div>',
+    '<div class="row"><b>Save</b><span>Save current night</span><button class="action" id="save">SAVE</button></div>',
+    '<div class="row"><b>Manual gameplay</b><span>No teleportation • walk every delivery</span></div>'
+  ].join("");
+  if(next)document.getElementById("upgrade").onclick=()=>{if(money>=next.cost){money-=next.cost;rooms.get(next.room).unlocked=true;toast("Room "+next.room+" unlocked");ui();panelBody()}else toast("Need $"+next.cost)};
+  document.getElementById("save").onclick=save
+}
 document.getElementById("menu").onclick=openMenu;document.getElementById("close").onclick=()=>document.getElementById("panel").style.display="none";document.getElementById("use").onclick=()=>{const z=nearest();if(z)z.action()};
 let lastCheckoutId=0;
 function tickGuests(){for(const g of guests){if(g.state==="staying"&&g.walkServiceAt&&performance.now()>=g.walkServiceAt){g.walkServiceAt=0;g.state="service";serviceTarget=g;setTask("🍽️ CURRENT TASK: Collect room service in the kitchen, then deliver to Room "+g.room)}}const g=guests.find(x=>x.state==="checkout");if(g&&g.id!==lastCheckoutId){lastCheckoutId=g.id;finishCheckout()}if(!guests.some(x=>x.state==="waiting"||x.state==="luggage"||x.state==="walking")&&guests.some(x=>x.state==="idle"))spawnGuest()}
