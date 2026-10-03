@@ -128,6 +128,17 @@
 .titleBox{max-width:650px;padding:34px 32px;border:1px solid rgba(255,255,255,.18);border-radius:28px;background:linear-gradient(145deg,rgba(18,42,55,.94),rgba(5,17,27,.96));box-shadow:0 30px 90px rgba(0,0,0,.72),inset 0 1px 0 rgba(255,255,255,.18)}
 .titleBox h1{text-shadow:0 5px 0 #172d3a,0 12px 28px rgba(0,0,0,.65);letter-spacing:-3px}
 .btn{box-shadow:0 8px 18px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.8);}
+
+/* ART-DIRECTION PASS: replace the toy-like flat treatment with layered illustrated depth */
+.levelFloor{background-color:#cbb38c;background-image:linear-gradient(115deg,rgba(255,255,255,.14),transparent 18%,transparent 72%,rgba(35,22,12,.16)),repeating-linear-gradient(90deg,rgba(76,49,26,.045) 0 2px,transparent 2px 34px),linear-gradient(#eee0c4,#b99164)}
+.levelWall{background-image:linear-gradient(180deg,rgba(255,255,255,.72),transparent 20%,rgba(64,40,22,.16) 100%),repeating-linear-gradient(0deg,rgba(92,62,36,.04) 0 2px,transparent 2px 26px)}
+.levelDoor{background-image:linear-gradient(90deg,#24140c,#754326 16%,#bd7742 44%,#d59658 50%,#9a5b31 70%,#3d2214 92%,#1c0e08),repeating-linear-gradient(90deg,transparent 0 34px,rgba(255,220,160,.1) 35px 36px)}
+.levelDesk,.levelTable,.levelCounter{background-image:linear-gradient(135deg,rgba(255,237,192,.35),transparent 28%,rgba(45,20,8,.2) 100%),repeating-linear-gradient(90deg,rgba(55,25,8,.08) 0 3px,transparent 3px 18px),linear-gradient(#d99a5d,#774322)}
+.levelBed{background-image:linear-gradient(180deg,#fff,#f0e3d4 58%,#c7aa8d);}
+.levelWindow{background-image:linear-gradient(135deg,rgba(255,255,255,.45),transparent 35%),linear-gradient(145deg,#244b6b,#9fe1f5 48%,#315c79)}
+.levelRug{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.08) 0 4px,transparent 4px 10px),linear-gradient(135deg,#87504e,#493044)}
+.levelPlant{filter:drop-shadow(5px 10px 5px rgba(0,0,0,.4));}
+.levelCart{filter:drop-shadow(7px 12px 6px rgba(0,0,0,.42));}
 </style>
 </head>
 <body>
@@ -337,8 +348,18 @@ function buildLevel(seed){
  roomSlots.forEach((rm,i)=>{const el=document.createElement("div");el.className="roomStatus "+(i<3?"available":"locked");el.id="roomStatus"+i;el.style.left=(rm.x+rm.w*.18)+"px";el.style.top=(rm.y+rm.h*.12)+"px";el.textContent="ROOM "+rm.id+" • "+(i<3?"AVAILABLE":"LOCKED");level.appendChild(el);});
 }
 const player=document.getElementById("player"),guest=document.getElementById("guest"),porterNpc=document.getElementById("porterNpc"),cleanerNpc=document.getElementById("cleanerNpc"),maintenanceNpc=document.getElementById("maintenanceNpc"),receptionNpc=document.getElementById("receptionNpc"),loungeNpc1=document.getElementById("loungeNpc1"),loungeNpc2=document.getElementById("loungeNpc2"),interact=document.getElementById("interact");
-interact.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();});
-interact.addEventListener("pointerup",e=>{e.preventDefault();e.stopPropagation();interactAt(px,py);})
+interact.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();},{passive:false});
+interact.addEventListener("pointerup",e=>{
+  e.preventDefault();e.stopPropagation();
+  const a=window.__lastCallAction;
+  if(!a){showToast("Move closer to the current task");return}
+  if(a.type==="deliver")deliverLuggage(a.obj);
+  else if(a.type==="checkin")checkInGuest(a.obj);
+  else if(a.type==="luggage"){
+    if(luggageState){carrying="luggage";luggageState.active=false;luggageState.el.style.display="none";setHotelTask("🧳 Take luggage to Room "+luggageState.room);showToast("Luggage picked up");positionActors();}
+  }else if(a.type==="service")interactAt(px,py);
+  else if(a.type==="clean")interactAt(px,py);
+},{passive:false})
 const moneyEl=document.getElementById("money"),taskEl=document.getElementById("task"),toast=document.getElementById("toast"),hint=document.getElementById("hint");
 const music=document.getElementById("music"),ambience=document.getElementById("ambience"),step=document.getElementById("step");
 let W=0,H=0,playing=false,role="Receptionist",money=1280,rep=50,earned=0,audioOn=true,px=.582,py=.527,gx=.60,gy=.34,drag=false,target=null,pendingInteraction=null,lastStep=0;
@@ -569,7 +590,16 @@ function positionActors(){
  if(serviceTarget&&serviceTarget.status==="staying"&&serviceTarget.serviceRequested&&!carrying)consider(GENERATED_POINTS.kitchen.x,GENERATED_POINTS.kitchen.y,"🍽️ COLLECT ROOM SERVICE","kitchen",serviceTarget);
  if(cleaningTarget&&cleaningTarget.state==="dirty"&&carrying!=="cleaning")consider(GENERATED_POINTS.housekeeping.x,GENERATED_POINTS.housekeeping.y,"🧹 COLLECT CLEANING SUPPLIES","housekeeping",cleaningTarget);
  guestRooms.forEach(rm=>{if(rm.state==="dirty")consider(roomPoint(rm).x,roomPoint(rm).y,"🧹 CLEAN ROOM "+rm.id,"clean",rm);if(carrying==="luggage"&&luggageState&&luggageState.room===rm.id)consider(roomPoint(rm).x,roomPoint(rm).y,"🧳 DELIVER TO ROOM "+rm.id,"deliver",rm)});
- if(action){interact.style.display="block";interact.style.left=(action.x*100)+"%";interact.style.top=((action.y*100)-9)+"%";interact.textContent=action.label}else interact.style.display="none";
+ if(action){
+  window.__lastCallAction=action;
+  interact.style.display="block";
+  interact.style.left=(action.x*100)+"%";
+  interact.style.top=((action.y*100)-9)+"%";
+  interact.textContent=action.label;
+}else{
+  window.__lastCallAction=null;
+  interact.style.display="none";
+}
 }
 function updateNpcs(){
  for(const n of npcs){
