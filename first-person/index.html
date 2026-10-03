@@ -34,7 +34,7 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 const ART={floor:"#6a4a34",wall:"#d8c6a9",wood:"#75421f",dark:"#1d130d",brass:"#c99b4c",fabric:"#6f4149",cream:"#eee5d6"};
-const BUILD="AAA-HOTEL-VERTICAL-SLICE-2026-10-03C";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
+const BUILD="AA-FIRST-PERSON-HOTEL-2026-10-03D";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
 const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.04,140);camera.position.set(-13,1.68,8);camera.rotation.order="YXZ";
 const renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:"high-performance",precision:mobile?"mediump":"highp"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.25:1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.physicallyCorrectLights=true;renderer.info.autoReset=false;document.getElementById("game").appendChild(renderer.domElement);
 const envLight=new THREE.HemisphereLight(0xffead0,0x172331,mobile?2.35:2.4);scene.add(envLight);
@@ -367,7 +367,7 @@ function updateGuestWalk(g,dt){
   if(!t){g.state="staying";g.walkPath=null;g.walkServiceAt=performance.now()+6500;if(g.mixer&&g.action){g.action.stop();g.action.reset().play()}setTask("Guest in Room "+g.room+" • stay in progress");return}
   const dx=t.x-g.mesh.position.x,dz=t.z-g.mesh.position.z,dist=Math.hypot(dx,dz);
   if(dist<.08){g.mesh.position.x=t.x;g.mesh.position.z=t.z;g.walkIndex++;return}
-  const speed=1.8,step=Math.min(dist,speed*dt);
+  const speed=2.6,step=Math.min(dist,speed*dt);
   g.mesh.position.x+=dx/dist*step;g.mesh.position.z+=dz/dist*step;
   faceGuest(g,t.x,t.z);
 }
@@ -431,7 +431,7 @@ function blocked(x,z){
 }
 function move(dt){
   let f=joyY*-1+(keys.w?1:0)-(keys.s?1:0),r=joyX+(keys.d?1:0)-(keys.a?1:0),l=Math.hypot(f,r)||1;
-  f/=l;r/=l;const sp=5.8*dt,dx=(Math.sin(yaw)*f+Math.cos(yaw)*r)*sp,dz=(Math.cos(yaw)*f-Math.sin(yaw)*r)*sp;
+  f/=l;r/=l;const sp=6.8*dt,dx=(Math.sin(yaw)*f+Math.cos(yaw)*r)*sp,dz=(Math.cos(yaw)*f-Math.sin(yaw)*r)*sp;
   const p=camera.position,nx=p.x+dx,nz=p.z+dz;
   if(!blocked(nx,p.z))p.x=nx;
   if(!blocked(p.x,nz))p.z=nz;
@@ -451,25 +451,6 @@ function panelBody(){
     '<div class="row"><b>Save</b><span>Save current night</span><button class="action" id="save">SAVE</button></div>',
     '<div class="row"><b>Manual gameplay</b><span>No teleportation • walk every delivery</span></div>'
   ].join("");
-  if(next)document.getElementById("upgrade").onclick=()=>{if(money>=next.cost){money-=next.cost;rooms.get(next.room).unlocked=true;toast("Room "+next.room+" unlocked");ui();panelBody()}else toast("Need $"+next.cost)};
-  document.getElementById("save").onclick=save
-}
-document.getElementById("menu").onclick=openMenu;document.getElementById("close").onclick=()=>document.getElementById("panel").style.display="none";document.getElementById("use").onclick=()=>{const z=nearest();if(z)z.action()};
-let lastCheckoutId=0;
-function tickGuests(){for(const g of guests){if(g.state==="staying"&&g.walkServiceAt&&performance.now()>=g.walkServiceAt){g.walkServiceAt=0;g.state="service";serviceTarget=g;setTask("🍽️ CURRENT TASK: Collect room service in the kitchen, then deliver to Room "+g.room)}}const g=guests.find(x=>x.state==="checkout");if(g&&g.id!==lastCheckoutId){lastCheckoutId=g.id;finishCheckout()}if(!guests.some(x=>x.state==="waiting"||x.state==="luggage"||x.state==="walking")&&guests.some(x=>x.state==="idle"))spawnGuest()}
-let started=false;document.getElementById("start").addEventListener("click",()=>{started=true;document.getElementById("title").style.display="none";spawnGuest();setTask("🔑 CURRENT TASK: Check in Alex at reception")});
-let last=performance.now(),frameCount=0,frameEma=16.7;function frame(now){const raw=now-last;const dt=Math.min(.04,raw/1000);last=now;frameCount++;if(mobile&&frameCount%30===0){frameEma=frameEma*.8+raw*.2;const dpr=frameEma>24?1.0:frameEma>20?1.1:1.25;const current=renderer.getPixelRatio();if(Math.abs(current-dpr)>.05){renderer.setPixelRatio(dpr);renderer.setSize(innerWidth,innerHeight,false)}}if(started){move(dt);camera.rotation.set(pitch,yaw,0,"YXZ");for(const g of guests){if(g.mixer&&(g.state==="walking"||g.state==="luggage"))g.mixer.update(dt);updateGuestWalk(g,dt)}hands.rotation.y=0;const z=nearest();if(z){prompt.textContent=z.label;prompt.style.display="block";use.style.display="block"}else{prompt.style.display="none";use.style.display="none"}if(now-lastSave>15000){lastSave=now;localStorage.setItem("lcn-save",JSON.stringify({money,rep,rooms:[...rooms.values()].map(r=>({id:r.id,unlocked:r.unlocked,state:r.state,dirty:r.dirty}))}))}tickGuests()}renderer.render(scene,camera);if(frameCount%60===0)renderer.info.reset();requestAnimationFrame(frame)}requestAnimationFrame(frame);
-addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-ui();
-</script></body></html>+money.toLocaleString()+'</span></div><div class="row"><b>Reputation</b><span>★ '+rep+'</span></div><div class="row"><b>Guest rooms</b><span>'+unlocked+' / 7 unlocked</span></div><div class="row"><b>Next room upgrade</b><span>'+(next?'Room '+next.room+' • 
-document.getElementById("menu").onclick=openMenu;document.getElementById("close").onclick=()=>document.getElementById("panel").style.display="none";document.getElementById("use").onclick=()=>{const z=nearest();if(z)z.action()};
-let lastCheckoutId=0;
-function tickGuests(){for(const g of guests){if(g.state==="staying"&&g.walkServiceAt&&performance.now()>=g.walkServiceAt){g.walkServiceAt=0;g.state="service";serviceTarget=g;setTask("🍽️ CURRENT TASK: Collect room service in the kitchen, then deliver to Room "+g.room)}}const g=guests.find(x=>x.state==="checkout");if(g&&g.id!==lastCheckoutId){lastCheckoutId=g.id;finishCheckout()}if(!guests.some(x=>x.state==="waiting"||x.state==="luggage"||x.state==="walking")&&guests.some(x=>x.state==="idle"))spawnGuest()}
-let started=false;document.getElementById("start").addEventListener("click",()=>{started=true;document.getElementById("title").style.display="none";spawnGuest();setTask("🔑 CURRENT TASK: Check in Alex at reception")});
-let last=performance.now(),frameCount=0,frameEma=16.7;function frame(now){const raw=now-last;const dt=Math.min(.04,raw/1000);last=now;frameCount++;if(mobile&&frameCount%30===0){frameEma=frameEma*.8+raw*.2;const dpr=frameEma>24?1.0:frameEma>20?1.1:1.25;const current=renderer.getPixelRatio();if(Math.abs(current-dpr)>.05){renderer.setPixelRatio(dpr);renderer.setSize(innerWidth,innerHeight,false)}}if(started){move(dt);camera.rotation.set(pitch,yaw,0,"YXZ");for(const g of guests){if(g.mixer&&(g.state==="walking"||g.state==="luggage"))g.mixer.update(dt);updateGuestWalk(g,dt)}hands.rotation.y=0;const z=nearest();if(z){prompt.textContent=z.label;prompt.style.display="block";use.style.display="block"}else{prompt.style.display="none";use.style.display="none"}if(now-lastSave>15000){lastSave=now;localStorage.setItem("lcn-save",JSON.stringify({money,rep,rooms:[...rooms.values()].map(r=>({id:r.id,unlocked:r.unlocked,state:r.state,dirty:r.dirty}))}))}tickGuests()}renderer.render(scene,camera);if(frameCount%60===0)renderer.info.reset();requestAnimationFrame(frame)}requestAnimationFrame(frame);
-addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-ui();
-</script></body></html>+next.cost+' • +1 room':'All seven rooms unlocked')+(next?'<button class="action" id="upgrade">UPGRADE</button>':'')+'</div><div class="row"><b>Save</b><span>Save current night</span><button class="action" id="save">SAVE</button></div><div class="row"><b>Manual gameplay</b><span>No teleportation • walk every delivery</span></div>';
   if(next)document.getElementById("upgrade").onclick=()=>{if(money>=next.cost){money-=next.cost;rooms.get(next.room).unlocked=true;toast("Room "+next.room+" unlocked");ui();panelBody()}else toast("Need $"+next.cost)};
   document.getElementById("save").onclick=save
 }
