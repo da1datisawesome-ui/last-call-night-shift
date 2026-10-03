@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Last Call: Night Shift — First Person Design</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#090b10;font-family:system-ui,-apple-system,sans-serif;touch-action:none}
+#game{position:fixed;inset:0}
+canvas{display:block;width:100%;height:100%}
+#hud{position:fixed;inset:0;pointer-events:none;color:#fff}
+.pill{position:absolute;top:16px;padding:11px 16px;border-radius:18px;background:rgba(7,20,31,.82);border:1px solid rgba(255,255,255,.16);box-shadow:0 8px 25px #0008;backdrop-filter:blur(10px);font-weight:800}
+#money{left:16px}#task{left:50%;transform:translateX(-50%);max-width:58%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cross{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%)}
+#cross:before,#cross:after{content:"";position:absolute;background:#fff;border-radius:2px;box-shadow:0 0 8px #000}
+#cross:before{width:20px;height:2px;top:9px}.#cross:after{height:20px;width:2px;left:9px}
+#prompt{position:absolute;left:50%;bottom:24%;transform:translateX(-50%);padding:13px 20px;border-radius:15px;background:#f7f1e5;color:#10283a;font-weight:900;box-shadow:0 10px 30px #0008;display:none}
+#joystick{position:absolute;left:22px;bottom:25px;width:132px;height:132px;border-radius:50%;background:#0b2638aa;border:2px solid #ffffff35;pointer-events:auto}
+#stick{position:absolute;width:58px;height:58px;left:37px;top:37px;border-radius:50%;background:#e9eef2dd;box-shadow:0 8px 20px #0008}
+#look{position:absolute;right:0;top:0;width:58%;height:72%;pointer-events:auto}
+#interact{position:absolute;right:24px;bottom:34px;width:82px;height:82px;border-radius:50%;border:2px solid #ffffff45;background:#0d3046dd;color:#fff;font-weight:900;display:none;pointer-events:auto;box-shadow:0 10px 30px #0008}
+#legend{position:absolute;right:18px;top:68px;padding:10px 13px;border-radius:14px;background:#071622aa;border:1px solid #ffffff20;font-size:12px;line-height:1.5;opacity:.85}
+@media(max-width:600px){.pill{top:8px;padding:9px 12px}.pill#task{max-width:48%;font-size:12px}.legend{display:none}}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="hud">
+  <div id="money" class="pill">$1,280</div>
+  <div id="task" class="pill">Night Shift • Explore the hotel</div>
+  <div id="cross"></div>
+  <div id="prompt"></div>
+  <div id="legend">FIRST-PERSON DESIGN<br>Walk manually • Look manually<br>No task teleportation</div>
+  <div id="joystick"><div id="stick"></div></div>
+  <div id="look"></div>
+  <button id="interact">USE</button>
+</div>
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x111820);
+scene.fog=new THREE.Fog(0x111820,28,85);
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.05,120);
+camera.position.set(-6,1.72,7);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.12;
+document.getElementById("game").appendChild(renderer.domElement);
+
+const hemi=new THREE.HemisphereLight(0xffe7c4,0x182738,1.9);scene.add(hemi);
+const key=new THREE.DirectionalLight(0xffd3a0,3.2);key.position.set(-12,14,10);key.castShadow=true;key.shadow.mapSize.set(2048,2048);key.shadow.camera.left=-25;key.shadow.camera.right=25;key.shadow.camera.top=25;key.shadow.camera.bottom=-25;scene.add(key);
+
+function tex(base,lines=false){
+ const c=document.createElement("canvas");c.width=256;c.height=256;const x=c.getContext("2d");
+ x.fillStyle=base;x.fillRect(0,0,256,256);
+ if(lines){for(let i=0;i<18;i++){x.fillStyle=i%2?"#00000012":"#ffffff10";x.fillRect(i*16,0,8,256)}}
+ for(let i=0;i<650;i++){x.fillStyle=Math.random()>.5?"#ffffff0b":"#0000000b";x.fillRect(Math.random()*256,Math.random()*256,1+Math.random()*3,1+Math.random()*3)}
+ const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(4,4);return t;
+}
+const mats={
+ floor:new THREE.MeshStandardMaterial({map:tex("#6b4b35",true),roughness:.72,metalness:.03}),
+ wall:new THREE.MeshStandardMaterial({map:tex("#d8c6a8"),roughness:.9}),
+ wood:new THREE.MeshStandardMaterial({map:tex("#7a4426",true),roughness:.5}),
+ dark:new THREE.MeshStandardMaterial({color:0x211710,roughness:.55}),
+ brass:new THREE.MeshStandardMaterial({color:0xc99b4b,metalness:.72,roughness:.25}),
+ fabric:new THREE.MeshStandardMaterial({color:0x7d4e55,roughness:.92}),
+ white:new THREE.MeshStandardMaterial({color:0xf1e8d9,roughness:.84}),
+ glass:new THREE.MeshPhysicalMaterial({color:0x5e8aa0,roughness:.12,metalness:.05,transmission:.25,transparent:true,opacity:.72}),
+ plant:new THREE.MeshStandardMaterial({color:0x365b3c,roughness:.9})
+};
+function box(name,x,y,z,w,h,d,mat,shadow=true){
+ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.name=name;m.position.set(x,y,z);m.castShadow=shadow;m.receiveShadow=true;scene.add(m);return m;
+}
+function cyl(name,x,y,z,r,h,mat){
+ const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,24),mat);m.name=name;m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m;
+}
+function label(text,x,y,z,scale=.45){
+ const c=document.createElement("canvas");c.width=512;c.height=128;const g=c.getContext("2d");g.clearRect(0,0,512,128);g.font="900 52px system-ui";g.textAlign="center";g.textBaseline="middle";g.fillStyle="#fff";g.shadowColor="#000";g.shadowBlur=12;g.fillText(text,256,64);
+ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false}));sp.position.set(x,y,z);sp.scale.set(scale*4,scale,1);scene.add(sp);return sp;
+}
+function light(x,y,z,color=0xffd6a0,intensity=3,dist=11){
+ const p=new THREE.PointLight(color,intensity,dist,2);p.position.set(x,y,z);p.castShadow=true;p.shadow.mapSize.set(512,512);scene.add(p);
+ const shade=new THREE.Mesh(new THREE.CylinderGeometry(.22,.34,.12,20),new THREE.MeshStandardMaterial({color:0x24180f,metalness:.25}));
+ shade.position.set(x,y+.08,z);scene.add(shade);return p;
+}
+// Main hotel floor and corridor
+box("floor",0,-.08,0,44,.16,34,mats.floor);
+box("ceiling",0,4.2,0,44,.15,34,mats.dark,false);
+box("northWall",0,2.1,-17,44,4.2,.3,mats.wall);
+box("southWall",0,2.1,17,44,4.2,.3,mats.wall);
+box("westWall",-22,2.1,0,.3,4.2,34,mats.wall);
+box("eastWall",22,2.1,0,.3,4.2,34,mats.wall);
+// Reception
+box("receptionDesk",-13,1.05,5,7,2.1,1.2,mats.wood);
+box("receptionTop",-13,2.15,5,7.3,.18,1.5,mats.brass);
+box("counterFront",-13,1.25,4.34,6.4,1.5,.08,mats.dark);
+label("RECEPTION",-13,2.65,4.25,.52);
+for(let z=3;z<=7;z+=2){cyl("chair",-16,.45,z,.32,.9,mats.fabric);box("chairBack",-16,.85,z,.7,.8,.15,mats.fabric)}
+// Lobby seating
+for(const z of [1,4,7]){box("sofa",-8,.65,z,3,.95,.9,mats.fabric);box("sofaBack",-8,1.18,z+.36,3,1,.22,mats.fabric)}
+box("lobbyTable",-8,.55,2.5,2.1,.25,1.3,mats.wood);
+for(const z of [1,4,7]){cyl("lamp",-5,2.7,z,.12,4,mats.brass);cyl("shade",-5,3.15,z,.45,.45,mats.white);light(-5,3.25,z,0xffd39a,2.2,7)}
+// Main corridor divider walls and guest rooms
+box("corridorBack",-2,2.1,-2,40,4.2,.28,mats.wall);
+for(const z of [-13,-9,-5,0,4,8,12]){box("corridorPost",8,2.1,z,.25,4.2,.25,mats.dark)}
+function room(z,id){
+ box("roomWall",13,2.1,z,18,4.2,.3,mats.wall);
+ const door=box("roomDoor",4.8,1.35,z,2.0,2.7,.16,mats.wood);
+ box("doorTrim",4.8,1.4,z-.12,2.25,2.85,.06,mats.brass);
+ label("ROOM "+id,4.8,3.0,z-.1,.32);
+ box("bed",15,.5,z,3.8,.75,2.0,mats.white);
+ box("headboard",15,1.15,z-1.0,3.9,1.6,.18,mats.wood);
+ box("bedside",12.5,.6,z-1.1,.7,1.0,.7,mats.wood);
+ box("desk",19,.65,z+1.8,2.2,1.1,.9,mats.wood);
+ cyl("chair",19,.5,z+3,.4,.8,mats.fabric);
+ box("rug",15,.035,z+2.3,6,.05,2.4,mats.fabric,false);
+ box("painting",18.5,2.35,z-1.55,2.0,1.2,.08,mats.dark,false);
+ light(15,3.4,z,0xffd9ad,2.2,9);
+}
+room(-13,101);room(-5,102);room(3,103);room(11,104);
+// Kitchen / housekeeping wing
+box("serviceWall",-8,2.1,-12,12,4.2,.3,mats.wall);
+box("kitchenCounter",-12,.8,-11,5,1.5,1,mats.wood);
+box("kitchenTop",-12,1.6,-11,5.2,.18,1.15,mats.brass);
+label("KITCHEN",-12,2.35,-10.35,.45);
+box("oven",-9.8,1.0,-11,1.3,1.8,.9,mats.dark);
+for(let x=-15;x<=-9;x+=2){cyl("stool",x,.45,-8.8,.3,.8,mats.fabric)}
+light(-12,3.4,-11,0xffd4a0,3.5,9);
+box("housekeeping",-1,.9,-11,5,1.7,1,mats.wood);
+label("HOUSEKEEPING",-1,2.35,-10.35,.4);
+for(let x=-2.4;x<=.4;x+=1.4){box("supply",x,.65,-12.0,.8,1.2,.7,mats.white)}
+light(-1,3.4,-11,0xffd4a0,2.8,9);
+// Lobby exit
+box("exitDoor",-21.55,1.5,5,0.18,3.0,2.5,mats.wood);
+box("exitGlass",-21.43,1.55,5,.08,2.5,1.8,mats.glass);
+label("EXIT",-21.0,2.5,5,.5);
+// Guests / luggage
+const guestMat=new THREE.MeshStandardMaterial({color:0xd88765,roughness:.75});
+function person(x,z,shirt=guestMat){const g=new THREE.Group();g.position.set(x,.0,z);const legs=box("legs",0,.42,0,.45,.8,.35,mats.dark);const body=box("body",0,1.05,0,.75,1.1,.5,shirt);const head=cyl("head",0,1.9,0,.34,.48,new THREE.MeshStandardMaterial({color:0x9c6047,roughness:.8}));g.add(legs,body,head);scene.add(g);return g}
+const guest=person(-8,5);label("GUEST A",-8,2.65,5,.32);
+const luggage=box("luggage",-6.7,.5,5,.65,1,.5,new THREE.MeshStandardMaterial({color:0x355c78,roughness:.65}));
+let serviceRequested=false,carrying=null;
+const moneyEl=document.getElementById("money"),taskEl=document.getElementById("task"),promptEl=document.getElementById("prompt"),button=document.getElementById("interact");
+function setTask(t){taskEl.textContent=t}
+function near(obj,dist=2.0){return camera.position.distanceTo(obj.position)<dist}
+function action(){
+ if(near(guest,2.2)&&!serviceRequested&&!carrying){setTask("Check in Guest A manually");return ["checkin"]} 
+ if(near(luggage,2.0)&&!carrying){setTask("Pick up luggage manually");return ["luggage"]}
+ if(near(new THREE.Vector3(-12,1,-11),2.8)&&serviceRequested&&!carrying){setTask("Collect room service from the kitchen");return ["kitchen"]}
+ return null;
+}
+button.onclick=()=>{
+ const a=button.dataset.a;
+ if(a==="checkin"){serviceRequested=false;guest.visible=false;luggage.visible=true;setTask("Take the luggage to Room 101 manually");moneyEl.textContent="$1,380";return}
+ if(a==="luggage"){carrying="luggage";luggage.visible=false;setTask("Walk to Room 101 and deliver luggage");return}
+ if(a==="kitchen"){carrying="roomservice";setTask("Walk to Room 101 and deliver room service");return}
+ if(a==="deliver"){carrying=null;serviceRequested=false;setTask("Guest in Room 101 • stay in progress");return}
+};
+// Guest service request after check-in is intentionally delayed.
+setInterval(()=>{if(!guest.visible&&Math.random()>.82&&!serviceRequested&&!carrying){serviceRequested=true;setTask("🍽️ Guest in Room 101 requests room service")}},7000);
+
+// Movement / collision
+const keys={};let joyX=0,joyY=0,yaw=0,pitch=0,lookLast=null;
+addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+const joystick=document.getElementById("joystick"),stick=document.getElementById("stick");
+function joy(e){const r=joystick.getBoundingClientRect();let x=e.clientX-(r.left+r.width/2),y=e.clientY-(r.top+r.height/2),m=Math.min(48,Math.hypot(x,y)),a=Math.atan2(y,x);joyX=Math.cos(a)*m/48;joyY=Math.sin(a)*m/48;stick.style.transform="translate("+joyX*38+"px,"+joyY*38+"px)"}
+joystick.addEventListener("pointerdown",e=>{joystick.setPointerCapture(e.pointerId);joy(e)});joystick.addEventListener("pointermove",e=>{if(e.buttons)joy(e)});joystick.addEventListener("pointerup",()=>{joyX=joyY=0;stick.style.transform=""});
+const look=document.getElementById("look");look.addEventListener("pointerdown",e=>{look.setPointerCapture(e.pointerId);lookLast={x:e.clientX,y:e.clientY}});
+look.addEventListener("pointermove",e=>{if(!lookLast)return;const dx=e.clientX-lookLast.x,dy=e.clientY-lookLast.y;lookLast={x:e.clientX,y:e.clientY};yaw-=dx*.004;pitch=Math.max(-1.15,Math.min(1.15,pitch-dy*.003)});
+look.addEventListener("pointerup",()=>lookLast=null);look.addEventListener("pointercancel",()=>lookLast=null);
+function move(dt){
+ let f=joyY*-1+(keys.w?1:0)-(keys.s?1:0),r=joyX+(keys.d?1:0)-(keys.a?1:0);const len=Math.hypot(f,r)||1;f/=len;r/=len;
+ const speed=3.6*dt,dx=(Math.sin(yaw)*f+Math.cos(yaw)*r)*speed,dz=(Math.cos(yaw)*f-Math.sin(yaw)*r)*speed;
+ const p=camera.position,nx=p.x+dx,nz=p.z+dz;
+ if(Math.abs(nx)<21&&Math.abs(nz)<16){p.x=nx;p.z=nz}
+}
+function updatePrompt(){
+ let a=null;
+ if(guest.visible&&camera.position.distanceTo(guest.position)<3.2&&!serviceRequested)a=["checkin","🔑 CHECK IN GUEST"];
+ else if(luggage.visible&&camera.position.distanceTo(luggage.position)<2.5&&!carrying)a=["luggage","🧳 PICK UP LUGGAGE"];
+ else if(serviceRequested&&!carrying&&camera.position.distanceTo(new THREE.Vector3(-12,1,-11))<3.2)a=["kitchen","🍽️ COLLECT ROOM SERVICE"];
+ else if(carrying==="luggage"&&camera.position.distanceTo(new THREE.Vector3(4.8,1.2,-13))<3)a=["deliver","🧳 DELIVER TO ROOM 101"];
+ else if(carrying==="roomservice"&&camera.position.distanceTo(new THREE.Vector3(4.8,1.2,-13))<3)a=["deliver","🍽️ DELIVER ROOM SERVICE"];
+ if(a){promptEl.textContent=a[1];promptEl.style.display="block";button.style.display="block";button.dataset.a=a[0]}else{promptEl.style.display="none";button.style.display="none";button.dataset.a=""}
+}
+let last=performance.now();
+function frame(now){const dt=Math.min(.04,(now-last)/1000);last=now;move(dt);camera.rotation.set(pitch,yaw,0,"YXZ");updatePrompt();renderer.render(scene,camera);requestAnimationFrame(frame)}
+addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+frame(performance.now());
+</script>
+</body>
+</html>
