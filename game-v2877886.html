@@ -560,8 +560,9 @@ function deliverLuggage(rm){
  const g=rm.guest;carrying=null;removeLuggage();
  g.status="walkingToRoom";
 
- const corridorEntryX=(reception.x+reception.w+55)/ART_W;
- const corridorEntryY=(reception.y+reception.h*.50)/ART_H;
+ const receptionRoom=GENERATED_ROOMS[0];
+ const corridorEntryX=(receptionRoom.x+receptionRoom.w+55)/ART_W;
+ const corridorEntryY=(receptionRoom.y+receptionRoom.h*.50)/ART_H;
  const roomEntryX=(rm.x+rm.w/2)/ART_W;
  const roomEntryY=(rm.y<500 ? rm.y+rm.h+34 : rm.y-34)/ART_H;
  const roomFinalX=(rm.x+rm.w*.28)/ART_W;
