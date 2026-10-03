@@ -226,6 +226,33 @@ for(const z of[-14.5,-9.5,-4.5,.5,5.5,10.5,15.0]){
   }
 }
 
+// Final presentation dressing: hotel-grade joinery, metal inlays, vents, glass, and layered practical details.
+function detailStrip(x,y,z,w,d){box("brassInlay",x,y,z,w,.035,d,M.brass,false);box("darkInlay",x,y-.012,z,w*.72,.02,d*.5,darkTrim,false)}
+for(const z of[-14.1,-8.9,-3.7,1.5,6.7,11.9])detailStrip(0,.045,z,2.85,.035);
+for(const z of[-13,-5,3,11,-1,7,15]){
+  const s=roomLayout[z===-13?101:z===-5?102:z===3?103:z===11?104:z===-1?105:z===7?106:107].side,x=s*5.95;
+  box("doorJambOuter",x,1.65,z,.12,3.35,2.72,trimMat,false);
+  box("doorJambInner",x,1.65,z,.16,3.12,2.42,darkTrim,false);
+  box("doorTopLight",x,3.04,z,.08,.08,2.18,M.brass,false);
+}
+for(let z=-15;z<=15;z+=3){
+  box("ceilingVent",-3.4,3.92,z,1.05,.035,.34,mat("#667078",.32,.55),false);
+  box("ceilingVent2",3.4,3.92,z,1.05,.035,.34,mat("#667078",.32,.55),false);
+}
+box("receptionStoneTop",-13,2.19,5,7.45,.12,1.54,mat("#b9b0a4",.32,.08),false);
+box("receptionBrassEdge",-13,2.12,4.22,7.18,.07,.07,M.brass,false);
+box("receptionKickGlow",-13,.72,4.32,6.35,.045,.04,mat("#d7a86a",.25,.15),false);
+for(const x of[-15.8,-14.5,-13.2,-11.9,-10.6])cyl("deskGrommet",x,2.27,4.82,.055,.025,M.brass);
+for(const z of[2.5,5,7.5]){
+  cyl("loungeTableLeg",-6.9,.48,z,.055,.78,M.brass);
+  box("loungeTableGlass",-6.9,.9,z,.95,.045,.62,M.glass,false);
+}
+for(const z of[-12,-6,0,6,12]){
+  box("pendantStem",0,3.62,z,.035,.55,.035,darkTrim,false);
+  cyl("pendantShade",0,3.28,z,.22,.16,mat("#d9b77f",.28,.3));
+  const pl=new THREE.PointLight(0xffc98d,.65,4);pl.position.set(0,3.12,z);scene.add(pl);
+}
+
 // State
 const rooms=new Map([101,102,103,104,105,106,107].map(id=>[id,{id,unlocked:id<=103,state:"available",guest:null,dirty:false}]));
 const guests=[{name:"Alex",id:1,state:"waiting",room:null,color:0xd88765},{name:"Jordan",id:2,state:"idle",room:null,color:0x7b9fc0},{name:"Taylor",id:3,state:"idle",room:null,color:0x9b77a8}];
