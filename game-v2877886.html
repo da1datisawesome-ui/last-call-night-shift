@@ -575,7 +575,7 @@ function deliverLuggage(rm){
  // The hotel geometry is fixed: reception opens directly into the main
  // corridor. Walk to the corridor centre first, then horizontally to the
  // room, then through that room's doorway and into the room.
- const corridorY=(GENERATED_ROOMS[1].y+GENERATED_ROOMS[1].h*.50)/ART_W;
+ const corridorY=(GENERATED_ROOMS[1].y+GENERATED_ROOMS[1].h*.50)/ART_H;
  const roomX=(rm.x+rm.w*.50)/ART_W;
  const roomDoorY=(rm.y<500 ? rm.y+rm.h+30 : rm.y-30)/ART_H;
  const roomInsideX=(rm.x+rm.w*.28)/ART_W;
