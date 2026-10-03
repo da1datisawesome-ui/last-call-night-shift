@@ -578,9 +578,14 @@ function deliverLuggage(rm){
  const roomFinalX=(rm.x+rm.w*.28)/ART_W;
  const roomFinalY=(rm.y+rm.h*.72)/ART_H;
  const path=[
+   // The reception desk occupies the straight line out of the guest spawn.
+   // Route around its right edge first, then use the open reception doorway.
    {x:GENERATED_POINTS.guest.x,y:GENERATED_POINTS.guest.y},
-   {x:GENERATED_POINTS.guest.x,y:corridorEntryY},
+   {x:(reception.x+reception.w-55)/ART_W,y:(reception.y+reception.h-115)/ART_H},
+   {x:(reception.x+reception.w-55)/ART_W,y:(reception.y+reception.h*.35)/ART_H},
    {x:corridorEntryX,y:corridorEntryY},
+   // Once in the main corridor, travel along the corridor instead of cutting
+   // diagonally through furniture or room walls.
    {x:roomEntryX,y:corridorEntryY},
    {x:roomEntryX,y:roomEntryY},
    {x:roomFinalX,y:roomEntryY},
