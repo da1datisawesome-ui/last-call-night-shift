@@ -463,7 +463,10 @@ const hotelGuests=npcs.filter((n,i)=>i===0||i===5||i===6).map((n,i)=>({npc:n,id:
 function updateRoomMarker(i){const rm=guestRooms[i],el=rm.marker;if(!el)return;if(!rm.unlocked){el.className="roomStatus locked";el.textContent="ROOM "+rm.id+" • LOCKED";return}const label=rm.state==="occupied"?"OCCUPIED":rm.state==="dirty"?"DIRTY":rm.state==="reserved"?"READY":"AVAILABLE";el.className="roomStatus "+rm.state;el.textContent="ROOM "+rm.id+" • "+label}
 function roomPoint(rm){return GENERATED_POINTS["room"+rm.id]}
 function firstAvailableRoom(){return guestRooms.find(r=>r.unlocked&&r.state==="available")}
-function spawnWaitingGuest(){const g=hotelGuests.find(h=>h.status==="idle");if(!g||!firstAvailableRoom())return;g.status="waiting";g.room=null;g.serviceRequested=false;g.serviceDone=false;g.npc.x=GENERATED_POINTS.guest.x;g.npc.y=GENERATED_POINTS.guest.y;g.npc.path=[[g.npc.x,g.npc.y],[g.npc.x,g.npc.y]];g.npc.route=null;g.npc.i=0;g.npc.ri=1;g.npc.el.style.display="block";g.npc.el.classList.remove("walking");g.npc.el.dataset.guestId=g.id;taskState="waiting";taskEl.textContent=g.name+" ("+g.roleLabel+") waiting at reception"}
+function spawnWaitingGuest(){
+ // Never create another waiting guest while one is already waiting or travelling.
+ if(hotelGuests.some(h=>h.status==="waiting"||h.status==="luggage"||h.status==="walkingToRoom"))return;
+ const g=hotelGuests.find(h=>h.status==="idle");if(!g||!firstAvailableRoom())return;g.status="waiting";g.room=null;g.serviceRequested=false;g.serviceDone=false;g.npc.x=GENERATED_POINTS.guest.x;g.npc.y=GENERATED_POINTS.guest.y;g.npc.path=[[g.npc.x,g.npc.y],[g.npc.x,g.npc.y]];g.npc.route=null;g.npc.i=0;g.npc.ri=1;g.npc.el.style.display="block";g.npc.el.classList.remove("walking");g.npc.el.dataset.guestId=g.id;taskState="waiting";taskEl.textContent=g.name+" ("+g.roleLabel+") waiting at reception"}
 function resetGeneratedActors(){
  const p=GENERATED_POINTS;
  npcs.forEach(n=>{n.x=p.guest.x;n.y=p.guest.y;n.path=[[n.x,n.y],[n.x,n.y]];n.i=0;n.route=null;n.ri=1;n.el.style.display="none";n.el.classList.remove("walking")});
@@ -488,26 +491,27 @@ function positionActors(){
  if(action){interact.style.display="block";interact.style.left=(action.x*100)+"%";interact.style.top=((action.y*100)-9)+"%";interact.textContent=action.label}else interact.style.display="none";
 }
 function updateNpcs(){
- for(const n of npcs){
-   const hg=hotelGuests.find(g=>g.npc===n);
-   if(!hg){n.el.classList.remove("walking");continue;}
-   if(hg.status!=="walkingToRoom"){n.el.classList.remove("walking");continue;}
-   const dest=n.path[n.ri];
-   if(!dest){n.el.classList.remove("walking");continue;}
-   const dx=dest.x-n.x,dy=dest.y-n.y,d=Math.hypot(dx,dy),step=.0026;
-   n.el.classList.add("walking");
-   if(d<=step){
-     n.x=dest.x;n.y=dest.y;n.ri++;
-     if(n.ri>=n.path.length){
-       n.el.classList.remove("walking");
-       if(hg.onRoomArrival){const cb=hg.onRoomArrival;hg.onRoomArrival=null;cb();}
+ const active=hotelGuests.find(g=>g.status==="walkingToRoom");
+ if(!active){
+   for(const n of npcs)n.el.classList.remove("walking");
+   return;
+ }
+ const n=active.npc;
+ const dest=active.path&&active.path[active.npc.ri];
+ if(!dest)return;
+ const dx=dest.x-n.x,dy=dest.y-n.y,d=Math.hypot(dx,dy);
+ if(!Number.isFinite(d)||d<0.000001)return;
+ const step=Math.min(0.0026,d);
+ n.el.classList.add("walking");
+ n.x+=dx/d*step;
+ n.y+=dy/d*step;
+ if(d<=0.0026){
+   n.x=dest.x;n.y=dest.y;n.ri++;
+   if(n.ri>=active.path.length){
+     n.el.classList.remove("walking");
+     if(active.onRoomArrival){
+       const cb=active.onRoomArrival;active.onRoomArrival=null;cb();
      }
-   }else{
-     // Guest routes are pre-planned through the reception doorway, main corridor,
-     // and the unlocked room doorway. Do not run them through the furniture
-     // collision solver: that was causing the guest to vibrate at the doorway.
-     n.x+=dx/d*step;
-     n.y+=dy/d*step;
    }
  }
 }
