@@ -698,7 +698,21 @@ function deliverLuggage(rm){
  g.status="staying";g.npc.x=p.x;g.npc.y=p.y;g.npc.path=[];g.npc.ri=0;g.npc.route=null;
  g.npc.el.style.display="block";g.npc.el.classList.remove("walking");
  positionActors();beginGuestStay(g,rm);
+ // Keep the hotel flowing: a new guest may check in while this guest is staying.
  setTimeout(()=>{if(playing)spawnWaitingGuest()},900);
+ // When the stay ends, turn the room into a cleaning job rather than silently cleaning it.
+ setTimeout(()=>{
+   if(!playing||g.status!=="staying")return;
+   g.status="idle";g.serviceRequested=false;
+   if(serviceTarget===g){serviceTarget=null;carrying=null}
+   g.npc.el.style.display="none";
+   occupiedRooms=Math.max(0,occupiedRooms-1);
+   rm.state="dirty";cleaningTarget=rm;rm.guest=null;
+   updateRoomMarker(guestRooms.indexOf(rm));
+   setHotelTask("🧹 Room "+rm.id+" needs cleaning — go to Housekeeping for supplies");
+   showToast("Guest checked out — cleaning supplies required");
+   setTimeout(()=>{if(playing)spawnWaitingGuest()},900);
+ },GUEST_STAY_MS+3000);
  return true;
 }
 function collectRoomService(){
