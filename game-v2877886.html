@@ -415,6 +415,12 @@ function buildLevel(seed){
     <rect x="${reception.x+110}" y="${reception.y+120}" width="140" height="65" fill="#31566b" stroke="#392318" stroke-width="9"/>
     <path d="M${reception.x+125} ${reception.y+170}l35-30 25 18 25-25" fill="none" stroke="#d8a65f" stroke-width="7"/>
    </g>
+   <g filter="url(#shadow)">
+    <rect x="${reception.x+10}" y="${reception.y+150}" width="48" height="120" rx="8" fill="url(#wood)" stroke="#24140c" stroke-width="9"/>
+    <rect x="${reception.x+19}" y="${reception.y+160}" width="30" height="100" rx="4" fill="#243b4d" stroke="#d49a5d" stroke-width="4"/>
+    <circle cx="${reception.x+43}" cy="${reception.y+210}" r="6" fill="#f1cb72"/>
+    <text x="${reception.x+82}" y="${reception.y+215}" fill="#fff" font-family="system-ui" font-size="22" font-weight="900">EXIT</text>
+   </g>
    <g>
     <rect x="${staff.x+45}" y="${staff.y+55}" width="150" height="65" rx="12" fill="url(#table)" stroke="#402719" stroke-width="8"/>
     <rect x="${staff.x+staff.w-245}" y="${staff.y+staff.h-125}" width="185" height="72" rx="12" fill="url(#table)" stroke="#402719" stroke-width="8"/>
@@ -435,23 +441,21 @@ interact.addEventListener("pointerup",e=>{
  e.preventDefault();e.stopPropagation();
  const a=window.__lastCallAction;
  if(!a){showToast("Move closer to the current task");return}
- const go=(x,y,cb)=>{walkTo(x,y,cb)};
+ // Interactions are intentionally manual: the player must physically walk to the task.
  if(a.type==="checkin"){checkInGuest(a.obj);return}
- if(a.type==="service"){
-   const g=a.obj;serviceTarget=g;setHotelTask("🍽️ Going to kitchen for Room "+g.room.id+" service");
-   go(GENERATED_POINTS.kitchen.x,GENERATED_POINTS.kitchen.y,()=>collectRoomService());return;
- }
- if(a.type==="kitchen"){go(GENERATED_POINTS.kitchen.x,GENERATED_POINTS.kitchen.y,()=>collectRoomService());return}
- if(a.type==="serviceDeliver"){const g=a.obj;go(roomPoint(g.room).x,roomPoint(g.room).y,()=>deliverRoomService(g));return}
  if(a.type==="luggage"){
-   if(!luggageState)return;
-   go(luggageState.x,luggageState.y,()=>{if(luggageState){carrying="luggage";luggageState.active=false;luggageState.el.style.display="none";setHotelTask("🧳 Take luggage to Room "+luggageState.room);showToast("Luggage picked up");positionActors();}});
+   if(luggageState&&Math.hypot(px-luggageState.x,py-luggageState.y)<.20){
+    carrying="luggage";luggageState.active=false;luggageState.el.style.display="none";setHotelTask("🧳 Take luggage to Room "+luggageState.room);showToast("Luggage picked up");positionActors();
+   } else showToast("Move closer to the luggage");
    return;
  }
- if(a.type==="deliver"){const rm=a.obj;go(roomPoint(rm).x,roomPoint(rm).y,()=>deliverLuggage(rm));return}
- if(a.type==="housekeeping"){go(GENERATED_POINTS.housekeeping.x,GENERATED_POINTS.housekeeping.y,()=>collectCleaningSupplies());return}
- if(a.type==="cleanStart"){const rm=a.obj;cleaningTarget=rm;go(GENERATED_POINTS.housekeeping.x,GENERATED_POINTS.housekeeping.y,()=>collectCleaningSupplies());return}
- if(a.type==="clean"){const rm=a.obj;go(roomPoint(rm).x,roomPoint(rm).y,()=>cleanRoom(rm));return}
+ if(a.type==="deliver"){deliverLuggage(a.obj);return}
+ if(a.type==="service"){serviceTarget=a.obj;setHotelTask("🍽️ Go to the kitchen to collect Room "+a.obj.room.id+" service");showToast("Kitchen pickup required");positionActors();return}
+ if(a.type==="kitchen"){collectRoomService();return}
+ if(a.type==="serviceDeliver"){deliverRoomService(a.obj);return}
+ if(a.type==="housekeeping"){collectCleaningSupplies();return}
+ if(a.type==="cleanStart"){cleaningTarget=a.obj;setHotelTask("🧹 Go to housekeeping to collect supplies for Room "+a.obj.id);showToast("Collect cleaning supplies first");positionActors();return}
+ if(a.type==="clean"){cleanRoom(a.obj);return}
 },{passive:false});
 const moneyEl=document.getElementById("money"),taskEl=document.getElementById("task"),toast=document.getElementById("toast"),hint=document.getElementById("hint");
 const music=document.getElementById("music"),ambience=document.getElementById("ambience"),step=document.getElementById("step");
@@ -861,7 +865,7 @@ function nearestInteractable(x,y){
  return best;
 }
 function interactAt(x,y){
- let best=null,bd=.19;
+ let best=null,bd=.24;
  hotelGuests.forEach(g=>{if(g.npc.el.style.display!=="none"){const d=Math.hypot(px-g.npc.x,py-g.npc.y);if(d<bd){if(g.status==="waiting"){best={type:"checkin",g};bd=d}else if(g.status==="staying"&&g.serviceRequested){best={type:"service",g};bd=d}}}});
  if(luggageState&&luggageState.active){const d=Math.hypot(px-luggageState.x,py-luggageState.y);if(d<bd){best={type:"luggage",l:luggageState};bd=d}}
  // Kitchen pickup is available only when a guest has requested service and staff automation has not taken over.
