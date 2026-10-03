@@ -161,9 +161,35 @@ function ui(){moneyEl.textContent="$"+money.toLocaleString();repEl.textContent="
 function setTask(t){task=t;ui()}function toast(t){toastEl.textContent=t;toastEl.style.display="block";clearTimeout(toastEl._t);toastEl._t=setTimeout(()=>toastEl.style.display="none",1800)}
 function firstRoom(){return [...rooms.values()].find(r=>r.unlocked&&r.state==="available"&&!r.dirty)}
 function guestMesh(g){const group=new THREE.Group();group.position.set(-7.4,0,6.5);const suit=mat("#"+g.color.toString(16).padStart(6,"0"),.72);const skin=mat("#b87858",.86);const body=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.72,6,14),suit);body.position.y=1.02;const head=new THREE.Mesh(new THREE.SphereGeometry(.30,20,16),skin);head.position.y=1.78;group.add(body,head);scene.add(group);return group}
-async function loadCharacter(g){if(!loader)return;try{const src=await new Promise((res,rej)=>loader.load("https://raw.githubusercontent.com/pj4533/slopmancer/c0b535e9d90dfccaaef1e8bff12e56d514f7700e/public/assets/models/characters/Casual_Male.gltf",res,undefined,rej));const model=src.scene.clone(true);model.scale.setScalar(1.05);model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});const old=g.mesh;const p=old.position.clone();const vis=old.visible;scene.remove(old);g.mesh=model;g.mesh.position.copy(p);g.mesh.visible=vis;scene.add(g.mesh);if(src.animations?.length){g.mixer=new THREE.AnimationMixer(g.mesh);const idle=src.animations.find(a=>a.name==="Idle")||src.animations[0];g.action=g.mixer.clipAction(idle);g.action.play()}}catch(e){console.warn("character asset skipped",e)}}
+async function loadCharacter(g){
+  if(!loader)return;
+  try{
+    const src=await new Promise((res,rej)=>loader.load("https://raw.githubusercontent.com/pj4533/slopmancer/c0b535e9d90dfccaaef1e8bff12e56d514f7700e/public/assets/models/characters/Casual_Male.gltf",res,undefined,rej));
+    const model=src.scene.clone(true);
+    model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&o.material.map)o.material.map.colorSpace=THREE.SRGBColorSpace}});
+    const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3()),height=Math.max(size.y,.01);
+    const scale=1.78/height;
+    model.scale.setScalar(scale);
+    const b2=new THREE.Box3().setFromObject(model),center=b2.getCenter(new THREE.Vector3());
+    model.position.y-=b2.min.y;
+    model.position.x-=center.x;
+    model.position.z-=center.z;
+    const old=g.mesh,p=old.position.clone(),vis=old.visible;
+    scene.remove(old);
+    g.mesh=model;g.mesh.position.copy(p);g.mesh.visible=vis;g.mesh.userData.assetReady=true;scene.add(g.mesh);
+    if(src.animations?.length){
+      g.mixer=new THREE.AnimationMixer(g.mesh);
+      const idle=src.animations.find(a=>/idle/i.test(a.name))||src.animations[0];
+      g.action=g.mixer.clipAction(idle);g.action.play();
+    }
+  }catch(e){console.warn("character asset skipped",e)}
+}
 guests.forEach(g=>g.mesh=guestMesh(g));guests[0].mesh.visible=true;guests[1].mesh.visible=false;guests[2].mesh.visible=false;
-let luggage=null;function spawnGuest(){if(guests.some(g=>g.state==="waiting"||g.state==="luggage"))return;const g=guests.find(x=>x.state==="idle");if(!g)return;g.state="waiting";g.room=null;g.mesh.position.set(-7.4,0,6.5);g.mesh.visible=true;setTask("🔑 CURRENT TASK: Check in "+g.name+" at reception")}
+let luggage=null;function faceGuest(g,targetX,targetZ){
+  if(!g.mesh)return;
+  g.mesh.rotation.y=Math.atan2(targetX-g.mesh.position.x,targetZ-g.mesh.position.z);
+}
+function spawnGuest(){if(guests.some(g=>g.state==="waiting"||g.state==="luggage"))return;const g=guests.find(x=>x.state==="idle");if(!g)return;g.state="waiting";g.room=null;g.mesh.position.set(-7.4,0,6.5);g.mesh.visible=true;setTask("🔑 CURRENT TASK: Check in "+g.name+" at reception")}
 function checkIn(g){const r=firstRoom();if(!r){toast("No clean unlocked rooms available");return}r.state="occupied";r.guest=g;g.room=r.id;g.state="luggage";money+=100;rep++;luggage=box("luggage",-7.5,.55,5,.7,1,.5,M.blue);setTask("🧳 CURRENT TASK: Pick up luggage for Room "+r.id+" at reception");toast("+$100 • Guest checked in");ui()}
 function pickupLuggage(){if(!luggage)return;carrying="luggage";scene.remove(luggage);luggage=null;setTask("🧳 CURRENT TASK: Walk to Room "+guests.find(g=>g.state==="luggage").room+" and deliver the luggage")}
 function deliverLuggage(){const g=guests.find(x=>x.state==="luggage"&&x.room);if(!g||carrying!=="luggage")return;carrying=null;g.state="staying";g.mesh.position.set(5.0,0,g.room===101?-13:g.room===102?-5:g.room===103?3:g.room===104?11:g.room===105?-1:g.room===106?7:15);g.mesh.rotation.y=Math.PI;g.mesh.visible=true;setTask("Guest in Room "+g.room+" • stay in progress");toast("Luggage delivered manually");setTimeout(()=>{if(g.state==="staying"){g.state="service";serviceTarget=g;setTask("🍽️ CURRENT TASK: Collect room service in the kitchen, then deliver to Room "+g.room)}},6500)}
