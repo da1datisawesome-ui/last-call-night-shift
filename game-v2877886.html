@@ -199,8 +199,12 @@ function buildLevel(seed){
  roomFloor(staff.x,staff.y,staff.w,staff.h,"STAFF • SERVICE");
  roomSlots.forEach((rm,i)=>roomFloor(rm.x,rm.y,rm.w,rm.h,"Guest Room "+rm.id));
  // Reception has a single wide opening onto the main corridor.
- wall(reception.x,reception.y,reception.w,18);wall(reception.x,reception.y,18,reception.h);wall(reception.x,reception.y+reception.h-18,reception.w,18);
- door(reception.x+reception.w-10,650,28,120);
+ wall(reception.x,reception.y,reception.w,18);wall(reception.x,reception.y+reception.h-18,reception.w,18);
+ // Leave the reception-to-corridor doorway physically open in the collision map.
+ const receptionDoorY=650,receptionDoorH=120;
+ wall(reception.x,reception.y,18,receptionDoorY-reception.y);
+ wall(reception.x,receptionDoorY+receptionDoorH,18,reception.y+reception.h-(receptionDoorY+receptionDoorH));
+ door(reception.x+reception.w-10,receptionDoorY,28,receptionDoorH);
  // Guest rooms: each has exactly one doorway directly onto the same main corridor.
  roomSlots.forEach(rm=>{
    wall(rm.x,rm.y,rm.w,18);wall(rm.x,rm.y,18,rm.h);wall(rm.x+rm.w-18,rm.y,18,rm.h);
@@ -577,7 +581,7 @@ function deliverLuggage(rm){
  const g=rm.guest;carrying=null;removeLuggage();
  g.status="walkingToRoom";
  const rp=roomPoint(rm),roomX=(rm.x+rm.w/2)/ART_W;
- const receptionDoorX=(70+350-18)/ART_W;
+ const receptionDoorX=(70+350+4)/ART_W;
  const receptionDoorY=(650+60)/ART_H;
  const corridorY=(500+210)/ART_H;
  // Stop at a clear point inside the room, away from the desk collision.
