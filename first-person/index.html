@@ -231,9 +231,19 @@ const zones=[
  {name:"Kitchen",pos:new THREE.Vector3(-12,1,-11),range:3,action:collectService,label:"🍽️ COLLECT ROOM SERVICE"},
  {name:"Housekeeping",pos:new THREE.Vector3(-1,1,-11),range:3,action:collectClean,label:"🧹 COLLECT CLEANING SUPPLIES"},
 ];
-function roomZone(){if(carrying==="luggage"){const g=guests.find(x=>x.state==="luggage");if(g)return {pos:new THREE.Vector3(4.8,1,g.room===101?-13:g.room===102?-5:g.room===103?3:11),range:3,action:deliverLuggage,label:"🧳 DELIVER LUGGAGE"}}
-if(carrying==="roomservice"&&serviceTarget){const rz={101:-13,102:-5,103:3,104:11,105:-1,106:7,107:15}[serviceTarget.room];return {pos:new THREE.Vector3(4.8,1,rz),range:3,action:deliverService,label:"🍽️ DELIVER ROOM SERVICE"}}
-if(carrying==="cleaning"&&cleaningTarget){const z=cleaningTarget.id===101?-13:cleaningTarget.id===102?-5:cleaningTarget.id===103?3:cleaningTarget.id===104?11:cleaningTarget.id===105?-1:cleaningTarget.id===106?7:15;return {pos:new THREE.Vector3(4.8,1,z),range:3,action:clean,label:"🧹 CLEAN ROOM "+cleaningTarget.id}}
+function roomZone(){
+  if(carrying==="luggage"){
+    const g=guests.find(x=>x.state==="luggage");
+    if(g){const p=roomDoorPosition(g.room);return {pos:new THREE.Vector3(p.x,1,p.z),range:3,action:deliverLuggage,label:"🧳 DELIVER LUGGAGE"}}
+  }
+  if(carrying==="roomservice"&&serviceTarget){
+    const p=roomDoorPosition(serviceTarget.room);
+    return {pos:new THREE.Vector3(p.x,1,p.z),range:3,action:deliverService,label:"🍽️ DELIVER ROOM SERVICE"};
+  }
+  if(carrying==="cleaning"&&cleaningTarget){
+    const p=roomDoorPosition(cleaningTarget.id);
+    return {pos:new THREE.Vector3(p.x,1,p.z),range:3,action:clean,label:"🧹 CLEAN ROOM "+cleaningTarget.id};
+  }
 return null}
 function nearest(){let best=null,bd=999;for(const z of zones){const d=camera.position.distanceTo(z.pos);if(d<z.range&&d<bd){if(z.name==="Reception"&&!guests.some(g=>g.state==="waiting"))continue;if(z.name==="Luggage"&&!luggage)continue;if(z.name==="Kitchen"&&(!serviceTarget||carrying))continue;if(z.name==="Housekeeping"&&(!cleaningTarget||carrying))continue;best=z;bd=d}}const rz=roomZone();if(rz){const d=camera.position.distanceTo(rz.pos);if(d<rz.range&&d<bd)best=rz}return best}
 
