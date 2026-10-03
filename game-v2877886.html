@@ -119,6 +119,7 @@
 .levelSofa{border:3px solid #4b202b;border-radius:18px;background:linear-gradient(180deg,#c77980 0%,#8e4655 55%,#552632 100%);box-shadow:0 20px 28px rgba(0,0,0,.48),inset 0 5px 0 rgba(255,255,255,.25),inset 0 -13px 20px rgba(31,7,12,.3)}
 .levelRug{border:4px solid #a87346;box-shadow:0 15px 23px rgba(0,0,0,.4),inset 0 0 0 3px #efd0a1,inset 0 0 24px rgba(49,25,13,.25)}
 .levelPlant{filter:drop-shadow(0 15px 9px rgba(0,0,0,.42));}
+.levelLabel{z-index:7;font-size:15px;color:rgba(255,245,218,.82);text-shadow:0 2px 4px #000;pointer-events:none}
 .levelCart{filter:drop-shadow(0 15px 9px rgba(0,0,0,.4));}
 .levelLamp{filter:drop-shadow(0 0 18px rgba(255,211,115,.85)) drop-shadow(0 12px 8px rgba(0,0,0,.4))}
 .actor .sprite{filter:drop-shadow(0 12px 6px rgba(0,0,0,.35)) drop-shadow(0 1px 2px rgba(255,255,255,.16));}
@@ -333,6 +334,10 @@ function buildLevel(seed){
    add("levelDesk",rm.x+rm.w/2-75,rm.y+215,150,60,"",true);add("levelWindow",rm.x+rm.w/2-60,rm.y+20,120,40);
  });
  add("levelCounter",staff.x+45,staff.y+55,staff.w-90,70,"",true);
+ // Dedicated kitchen station: the pickup point is deliberately in open floor,
+ // below the furniture cluster, so it always has a collision-safe route from the corridor.
+ add("levelCounter",staff.x+staff.w-235,staff.y+staff.h-105,175,62,"KITCHEN",true);
+ add("levelLabel",staff.x+staff.w-220,staff.y+staff.h-150,145,24,"KITCHEN");
  add("levelDesk",staff.x+55,staff.y+185,170,75,"",true);add("levelDesk",staff.x+staff.w-225,staff.y+185,170,75,"",true);
  add("levelCart",staff.x+staff.w/2-52,staff.y+250,105,70,"",true);
  add("levelSofa",bar.x+60,bar.y+65,220,85,"",true);add("levelRug",bar.x+70,bar.y+185,bar.w-140,105);
@@ -342,7 +347,7 @@ function buildLevel(seed){
  for(let i=0;i<7;i++){const rm=decorZones[Math.floor(seeded()*decorZones.length)];add("levelPlant",rm.x+rm.w-70,rm.y+rm.h-70,44,44);}
  GENERATED_POINTS.reception=safe(reception,.80,.52);GENERATED_POINTS.guest=safe(reception,.55,.78);
  roomSlots.forEach(rm=>{GENERATED_POINTS["room"+rm.id]=safe(rm,.28,.72);});
- GENERATED_POINTS.lounge=center(bar);GENERATED_POINTS.housekeeping=center(staff);GENERATED_POINTS.kitchen=safe(staff,.50,.35);GENERATED_POINTS.maintenance=safe(staff,.75,.55);
+ GENERATED_POINTS.lounge=center(bar);GENERATED_POINTS.housekeeping=center(staff);GENERATED_POINTS.kitchen=safe(staff,.80,.84);GENERATED_POINTS.maintenance=safe(staff,.75,.55);
  GENERATED_POINTS.staff=center(staff);GENERATED_POINTS.garden=safe(staff,.50,.50);GENERATED_POINTS.conference=center(conference);GENERATED_POINTS.bar=center(bar);
  const roomNames=roomSlots.map(r=>r.id);
  roomSlots.forEach((rm,i)=>{const el=document.createElement("div");el.className="roomStatus "+(i<3?"available":"locked");el.id="roomStatus"+i;el.style.left=(rm.x+rm.w*.18)+"px";el.style.top=(rm.y+rm.h*.12)+"px";el.textContent="ROOM "+rm.id+" • "+(i<3?"AVAILABLE":"LOCKED");level.appendChild(el);});
@@ -732,12 +737,14 @@ function deliverLuggage(rm){
      updateRoomMarker(guestRooms.indexOf(rm));
      setHotelTask("Room "+rm.id+" cleaned by staff");
      showToast("Cleaner serviced Room "+rm.id);
-     setTimeout(()=>{if(playing)spawnWaitingGuest()},900);
    }else{
      rm.state="dirty";
      setHotelTask("🧹 Room "+rm.id+" needs cleaning");
      showToast("Guest checked out — Room "+rm.id+" needs cleaning");
    }
+   // Always look for another available room after checkout. Cleaning is optional;
+   // a dirty room stays unavailable, but the remaining unlocked rooms can receive guests.
+   setTimeout(()=>{if(playing)spawnWaitingGuest()},900);
    rm.guest=null;
    updateRoomMarker(guestRooms.indexOf(rm));
  },GUEST_STAY_MS+3000);
@@ -960,18 +967,18 @@ resize();positionActors();
 
 <!-- CC0 3D furniture pass: KayKit Furniture Bits / Kenney-style game-ready assets. Models remain external for this prototype; license attribution is shown in the in-game credits metadata. -->
 <style>
-#asset3d{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;overflow:visible}
+#asset3d{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none;overflow:visible}
 #asset3d canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.levelBed,.levelSofa,.levelRug,.levelLamp{opacity:.10}
+#asset3d.ready + #level .levelBed,#asset3d.ready + #level .levelSofa,#asset3d.ready + #level .levelRug,#asset3d.ready + #level .levelLamp{opacity:.10}
 </style>
 <script type="module">
 (async()=>{
  try{
   const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js');
   const {GLTFLoader}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js');
-  const level=document.getElementById('level'); if(!level)return;
+  const level=document.getElementById('level'); const worldHost=document.getElementById('world'); if(!level||!worldHost)return;
   let host=document.getElementById('asset3d');
-  if(!host){host=document.createElement('div');host.id='asset3d';level.appendChild(host)}
+  if(!host){host=document.createElement('div');host.id='asset3d';worldHost.insertBefore(host,level)}
   const canvas=document.createElement('canvas');host.appendChild(canvas);
   const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'high-performance'});
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
@@ -1001,7 +1008,9 @@ resize();positionActors();
    ['couch.gltf',240,650,330,Math.PI/2],['lamp_table.gltf',350,770,180,0],['rug_rectangle_B.gltf',240,690,300,0],
    ['couch.gltf',2050,650,300,Math.PI/2],['lamp_table.gltf',2200,760,180,0]
   ];
-  await Promise.all(placements.map(async p=>{try{const gltf=await load(p[0]);const root=gltf.scene.clone(true);place(root,p[1],p[2],p[3],p[4])}catch(e){console.warn('3D asset unavailable',p[0],e)}}));
+  let loaded=0;
+  await Promise.all(placements.map(async p=>{try{const gltf=await load(p[0]);const root=gltf.scene.clone(true);place(root,p[1],p[2],p[3],p[4]);loaded++}catch(e){console.warn('3D asset unavailable',p[0],e)}}));
+  if(loaded>0)host.classList.add('ready');
   function resize(){const w=level.clientWidth||ART_W,h=level.clientHeight||ART_H;renderer.setSize(w,h,false);camera.left=-ART_W/2;camera.right=ART_W/2;camera.top=ART_H/2;camera.bottom=-ART_H/2;camera.updateProjectionMatrix()}
   addEventListener('resize',resize);resize();
   function frame(){renderer.render(scene,camera);requestAnimationFrame(frame)} frame();
