@@ -35,7 +35,7 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 const ART={floor:"#6a4a34",wall:"#d8c6a9",wood:"#75421f",dark:"#1d130d",brass:"#c99b4c",fabric:"#6f4149",cream:"#eee5d6"};
-const BUILD="AA-FIRST-PERSON-HOTEL-2026-10-03E";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
+const BUILD="AA-FIRST-PERSON-HOTEL-2026-10-04A";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
 const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.04,140);camera.position.set(-13,1.68,8);camera.rotation.order="YXZ";
 const renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:"high-performance",precision:mobile?"mediump":"highp"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.25:1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.physicallyCorrectLights=true;renderer.info.autoReset=false;document.getElementById("game").appendChild(renderer.domElement);
 const envLight=new THREE.HemisphereLight(0xffead0,0x172331,mobile?2.35:2.4);scene.add(envLight);
@@ -119,8 +119,8 @@ const modelPlacements=[
 ["chair_A.gltf",18.6,.05,-14.3,1.2,Math.PI],
 ["chair_B_wood.gltf",-18.6,.05,-6.3,1.2,0]
 ];
-assetTotal=modelPlacements.length+3;
-import("https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js").then(m=>{loader=new m.GLTFLoader();const unique=[...new Set(modelPlacements.map(x=>x[0]))];Promise.all(unique.map(file=>loadGLTF(BASE+file).catch(()=>null))).then(()=>{let i=0;async function placeBatch(){const batch=modelPlacements.slice(i,i+5);i+=5;await Promise.all(batch.map(x=>loadModel(...x)));if(i<modelPlacements.length)requestAnimationFrame(placeBatch);else guests.forEach(g=>loadCharacter(g))}placeBatch()})}).catch(e=>{console.warn("GLTF unavailable",e);if(statusEl)statusEl.textContent="Hotel ready • detailed fallback active"});
+assetTotal=modelPlacements.length;
+import("https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js").then(m=>{loader=new m.GLTFLoader();const unique=[...new Set(modelPlacements.map(x=>x[0]))];Promise.all(unique.map(file=>loadGLTF(BASE+file).catch(()=>null))).then(()=>{let i=0;async function placeBatch(){const batch=modelPlacements.slice(i,i+5);i+=5;await Promise.all(batch.map(x=>loadModel(...x)));if(i<modelPlacements.length)requestAnimationFrame(placeBatch);else{if(statusEl)statusEl.textContent="Hotel assets ready • night shift standing by";startBtn.disabled=false;startBtn.textContent="START NIGHT SHIFT";guests.forEach(g=>loadCharacter(g).catch(()=>{}))}}placeBatch()})}).catch(e=>{console.warn("GLTF unavailable",e);if(statusEl)statusEl.textContent="3D asset loader unavailable — retrying…"});
 
 function panel(x,z,w=3.2){box("wallPanel",x,2.05,z,w,3.05,.08,mat("#806044",.62),false);box("panelTrim",x,2.05,z,w+.12,3.18,.035,M.brass,false)}
 for(const x of[-18,-14,-10,-6,0,6,12,18])panel(x,-16.76,3.3);
