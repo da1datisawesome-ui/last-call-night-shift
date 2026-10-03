@@ -571,46 +571,44 @@ function deliverLuggage(rm){
  if(!carrying||carrying!=="luggage"||!luggageState||luggageState.room!==rm.id)return false;
  const g=rm.guest;carrying=null;removeLuggage();
  g.status="walkingToRoom";
- const rp=roomPoint(rm),roomX=(rm.x+rm.w/2)/ART_W;
- const receptionDoorX=(70+350+4)/ART_W;
- const receptionDoorY=(650+60)/ART_H;
- const corridorY=(500+210)/ART_H;
- // Stop at a clear point inside the room, away from the desk collision.
- const guestRoomPoint={x:(rm.x+50)/ART_W,y:(rm.y+220)/ART_H};
- const roomApproachY=(rm.y+300)/ART_H;
- g.npc.x=GENERATED_POINTS.guest.x;g.npc.y=GENERATED_POINTS.guest.y;
- // Use generous, visually clear waypoints rather than targeting the narrow
- // doorway itself. Guests leave reception, enter the main corridor, then
- // approach the assigned room from the corridor side.
  const corridorEntryX=(reception.x+reception.w+70)/ART_W;
  const corridorEntryY=(reception.y+reception.h*.50)/ART_H;
  const roomEntryX=(rm.x+rm.w/2)/ART_W;
  const roomEntryY=(rm.y<500 ? rm.y+rm.h+34 : rm.y-34)/ART_H;
  const roomFinalX=(rm.x+rm.w*.28)/ART_W;
  const roomFinalY=(rm.y+rm.h*.72)/ART_H;
- g.npc.path=[
-   {x:g.npc.x,y:g.npc.y},
-   {x:g.npc.x,y:corridorEntryY},
+ const path=[
+   {x:GENERATED_POINTS.guest.x,y:GENERATED_POINTS.guest.y},
+   {x:GENERATED_POINTS.guest.x,y:corridorEntryY},
    {x:corridorEntryX,y:corridorEntryY},
    {x:roomEntryX,y:corridorEntryY},
    {x:roomEntryX,y:roomEntryY},
    {x:roomFinalX,y:roomEntryY},
    {x:roomFinalX,y:roomFinalY}
  ];
- g.npc.ri=1;g.npc.route=null;g.npc.el.style.display="block";g.npc.el.classList.add("walking");
+ g.npc.x=path[0].x;g.npc.y=path[0].y;g.npc.el.style.display="block";g.npc.el.classList.add("walking");
+ g.npc.path=null;g.npc.ri=0;g.onRoomArrival=null;
  setHotelTask("Guest walking to Room "+rm.id);
  showToast("Guest is heading to Room "+rm.id);
+ let segment=1,last=performance.now();
  const finish=()=>{
-   if(g.status==="walkingToRoom"){
-     g.npc.x=roomPoint(rm).x;g.npc.y=roomPoint(rm).y;
-     beginGuestStay(g,rm);
-     setTimeout(()=>{if(playing&&g.status==="staying")spawnWaitingGuest()},650);
-   }
+   g.npc.x=roomPoint(rm).x;g.npc.y=roomPoint(rm).y;g.npc.el.classList.remove("walking");
+   beginGuestStay(g,rm);
+   setTimeout(()=>{if(playing&&g.status==="staying")spawnWaitingGuest()},650);
  };
- g.onRoomArrival=finish;
- // Do not spawn the next waiting guest while this guest is travelling.
- // The next guest is created only after this guest has reached the room.
- // Guest must complete the visible corridor route; no teleport fallback.
+ const tick=now=>{
+   if(!playing||g.status!=="walkingToRoom")return;
+   const dt=Math.min(50,Math.max(8,now-last));last=now;
+   const target=path[segment];
+   if(!target){finish();return}
+   const dx=target.x-g.npc.x,dy=target.y-g.npc.y,d=Math.hypot(dx,dy);
+   const step=Math.min(d,.00115*dt/16.67);
+   if(d<=.0002){g.npc.x=target.x;g.npc.y=target.y;segment++;if(segment>=path.length){finish();return}}
+   else{g.npc.x+=dx/d*step;g.npc.y+=dy/d*step}
+   positionActors();
+   requestAnimationFrame(tick);
+ };
+ requestAnimationFrame(tick);
  setTimeout(()=>{
    if(!playing||g.status!=="staying")return;
    g.status="idle";g.serviceRequested=false;g.npc.el.style.display="none";occupiedRooms=Math.max(0,occupiedRooms-1);
