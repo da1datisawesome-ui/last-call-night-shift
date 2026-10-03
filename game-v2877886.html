@@ -263,7 +263,7 @@ const LOCKED_ROOM_BARRIERS=[];
 function seeded(){levelSeed=(levelSeed*1664525+1013904223)>>>0;return levelSeed/4294967296;}
 const level=document.getElementById("level");
 function buildLevel(seed){
- level.innerHTML="";GENERATED_COLLIDERS.length=0;GENERATED_ROOMS.length=0;LOCKED_ROOM_BARRIERS.length=0;
+ const preservedAsset3d=level.querySelector("#asset3d");level.innerHTML="";if(preservedAsset3d)level.appendChild(preservedAsset3d);GENERATED_COLLIDERS.length=0;GENERATED_ROOMS.length=0;LOCKED_ROOM_BARRIERS.length=0;
  levelSeed=(seed>>>0)||((Date.now()>>>0)^Math.floor(Math.random()*0xffffffff));
  const add=(cls,x,y,w,h,label="",solid=false)=>{const el=document.createElement("div");el.className=cls;el.style.left=x+"px";el.style.top=y+"px";el.style.width=w+"px";el.style.height=h+"px";if(label){el.textContent=label;el.classList.add("levelLabel")}level.appendChild(el);if(solid)GENERATED_COLLIDERS.push({x,y,w,h});return el;};
  const wall=(x,y,w,h)=>add("levelWall",x,y,w,h,"",true);
@@ -632,9 +632,9 @@ function updateNpcs(){
 }
 function updateProgression(){
  const newly=[];
- if(!unlock.Porter&&earned>=400){unlock.Porter=true;newly.push("Porter");}
- if(!unlock.RoomService&&earned>=650){unlock.RoomService=true;newly.push("Room Service");}
- if(!unlock.Cleaner&&earned>=900){unlock.Cleaner=true;newly.push("Cleaner");}
+ if(!unlock.Porter&&earned>=100){unlock.Porter=true;newly.push("Porter");}
+ if(!unlock.RoomService&&earned>=200){unlock.RoomService=true;newly.push("Room Service");}
+ if(!unlock.Cleaner&&earned>=300){unlock.Cleaner=true;newly.push("Cleaner");}
  if(!unlock.Maintenance&&earned>=1500){unlock.Maintenance=true;newly.push("Maintenance");}
  if(newly.length)showToast("Staff unlocked: "+newly.join(", "));
 }
@@ -679,13 +679,10 @@ function beginGuestStay(g,rm){
  setTimeout(()=>{
    if(!playing||g.status!=="staying")return;
    g.serviceRequested=true;
-   if(unlock.RoomService){
-     setHotelTask("Room Service staff will handle Room "+rm.id);
-     setTimeout(()=>{if(playing&&g.serviceRequested){g.serviceRequested=false;g.serviceDone=true;money+=40;earned+=40;moneyEl.textContent="$"+money.toLocaleString();updateProgression();showToast("Room Service delivered by staff")}},1800);
-   }else{
-     setHotelTask("🍽️ Room "+rm.id+" is requesting room service");
-     showToast("Room "+rm.id+" requested room service");
-   }
+   serviceTarget=g;
+   setHotelTask("🍽️ Room "+rm.id+" needs room service • go to the kitchen");
+   showToast("Room "+rm.id+" requested room service");
+   positionActors();
  },ROOM_SERVICE_DELAY_MS);
 }
 function deliverLuggage(rm){
@@ -1005,8 +1002,12 @@ resize();positionActors();
   const placements=[
    ['bed_double_A.gltf',700,260,350,0],['bed_double_B.gltf',1220,260,350,0],['bed_double_A.gltf',1740,260,350,0],
    ['bed_double_B.gltf',700,1120,350,Math.PI],['bed_double_A.gltf',1220,1120,350,Math.PI],['bed_double_B.gltf',1740,1120,350,Math.PI],
-   ['couch.gltf',240,650,330,Math.PI/2],['lamp_table.gltf',350,770,180,0],['rug_rectangle_B.gltf',240,690,300,0],
-   ['couch.gltf',2050,650,300,Math.PI/2],['lamp_table.gltf',2200,760,180,0]
+   ['couch_pillows.gltf',240,650,330,Math.PI/2],['armchair_pillows.gltf',350,790,220,0],['lamp_table.gltf',350,700,180,0],['rug_rectangle_B.gltf',240,690,300,0],
+   ['couch_pillows.gltf',2050,650,300,Math.PI/2],['armchair_pillows.gltf',2200,790,220,0],['lamp_table.gltf',2200,700,180,0],
+   ['cabinet_medium_decorated.gltf',620,390,230,0],['shelf_B_large_decorated.gltf',1360,390,250,0],['cabinet_small_decorated.gltf',1890,390,210,0],['shelf_A_big.gltf',2410,390,260,Math.PI],
+   ['table_medium.gltf',700,700,240,0],['chair_A.gltf',620,700,150,0],['chair_A.gltf',800,700,150,Math.PI],
+   ['table_medium_long.gltf',1300,700,260,0],['chair_B.gltf',1210,700,150,0],['chair_B.gltf',1390,700,150,Math.PI],
+   ['table_small.gltf',2050,500,190,0],['pictureframe_large_B.gltf',1220,155,190,0],['pictureframe_large_A.gltf',1740,155,190,0]
   ];
   let loaded=0;
   await Promise.all(placements.map(async p=>{try{const gltf=await load(p[0]);const root=gltf.scene.clone(true);place(root,p[1],p[2],p[3],p[4]);loaded++}catch(e){console.warn('3D asset unavailable',p[0],e)}}));
