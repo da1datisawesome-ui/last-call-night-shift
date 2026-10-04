@@ -368,7 +368,7 @@ async function loadCharacter(g){
     assetProgress();
   }catch(e){console.warn("character asset skipped",e);assetProgress()}
 }
-guests.forEach(g=>{g.mesh=guestMesh(g);g.mesh.visible=false});if(loader){Promise.all(guests.map(g=>loadCharacter(g).catch(()=>null))).catch(()=>{})}
+guests.forEach(g=>{g.mesh=guestMesh(g);g.mesh.visible=false});
 let luggage=null;
 function roomPosition(roomId){
   const p=roomLayout[roomId]||roomLayout[101];
@@ -387,12 +387,14 @@ function beginGuestWalk(g){
   if(!p||!g.mesh)return;
   const entryZ=3;
   const doorX=p.side*5.0;
+  const insideX=p.side*7.2;
   g.walkPath=[
     {x:-7.4,z:entryZ},
     {x:-5.0,z:entryZ},
     {x:0,z:entryZ},
     {x:0,z:p.z},
-    {x:doorX,z:p.z}
+    {x:doorX,z:p.z},
+    {x:insideX,z:p.z}
   ];
   g.walkIndex=0;
   g.walkServiceAt=0;
@@ -402,11 +404,22 @@ function beginGuestWalk(g){
 function updateGuestWalk(g,dt){
   if(g.state!=="walking"||!g.mesh||!g.walkPath)return;
   const t=g.walkPath[g.walkIndex];
-  if(!t){g.state="staying";g.walkPath=null;g.walkServiceAt=performance.now()+6500;if(g.mixer&&g.action){g.action.stop();g.action.reset().play()}setTask("Guest in Room "+g.room+" • stay in progress");return}
+  if(!t){
+    g.state="staying";g.walkPath=null;g.walkIndex=0;
+    g.walkServiceAt=performance.now()+6500;
+    if(g.mixer&&g.action){g.action.stop();g.action.reset().play()}
+    setTask("Guest in Room "+g.room+" • stay in progress");
+    return;
+  }
   const dx=t.x-g.mesh.position.x,dz=t.z-g.mesh.position.z,dist=Math.hypot(dx,dz);
-  if(dist<.08){g.mesh.position.x=t.x;g.mesh.position.z=t.z;g.walkIndex++;return}
-  const speed=2.6,step=Math.min(dist,speed*dt);
-  g.mesh.position.x+=dx/dist*step;g.mesh.position.z+=dz/dist*step;
+  if(dist<=.12){
+    g.mesh.position.x=t.x;g.mesh.position.z=t.z;g.walkIndex++;
+    return;
+  }
+  const speed=2.35,step=Math.min(dist,speed*dt);
+  if(step<=0)return;
+  g.mesh.position.x+=dx/dist*step;
+  g.mesh.position.z+=dz/dist*step;
   faceGuest(g,t.x,t.z);
 }
 function spawnGuest(){if(guests.some(g=>g.state==="waiting"||g.state==="luggage"))return;const g=guests.find(x=>x.state==="idle");if(!g)return;g.state="waiting";g.room=null;g.mesh.position.set(-7.4,0,6.5);g.mesh.visible=true;setTask("🔑 CURRENT TASK: Check in "+g.name+" at reception")}
