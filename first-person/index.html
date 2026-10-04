@@ -521,36 +521,94 @@ return null}
 function nearest(){let best=null,bd=999;for(const z of zones){const d=camera.position.distanceTo(z.pos);if(d<z.range&&d<bd){if(z.name==="Reception"&&!guests.some(g=>g.state==="waiting"))continue;if(z.name==="Luggage"&&!luggage)continue;if(z.name==="Kitchen"&&(!serviceTarget||carrying))continue;if(z.name==="Housekeeping"&&(!cleaningTarget||carrying))continue;best=z;bd=d}}const rz=roomZone();if(rz){const d=camera.position.distanceTo(rz.pos);if(d<rz.range&&d<bd)best=rz}return best}
 
 // Manual movement and collision
-const keys={};let joyX=0,joyY=0,yaw=0,pitch=0,joyPointerId=null,lookPointerId=null,joyTouchId=null,lookTouchId=null;
-addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(e.key==="Escape")openMenu()});addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+const keys={};let joyX=0,joyY=0,joyMag=0,yaw=0,pitch=0,joyPointerId=null,lookPointerId=null;
+let moveButtons=new Set();
+addEventListener("keydown",e=>{const k=e.key.toLowerCase();keys[k]=true;if(["arrowup","arrowdown","arrowleft","arrowright"].includes(k))e.preventDefault();if(e.key==="Escape")openMenu()},{passive:false});
+addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false});
 const joy=document.getElementById("joy"),stick=document.getElementById("stick"),look=document.getElementById("look");
-function pointForTouch(list,id){for(const t of list||[]){if(t.identifier===id)return t}return null}
-function setJoyFromPoint(p){if(!p)return;const r=joy.getBoundingClientRect(),x=p.clientX-r.left-r.width/2,y=p.clientY-r.top-r.height/2,dist=Math.hypot(x,y),m=Math.min(54,dist),ang=Math.atan2(y,x);joyX=dist?Math.cos(ang)*m/54:0;joyY=dist?Math.sin(ang)*m/54:0;stick.style.transform="translate("+joyX*46+"px,"+joyY*46+"px)"}
-function joyReset(){joyPointerId=null;joyTouchId=null;joyX=joyY=0;stick.style.transform=""}
-function joyPointerStart(e){if(joyPointerId!==null)return;joyPointerId=e.pointerId;setJoyFromPoint(e);e.preventDefault();joy.setPointerCapture?.(e.pointerId)}
-function joyPointerMove(e){if(e.pointerId!==joyPointerId)return;setJoyFromPoint(e);e.preventDefault()}
-function joyPointerEnd(e){if(e.pointerId!==joyPointerId)return;joyReset()}
-function joyTouchStart(e){if(joyTouchId!==null)return;const t=e.changedTouches[0];if(!t)return;joyTouchId=t.identifier;setJoyFromPoint(t);e.preventDefault()}
-function joyTouchMove(e){const t=pointForTouch(e.touches,joyTouchId)||pointForTouch(e.changedTouches,joyTouchId);if(!t)return;setJoyFromPoint(t);e.preventDefault()}
-function joyTouchEnd(e){if(pointForTouch(e.changedTouches,joyTouchId)){joyReset();e.preventDefault()}}
-function lookPointerStart(e){if(e.pointerType==="mouse"&&e.button!==0)return;if(lookPointerId!==null)return;lookPointerId=e.pointerId;look.setPointerCapture?.(e.pointerId);look._last={x:e.clientX,y:e.clientY};e.preventDefault()}
-function lookPointerMove(e){if(e.pointerId!==lookPointerId||!look._last)return;const dx=e.clientX-look._last.x,dy=e.clientY-look._last.y;look._last={x:e.clientX,y:e.clientY};yaw-=dx*.006;pitch=Math.max(-1.15,Math.min(1.15,pitch-dy*.0045));e.preventDefault()}
-function lookPointerEnd(e){if(e.pointerId===lookPointerId){lookPointerId=null;look._last=null}}
-function lookTouchStart(e){if(lookTouchId!==null)return;const t=e.changedTouches[0];if(!t)return;lookTouchId=t.identifier;look._last={x:t.clientX,y:t.clientY};e.preventDefault()}
-function lookTouchMove(e){const t=pointForTouch(e.touches,lookTouchId)||pointForTouch(e.changedTouches,lookTouchId);if(!t||!look._last)return;const dx=t.clientX-look._last.x,dy=t.clientY-look._last.y;look._last={x:t.clientX,y:t.clientY};yaw-=dx*.006;pitch=Math.max(-1.15,Math.min(1.15,pitch-dy*.0045));e.preventDefault()}
-function lookTouchEnd(e){if(pointForTouch(e.changedTouches,lookTouchId)){lookTouchId=null;look._last=null;e.preventDefault()}}
-const fallbackButtons=[...document.querySelectorAll("#moveFallback button")];
-function fallbackDown(e){const k=e.currentTarget.dataset.move;keys[k]=true;e.preventDefault();e.stopPropagation()}
-function fallbackUp(e){const k=e.currentTarget.dataset.move;keys[k]=false;e.preventDefault();e.stopPropagation()}
-fallbackButtons.forEach(b=>{b.addEventListener("pointerdown",fallbackDown,{passive:false});b.addEventListener("pointerup",fallbackUp,{passive:false});b.addEventListener("pointercancel",fallbackUp,{passive:false});b.addEventListener("pointerleave",fallbackUp,{passive:false})});
-if(window.PointerEvent){
-  joy.addEventListener("pointerdown",joyPointerStart,{passive:false});joy.addEventListener("pointermove",joyPointerMove,{passive:false});joy.addEventListener("pointerup",joyPointerEnd);joy.addEventListener("pointercancel",joyPointerEnd);joy.addEventListener("lostpointercapture",joyPointerEnd);
-  look.addEventListener("pointerdown",lookPointerStart,{passive:false});look.addEventListener("pointermove",lookPointerMove,{passive:false});look.addEventListener("pointerup",lookPointerEnd);look.addEventListener("pointercancel",lookPointerEnd);look.addEventListener("lostpointercapture",lookPointerEnd);
-}else{
-  joy.addEventListener("touchstart",joyTouchStart,{passive:false});joy.addEventListener("touchmove",joyTouchMove,{passive:false});joy.addEventListener("touchend",joyTouchEnd,{passive:false});joy.addEventListener("touchcancel",joyTouchEnd,{passive:false});
-  look.addEventListener("touchstart",lookTouchStart,{passive:false});look.addEventListener("touchmove",lookTouchMove,{passive:false});look.addEventListener("touchend",lookTouchEnd,{passive:false});look.addEventListener("touchcancel",lookTouchEnd,{passive:false});
+function setJoyVector(dx,dy){
+  const radius=Math.max(1,joy.getBoundingClientRect().width*.5);
+  const dist=Math.hypot(dx,dy);
+  const t=Math.min(dist/radius,1);
+  if(t<=.10){joyX=joyY=joyMag=0;stick.style.transform="translate(0,0)";return}
+  const nx=dx/(dist||1),ny=dy/(dist||1);
+  joyX=nx;joyY=ny;joyMag=Math.min((t-.10)/.90,1);
+  const visual=Math.min(dist,radius)*.78;
+  stick.style.transform="translate("+nx*visual+"px,"+ny*visual+"px)";
 }
+function joyReset(e){
+  if(e&&joyPointerId!==null&&e.pointerId!==joyPointerId)return;
+  if(e)try{joy.releasePointerCapture(e.pointerId)}catch{}
+  joyPointerId=null;joyX=joyY=joyMag=0;stick.style.transform="translate(0,0)";
+}
+function joyPointerStart(e){
+  if(joyPointerId!==null)return;
+  if(e.pointerType==="mouse"&&e.button!==0)return;
+  joyPointerId=e.pointerId;
+  try{joy.setPointerCapture(e.pointerId)}catch{}
+  setJoyVector(e.clientX-(joy.getBoundingClientRect().left+joy.getBoundingClientRect().width*.5),e.clientY-(joy.getBoundingClientRect().top+joy.getBoundingClientRect().height*.5));
+  e.preventDefault();e.stopPropagation();
+}
+function joyPointerMove(e){
+  if(e.pointerId!==joyPointerId)return;
+  const r=joy.getBoundingClientRect();
+  setJoyVector(e.clientX-(r.left+r.width*.5),e.clientY-(r.top+r.height*.5));
+  e.preventDefault();e.stopPropagation();
+}
+function joyPointerEnd(e){if(e.pointerId!==joyPointerId)return;joyReset(e)}
+joy.addEventListener("pointerdown",joyPointerStart,{passive:false});
+joy.addEventListener("pointermove",joyPointerMove,{passive:false});
+joy.addEventListener("pointerup",joyPointerEnd,{passive:false});
+joy.addEventListener("pointercancel",joyPointerEnd,{passive:false});
+joy.addEventListener("lostpointercapture",e=>{if(e.pointerId===joyPointerId)joyReset(e)},{passive:false});
 
+function lookPointerStart(e){
+  if(e.pointerType==="mouse"&&e.button!==0)return;
+  if(lookPointerId!==null)return;
+  lookPointerId=e.pointerId;
+  try{look.setPointerCapture(e.pointerId)}catch{}
+  look._last={x:e.clientX,y:e.clientY};
+  e.preventDefault();e.stopPropagation();
+}
+function lookPointerMove(e){
+  if(e.pointerId!==lookPointerId||!look._last)return;
+  const dx=e.clientX-look._last.x,dy=e.clientY-look._last.y;
+  look._last={x:e.clientX,y:e.clientY};
+  yaw-=dx*.006;
+  pitch=Math.max(-1.15,Math.min(1.15,pitch-dy*.0045));
+  e.preventDefault();e.stopPropagation();
+}
+function lookPointerEnd(e){
+  if(e.pointerId!==lookPointerId)return;
+  try{look.releasePointerCapture(e.pointerId)}catch{}
+  lookPointerId=null;look._last=null;
+}
+look.addEventListener("pointerdown",lookPointerStart,{passive:false});
+look.addEventListener("pointermove",lookPointerMove,{passive:false});
+look.addEventListener("pointerup",lookPointerEnd,{passive:false});
+look.addEventListener("pointercancel",lookPointerEnd,{passive:false});
+look.addEventListener("lostpointercapture",e=>{if(e.pointerId===lookPointerId)lookPointerEnd(e)},{passive:false});
+
+const fallbackButtons=[...document.querySelectorAll("#moveFallback button")];
+function fallbackDown(e){
+  const b=e.currentTarget,k=b.dataset.move;
+  moveButtons.add(k);keys[k]=true;
+  try{b.setPointerCapture(e.pointerId)}catch{}
+  e.preventDefault();e.stopPropagation();
+}
+function fallbackUp(e){
+  const b=e.currentTarget,k=b.dataset.move;
+  moveButtons.delete(k);keys[k]=false;
+  e.preventDefault();e.stopPropagation();
+}
+fallbackButtons.forEach(b=>{
+  b.addEventListener("pointerdown",fallbackDown,{passive:false});
+  b.addEventListener("pointerup",fallbackUp,{passive:false});
+  b.addEventListener("pointercancel",fallbackUp,{passive:false});
+  b.addEventListener("lostpointercapture",fallbackUp,{passive:false});
+});
+
+function blocked
 function blocked(x,z){
   if(x<-21.15||x>21.15||z<-16.15||z>16.15)return true;
   if(x>-16.8&&x<-9.5&&z>3.8&&z<6.7)return true;
