@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Last Call — Night Shift</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#dfe3e6;color:#17212b;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none}#c{width:100%;height:100%;display:block}
+.screen{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:linear-gradient(120deg,#f4f0e7,#d7e0e4)}.panel{width:min(620px,88vw);padding:42px;border-radius:28px;background:rgba(255,255,255,.93);box-shadow:0 30px 80px rgba(29,42,50,.22);border:1px solid rgba(255,255,255,.8)}.eyebrow{text-transform:uppercase;letter-spacing:.24em;font-size:11px;color:#63727b;font-weight:800}.title{font-size:clamp(46px,9vw,84px);line-height:.9;font-weight:950;letter-spacing:.02em;margin:12px 0 4px;color:#17242c}.sub{font-size:15px;font-weight:800;letter-spacing:.2em;color:#9a6b35}.copy{line-height:1.55;color:#5c6870;margin:22px 0 28px}.btn{width:100%;border:0;border-radius:14px;padding:17px;margin:5px 0;font-weight:900;font-size:15px;background:#b77a35;color:#fff;box-shadow:0 8px 22px rgba(183,122,53,.24)}.btn.alt{background:#edf1f2;color:#26343c;box-shadow:none}
+.hidden{display:none!important}
+#hud{position:fixed;inset:0;z-index:8;pointer-events:none}.bar{position:absolute;top:15px;left:18px;right:18px;display:flex;justify-content:space-between;gap:12px}.pill{padding:10px 13px;border-radius:12px;background:rgba(255,255,255,.9);border:1px solid rgba(31,45,53,.12);box-shadow:0 5px 18px rgba(20,35,42,.12);font-size:12px;font-weight:800}.task{position:absolute;top:64px;left:50%;transform:translateX(-50%);max-width:78vw}.hint{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.9);padding:8px 12px;border-radius:10px;font-size:11px;color:#53626b;transition:opacity 1s}.use{position:absolute;right:28px;bottom:34px;width:78px;height:78px;border-radius:50%;display:none;place-items:center;background:#b77a35;color:#fff;font-weight:950;box-shadow:0 10px 30px rgba(80,50,20,.28)}
+#stick{position:fixed;z-index:9;left:24px;bottom:24px;width:140px;height:140px;border-radius:50%;display:none;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.7);box-shadow:0 8px 28px rgba(30,45,52,.13)}#knob{position:absolute;width:60px;height:60px;left:39px;top:39px;border-radius:50%;background:rgba(183,122,53,.82);box-shadow:0 4px 14px rgba(0,0,0,.15)}#look{position:fixed;z-index:7;right:0;top:0;width:55%;height:100%;display:none}
+#pause{position:fixed;inset:0;z-index:30;display:none;place-items:center;background:rgba(22,31,36,.35);backdrop-filter:blur(8px)}.menu{width:min(410px,88vw);padding:28px;border-radius:22px;background:#fff;box-shadow:0 25px 70px rgba(20,35,42,.25)}.menu h2{margin:0 0 12px}.row{display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #e4e8ea;color:#4f5e67}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<section id="title" class="screen"><div class="panel">
+<div class="eyebrow">A first-person hotel management game</div>
+<div class="title">LAST CALL</div><div class="sub">NIGHT SHIFT</div>
+<div class="copy">Run the late shift of a busy modern hotel. Welcome guests, handle the desk, move through the building and build the business. Fast, polished and designed for mobile.</div>
+<button class="btn" id="play">START NIGHT 1</button><button class="btn alt" id="options">OPTIONS</button>
+<div style="font-size:11px;color:#8b969d;margin-top:18px">MOBILE FIRST · LANDSCAPE · FIRST PERSON</div>
+</div></section>
+<div id="hud" class="hidden"><div class="bar"><div class="pill">LAST CALL · 23:48</div><div class="pill" id="cash">$120</div></div><div class="pill task" id="task">Walk to the reception desk.</div><div class="hint" id="hint">LEFT THUMB MOVE · RIGHT SIDE LOOK</div><div class="use" id="use">USE</div></div>
+<div id="stick"><div id="knob"></div></div><div id="look"></div>
+<div id="pause"><div class="menu"><h2>Night Shift</h2><div class="row"><span>Music</span><b>ON</b></div><div class="row"><span>Sound effects</span><b>ON</b></div><div class="row"><span>Hotel ambience</span><b>ON</b></div><button class="btn" id="resume">RESUME</button></div></div>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script>
+(()=>{"use strict";
+const canvas=document.getElementById("c"),engine=new BABYLON.Engine(canvas,true,{antialias:true,adaptToDeviceRatio:true,preserveDrawingBuffer:false,stencil:false},true);
+engine.setHardwareScalingLevel(Math.min(1.25,Math.max(1,devicePixelRatio*.68)));
+const scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.82,.86,.87,1);scene.collisionsEnabled=true;scene.gravity=new BABYLON.Vector3(0,-.75,0);
+const camera=new BABYLON.UniversalCamera("player",new BABYLON.Vector3(0,1.72,11.8),scene);camera.checkCollisions=true;camera.applyGravity=true;camera.ellipsoid=new BABYLON.Vector3(.32,.82,.32);camera.minZ=.06;camera.maxZ=100;camera.speed=.20;camera.inertia=.12;scene.activeCamera=camera;
+const mat={};
+function material(name,hex,rough=.7,metal=0){const m=new BABYLON.PBRMaterial(name,scene);m.albedoColor=BABYLON.Color3.FromHexString(hex);m.roughness=rough;m.metallic=metal;return mat[name]=m}
+const marble=material("warm marble","#ddd7ca",.62),wood=material("walnut","#6a4933",.55),brass=material("brass","#b98a4d",.28,.72),wall=material("hotel plaster","#eee9df",.9),floor=material("carpet","#59676b",.98),blue=material("staff uniform","#27465c",.58),navy=material("trouser","#263039",.65),skin=material("skin","#b8795c",.85),linen=material("linen","#e9e4d9",.95),green=material("plants","#50785b",.9),glass=material("glass","#b9d7dc",.2,.05),red=material("guest jacket","#8e4e43",.72),gold=material("gold trim","#c99b51",.25,.75),dark=material("door","#39434a",.7);
+function box(n,x,y,z,w,h,d,m,collision=true){const q=BABYLON.MeshBuilder.CreateBox(n,{width:w,height:h,depth:d},scene);q.position.set(x,y,z);q.material=m;q.checkCollisions=collision;return q}
+function cyl(n,x,y,z,r,h,m){const q=BABYLON.MeshBuilder.CreateCylinder(n,{diameter:r*2,height:h,tessellation:24},scene);q.position.set(x,y,z);q.material=m;return q}
+function sphere(n,x,y,z,r,m){const q=BABYLON.MeshBuilder.CreateSphere(n,{diameter:r*2,segments:16},scene);q.position.set(x,y,z);q.material=m;return q}
+function person(name,x,z,body){const root=new BABYLON.TransformNode(name,scene);const torso=box("torso",0,1.08,0,.56,1.08,.34,body,false);torso.parent=root;const head=sphere("head",0,1.78,0,.23,skin);head.parent=root;const l=box("leg",-.15,.43,0,.18,.78,.2,navy,false);l.parent=root;const rr=l.clone("leg2");rr.position.x=.15;rr.parent=root;const arm=box("arm",-.38,1.05,0,.14,.72,.16,body,false);arm.parent=root;const ar=arm.clone("arm2");ar.position.x=.38;ar.parent=root;root.position.set(x,0,z);return root}
+function sign(t,x,y,z,w=1.8){const q=box("sign",x,y,z,w,.42,.05,dark,false);const tex=new BABYLON.DynamicTexture("signText",{width:640,height:150},scene,true);tex.hasAlpha=true;tex.drawText(t,24,103,"bold 62px Arial","#f2eadb","transparent",true);const sm=new BABYLON.StandardMaterial("signMat",scene);sm.diffuseTexture=tex;q.material=sm}
+function room(z,side,num){const x=side*6.25;box("roomWall",x,1.75,z,5.0,3.5,5.2,wall);box("door",side*3.68,1.25,z,.20,2.5,1.25,dark);sign(String(num),side*3.48,2.45,z,.85);box("bed",x-side*.30,.45,z,2.35,.42,3.0,linen);box("headboard",x-side*.30,1.25,z+1.42,2.35,1.5,.16,wood);box("nightstand",x+side*.95,.5,z+1.0,.55,.8,.55,wood);cyl("lamp",x+side*.95,1.25,z+1.0,.08,.55,brass);box("desk",x-side*.55,.72,z-1.25,1.45,1.2,.62,wood)}
+box("foundation",0,-.22,0,15.4,.35,37,marble);box("carpetRunner",0,.01,0,3.7,.04,35,floor,false);
+box("leftWall",-6.1,1.8,0,5.7,3.6,35,wall);box("rightWall",6.1,1.8,0,5.7,3.6,35,wall);box("backWall",0,1.8,-17.5,15.4,3.6,.35,wall);box("frontWall",0,1.8,17.5,15.4,3.6,.35,wall);
+[-13,-6,1,8,15].forEach((z,i)=>{room(z,-1,101+i*2);room(z,1,102+i*2)});
+for(let z=-15;z<=15;z+=5)box("ceilingPanel",0,3.5,z,15.3,.14,4.9,wall,false);
+box("receptionDesk",0,.6,10.2,5.8,1.15,1.35,wood);box("receptionTop",0,1.23,10.2,5.95,.16,1.45,marble);box("receptionBrass",0,1.31,9.52,5.5,.08,.08,brass,false);sign("RECEPTION",0,2.35,10.92,2.4);
+box("lobbyConsole",0,.5,7.2,1.7,.18,.9,wood);cyl("plantL",-2.1,.8,7.0,.34,1.6,green);cyl("plantR",2.1,.8,7.0,.34,1.6,green);
+box("kitchenRoom",-6.15,1.7,10.5,5.3,3.4,5.1,wall);box("kitchenCounter",-5.7,.8,10.5,3.5,1.0,.8,marble);sign("KITCHEN",-5.0,2.45,8.05,1.9);
+box("serviceCounter",5.9,.8,6.5,.5,1.0,3.5,wood);
+const staff=person("receptionist",0,8.85,blue);const guest=person("guest",0,9.35,red);guest.setEnabled(false);
+const waypoints=[new BABYLON.Vector3(0,0,9.35),new BABYLON.Vector3(0,0,6.0),new BABYLON.Vector3(0,0,0),new BABYLON.Vector3(0,0,-6),new BABYLON.Vector3(-2.8,0,-6),new BABYLON.Vector3(-3.75,0,-6)];
+let guestState="waiting",wp=0;
+function setTask(t){document.getElementById("task").textContent=t}
+function startGuest(){guest.setEnabled(true);guestState="walking";wp=1;setTask("Welcome the guest at reception.");}
+function interact(){if(guestState==="waiting"){startGuest();return}if(guestState==="walking"&&BABYLON.Vector3.Distance(camera.position,guest.position)<2.5){guestState="escorted";setTask("Follow the guest to Room 103.");return}if(guestState==="escorted"&&wp>=waypoints.length-1&&BABYLON.Vector3.Distance(camera.position,guest.position)<2.6){guestState="done";setTask("Guest settled · $35 earned · Next task incoming.");document.getElementById("cash").textContent="$155";}}
+const hemi=new BABYLON.HemisphericLight("dayFill",new BABYLON.Vector3(0,1,0),scene);hemi.intensity=.72;hemi.diffuse=new BABYLON.Color3(1,.97,.9);hemi.groundColor=new BABYLON.Color3(.55,.6,.62);
+const key=new BABYLON.DirectionalLight("warmKey",new BABYLON.Vector3(-.3,-1,.25),scene);key.intensity=.72;
+[[-4,2.8,8],[4,2.8,8],[-4,2.8,0],[4,2.8,0],[-4,2.8,-8],[4,2.8,-8]].forEach(p=>{const l=new BABYLON.PointLight("hotelLight",new BABYLON.Vector3(p[0],p[1],p[2]),scene);l.diffuse=new BABYLON.Color3(1,.82,.58);l.intensity=26;l.range=10});
+scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=.004;scene.fogColor=new BABYLON.Color3(.82,.86,.87);
+const pipeline=new BABYLON.DefaultRenderingPipeline("mobileAA",true,scene,[camera]);pipeline.samples=1;pipeline.fxaaEnabled=true;pipeline.imageProcessingEnabled=true;pipeline.imageProcessing.contrast=1.04;pipeline.imageProcessing.exposure=1.05;
+let mx=0,my=0,lastX=0,lastY=0;
+const stick=document.getElementById("stick"),knob=document.getElementById("knob"),look=document.getElementById("look");
+stick.addEventListener("pointerdown",e=>{stick.setPointerCapture(e.pointerId);const r=stick.getBoundingClientRect();function move(q){let dx=q.clientX-(r.left+r.width/2),dy=q.clientY-(r.top+r.height/2),lim=55,len=Math.hypot(dx,dy);if(len>lim){dx*=lim/len;dy*=lim/len}knob.style.transform="translate("+dx+"px,"+dy+"px)";mx=dx/lim;my=dy/lim}move(e);stick.onpointermove=move;stick.onpointerup=()=>{mx=my=0;knob.style.transform="";stick.onpointermove=null}});
+look.addEventListener("pointerdown",e=>{lastX=e.clientX;lastY=e.clientY;look.setPointerCapture(e.pointerId);look.onpointermove=q=>{const dx=q.clientX-lastX,dy=q.clientY-lastY;lastX=q.clientX;lastY=q.clientY;camera.rotation.y+=dx*.004;camera.rotation.x=Math.max(-1.15,Math.min(1.15,camera.rotation.x+dy*.0025))}});
+document.getElementById("play").onclick=()=>{document.getElementById("title").classList.add("hidden");document.getElementById("hud").classList.remove("hidden");stick.style.display="block";look.style.display="block";setTimeout(()=>document.getElementById("hint").style.opacity="0",6000)};
+document.getElementById("use").onclick=interact;document.getElementById("options").onclick=()=>document.getElementById("pause").style.display="grid";document.getElementById("resume").onclick=()=>document.getElementById("pause").style.display="none";
+window.addEventListener("keydown",e=>{if(e.key==="w")my=-1;if(e.key==="s")my=1;if(e.key==="a")mx=-1;if(e.key==="d")mx=1;if(e.key==="e")interact()});window.addEventListener("keyup",e=>{if("wasd".includes(e.key))mx=my=0});
+let last=performance.now();
+engine.runRenderLoop(()=>{const now=performance.now(),dt=Math.min(34,now-last);last=now;const f=camera.getDirection(BABYLON.Axis.Z),r=camera.getDirection(BABYLON.Axis.X);let v=f.scale(-my).add(r.scale(mx));if(v.lengthSquared()>1)v.normalize();camera.cameraDirection=v.scale(camera.speed*dt/16);
+const d=BABYLON.Vector3.Distance(camera.position,guest.position);document.getElementById("use").style.display=(guestState!=="done"&&d<2.7)?"grid":"none";
+if(guestState==="walking"||guestState==="escorted"){const t=waypoints[wp],delta=t.subtract(guest.position);if(delta.length()<.16){if(wp<waypoints.length-1)wp++;else{guestState="escorted";setTask("Guest is at Room 103. Interact to complete check-in.");}}else{delta.normalize();guest.position.addInPlace(delta.scale(.034*dt));guest.rotation.y=Math.atan2(delta.x,delta.z)}}scene.render()});
+addEventListener("resize",()=>engine.resize());
+})();
+</script></body></html>
