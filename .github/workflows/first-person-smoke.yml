@@ -1,0 +1,51 @@
+name: First Person Smoke Test
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  first-person:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm init -y
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install --with-deps chromium
+      - name: Start local Pages-equivalent server
+        run: python3 -m http.server 8080 --directory . &
+      - name: Smoke test first-person startup and gameplay
+        run: |
+          cat > /tmp/smoke.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({headless:true});
+          const page = await browser.newPage({viewport:{width:844,height:390},deviceScaleFactor:1,isMobile:true});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error') errors.push(m.text())});
+          await page.goto('http://127.0.0.1:8080/first-person/',{waitUntil:'networkidle',timeout:30000});
+          const start=page.locator('#start');
+          await start.waitFor({state:'visible',timeout:10000});
+          await page.waitForFunction(()=>{const b=document.querySelector('#start');return b && !b.disabled},null,{timeout:20000});
+          await start.click();
+          await page.waitForTimeout(2500);
+          const result=await page.evaluate(()=>({
+            titleHidden:getComputedStyle(document.querySelector('#title')).display==='none',
+            canvas:!!document.querySelector('canvas'),
+            hudVisible:getComputedStyle(document.querySelector('#hud')).display!=='none',
+            started:!!window.__lastCallStart
+          }));
+          if(errors.length) throw new Error('Browser errors: '+errors.join(' | '));
+          if(!result.titleHidden || !result.canvas || !result.hudVisible || !result.started) throw new Error('Startup assertion failed: '+JSON.stringify(result));
+          await page.screenshot({path:'/tmp/first-person-smoke.png',fullPage:false});
+          console.log('FIRST_PERSON_SMOKE_PASS',JSON.stringify(result));
+          await browser.close();
+          EOF
+          node /tmp/smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: first-person-smoke-screenshot
+          path: /tmp/first-person-smoke.png
