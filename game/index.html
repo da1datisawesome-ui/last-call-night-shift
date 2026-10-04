@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Last Call: Night Shift</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#08090c;font-family:Inter,system-ui,-apple-system,sans-serif;touch-action:none}
+#game{width:100%;height:100%;display:block}#hud{position:fixed;inset:0;color:#fff;pointer-events:none}
+#brand{position:absolute;top:16px;left:18px;font-size:12px;font-weight:900;letter-spacing:.22em;text-shadow:0 2px 10px #000}
+#task{position:absolute;top:16px;left:50%;transform:translateX(-50%);max-width:80vw;padding:10px 15px;border-radius:14px;background:rgba(12,14,20,.72);backdrop-filter:blur(10px);font-size:13px;text-align:center}
+#use{display:none;pointer-events:auto;position:absolute;right:24px;bottom:28px;width:78px;height:78px;border:1px solid rgba(255,255,255,.35);border-radius:50%;background:rgba(255,255,255,.14);color:white;font-weight:900;letter-spacing:.1em}
+#menu{pointer-events:auto;position:absolute;right:17px;top:13px;width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(12,14,20,.68);color:#fff;font-size:18px}
+#hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-size:11px;opacity:.55;text-align:center}
+#title{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,#333945,#090b10 68%);color:#fff}
+.titleCard{width:min(450px,86vw);text-align:center}.titleCard h1{font-size:clamp(40px,11vw,70px);line-height:.86;margin:0;letter-spacing:-.06em}.titleCard h1 span{display:block;margin-top:17px;font-size:13px;letter-spacing:.4em;opacity:.6}.titleCard p{margin:24px auto;max-width:360px;line-height:1.55;opacity:.66;font-size:13px}.titleCard button,.panel button{width:100%;padding:15px;border:0;border-radius:13px;font-weight:900;font-size:15px;background:#f1f1ee;color:#111}
+#loading{margin-top:10px;font-size:11px;opacity:.48}
+#panel{display:none;position:fixed;z-index:8;inset:0;align-items:center;justify-content:center;background:rgba(3,5,9,.78);backdrop-filter:blur(8px);color:#fff}
+.panel{width:min(390px,86vw);padding:25px;border-radius:20px;background:#181b22;border:1px solid rgba(255,255,255,.1)}.panel h2{margin:0 0 8px}.panel p{font-size:13px;line-height:1.55;opacity:.68}.panel button{margin-top:8px}
+@media(orientation:portrait){#hint{bottom:10px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud"><div id="brand">LAST CALL</div><div id="task">NIGHT SHIFT</div><button id="menu">☰</button><button id="use">USE</button><div id="hint">LEFT THUMB MOVE · RIGHT SIDE LOOK</div></div>
+<div id="title"><div class="titleCard"><h1>LAST CALL<span>NIGHT SHIFT</span></h1><p>Work the late shift. Check guests in, deliver what they need, keep rooms moving and build the hotel.</p><button id="play">START NIGHT 1</button><div id="loading">Preparing hotel…</div></div></div>
+<div id="panel"><div class="panel"><h2>Night Shift</h2><p>Use the left virtual joystick to walk. Drag the right side to look. When an interaction is available, tap USE.</p><button id="resume">RESUME SHIFT</button></div></div>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script>
+(()=>{"use strict";
+const canvas=document.getElementById("game"),engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true},true);
+engine.setHardwareScalingLevel(Math.min(1.35,Math.max(1,devicePixelRatio/1.8)));
+const scene=new BABYLON.Scene(engine);scene.collisionsEnabled=true;scene.gravity=new BABYLON.Vector3(0,-9.81,0);scene.clearColor=new BABYLON.Color4(.018,.022,.03,1);
+const camera=new BABYLON.VirtualJoysticksCamera("Player",new BABYLON.Vector3(0,1.72,10.5),scene);
+camera.attachControl(canvas,true);camera.checkCollisions=true;camera.applyGravity=true;camera.ellipsoid=new BABYLON.Vector3(.38,.88,.38);camera.speed=.16;camera.angularSensibility=3200;camera.inertia=.12;camera.minZ=.08;camera.maxZ=100;
+scene.activeCamera=camera;
+const c=(h)=>BABYLON.Color3.FromHexString(h);
+function pbr(n,h,r=.75,m=0){const x=new BABYLON.PBRMaterial(n,scene);x.albedoColor=c(h);x.roughness=r;x.metallic=m;return x}
+const carpet=pbr("Carpet","#24262c",.98),wall=pbr("Paint","#b8b1a4",.9),trim=pbr("Trim","#202329",.7,.05),wood=pbr("Walnut","#503627",.62),brass=pbr("Brass","#9a7540",.3,.7),fabric=pbr("Fabric","#4d3940",.95),linen=pbr("Linen","#d8d2c5",.9),dark=pbr("Dark furniture","#17191e",.65,.12),green=pbr("Plant","#31483a",.9),skin=pbr("Skin","#a96f51",.92),uniform=pbr("Uniform","#253441",.7),guestCloth=pbr("Guest clothes","#6b5344",.85);
+function box(n,x,y,z,w,h,d,ma,coll=true){const q=BABYLON.MeshBuilder.CreateBox(n,{width:w,height:h,depth:d},scene);q.position.set(x,y,z);q.material=ma;q.checkCollisions=coll;return q}
+function cyl(n,x,y,z,d,h,ma){const q=BABYLON.MeshBuilder.CreateCylinder(n,{diameter:d,height:h,segments:18},scene);q.position.set(x,y,z);q.material=ma;return q}
+function sphere(n,x,y,z,d,ma){const q=BABYLON.MeshBuilder.CreateSphere(n,{diameter:d,segments:18},scene);q.position.set(x,y,z);q.material=ma;return q}
+function sign(text,x,y,z,w=1.8,h=.4){const q=BABYLON.MeshBuilder.CreatePlane("sign",{width:w,height:h},scene);q.position.set(x,y,z);q.billboardMode=BABYLON.Mesh.BILLBOARDMODE_Y;const t=new BABYLON.DynamicTexture("txt",{width:900,height:200},scene,true);t.hasAlpha=true;t.drawText(text,30,135,"bold 76px Arial","white","transparent",true);const m=new BABYLON.StandardMaterial("signmat",scene);m.diffuseTexture=t;m.emissiveColor=new BABYLON.Color3(.12,.12,.12);q.material=m;return q}
+box("floor",0,-.1,0,26,.2,32,carpet,false);box("ceiling",0,4.25,0,26,.15,32,trim,false);
+box("north",0,2,-16,26,4,.25,wall);box("south",0,2,16,26,4,.25,wall);box("west",-13,2,0,.25,4,32,wall);box("east",13,2,0,.25,4,32,wall);
+box("reception",-7.8,1,9,5.2,2,1.3,wood);box("counter",-7.8,2.05,9,5.6,.15,1.55,brass);sign("RECEPTION",-7.8,3.05,8.15,2.4,.45);
+for(let z of [-12,-4,4,12]){
+ box("leftBack",-10.1,2,z-1.35,5.6,4,.25,wall);box("rightBack",10.1,2,z-1.35,5.6,4,.25,wall);
+ box("leftOuter",-12.85,2,z, .25,4,3.1,wall);box("rightOuter",12.85,2,z,.25,4,3.1,wall);
+ box("leftSide",-11.9,2,z+1.55,2.1,4,.25,wall);box("rightSide",11.9,2,z+1.55,2.1,4,.25,wall);
+ box("doorL",-7.15,1.15,z,.12,2.3,1.5,wood);box("doorR",7.15,1.15,z,.12,2.3,1.5,wood);
+}
+["101","103","105","107"].forEach((t,i)=>sign(t,-6.9,2.55,[-12,-4,4,12][i]));["102","104","106"].forEach((t,i)=>sign(t,6.9,2.55,[-12,-4,4][i]));
+// Room dressing, deliberately inside the rooms so the corridor remains the playable route.
+for(let z of [-12,-4,4,12]){box("bedL",-10.1,.55,z-.55,2.1,.65,1.5,linen);box("headL",-10.1,1,z-1.22,2.1,.8,.18,wood);box("tableL",-8.55,.65,z+.45,.55,1,.55,wood);box("bedR",10.1,.55,z-.55,2.1,.65,1.5,linen);box("headR",10.1,1,z-1.22,2.1,.8,.18,wood);box("tableR",8.55,.65,z+.45,.55,1,.55,wood)}
+// Kitchen and service end.
+box("kitchenIsland",0,1,-14.3,5.2,2,1.1,dark);box("kitchenBack",0,2,-15.55,9,4,.25,wall);sign("KITCHEN",0,3.15,-15.25,2,.4);
+box("supply",-5.2,.8,-14.2,1.2,1.6,1.2,wood);sign("SUPPLIES",-5.2,1.8,-13.55,1.6,.35);
+for(let x of [-3.8,-2.2,2.2,3.8]){cyl("lamp",x,3.7,-14.8,.15,.15,brass)}
+// Reception dressing
+box("lobbySofa",-10.5,.65,6.7,3,.9,.9,fabric);box("lobbyTable",-10.5,.5,4.9,1.2,1,.7,wood);sphere("plant",-11.2,1.2,4.5,.9,green);
+// Lighting
+const hemi=new BABYLON.HemisphericLight("ambient",new BABYLON.Vector3(0,1,0),scene);hemi.intensity=.62;
+const key=new BABYLON.DirectionalLight("key",new BABYLON.Vector3(-.2,-1,.25),scene);key.position.set(4,9,8);key.intensity=1.15;
+for(let z of [-12,-4,4,12,10,-14]){const l=new BABYLON.PointLight("hotelLight",new BABYLON.Vector3(0,3.6,z),scene);l.intensity=.55;l.range=8;l.diffuse=c("#ffd7a0")}
+
+function person(name,x,z,ma){const body=cyl(name+"Body",x,1.0,z,.62,1.5,ma);body.checkCollisions=false;const head=sphere(name+"Head",x,1.98,z,.56,skin);return {body,head}}
+const guest=person("Guest",-3.0,8.3,guestCloth);let guestState="waiting",guestIndex=0;
+const guestPath=[new BABYLON.Vector3(-3,0,8.3),new BABYLON.Vector3(0,0,8.3),new BABYLON.Vector3(0,0,-12),new BABYLON.Vector3(6.0,0,-12),new BABYLON.Vector3(6.0,0,-12.8)];
+const taskEl=document.getElementById("task"),use=document.getElementById("use");let started=false;
+function setTask(t){taskEl.textContent=t}
+function distance(a,b){return BABYLON.Vector3.Distance(a,b)}
+function interact(){if(!started)return;if(guestState==="waiting"&&distance(camera.position,guest.body.position)<2.2){guestState="walking";guestIndex=1;setTask("Guest checked in • follow them to Room 102");use.style.display="none"}}
+use.addEventListener("pointerdown",e=>{e.preventDefault();interact()});
+function updateGuest(dt){if(guestState!=="walking")return;const target=guestPath[guestIndex],p=guest.body.position;const dx=target.x-p.x,dz=target.z-p.z,d=Math.hypot(dx,dz);if(d<.12){p.x=target.x;p.z=target.z;guest.head.position.x=p.x;guest.head.position.z=p.z;if(guestIndex<guestPath.length-1){guestIndex++;return}guestState="room";setTask("Guest reached Room 102 • return to reception");return}const s=Math.min(d,.95*dt),nx=dx/d*s,nz=dz/d*s;p.x+=nx;p.z+=nz;guest.head.position.x=p.x;guest.head.position.z=p.z}
+document.getElementById("play").onclick=()=>{started=true;document.getElementById("title").style.display="none";setTask("Walk to the guest at reception")};
+document.getElementById("menu").onclick=()=>document.getElementById("panel").style.display="flex";
+document.getElementById("resume").onclick=()=>document.getElementById("panel").style.display="none";
+canvas.addEventListener("pointerdown",e=>{if(started&&e.pointerType==="mouse"&&e.button===0&&e.clientX<innerWidth*.45)interact()});
+let first=true;scene.onBeforeRenderObservable.add(()=>{if(started){const dt=engine.getDeltaTime()/1000;updateGuest(dt);if(guestState==="waiting"&&distance(camera.position,guest.body.position)<2.2)use.style.display="block";else use.style.display="none";if(first){first=false;setTimeout(()=>document.getElementById("hint").style.opacity="0",9000)}}});
+engine.runRenderLoop(()=>scene.render());addEventListener("resize",()=>engine.resize());
+document.getElementById("loading").textContent="Hotel ready";
+})();
+</script>
+</body></html>
