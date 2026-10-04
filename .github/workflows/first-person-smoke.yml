@@ -5,6 +5,8 @@ on:
     paths-ignore:
       - '.github/smoke-result.json'
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   first-person:
     runs-on: ubuntu-latest
@@ -17,7 +19,9 @@ jobs:
       - run: npm install --no-save playwright@1.55.0
       - run: npx playwright install --with-deps chromium
       - name: Start local Pages-equivalent server
-        run: python3 -m http.server 8080 --directory . &
+        run: python3 -m http.server 8080 --directory . > /tmp/server.log 2>&1 & echo $! > /tmp/server.pid
+          sleep 2
+          curl -fsS http://127.0.0.1:8080/first-person/ >/dev/null
       - name: Smoke test first-person startup and gameplay
         run: |
           cat > /tmp/smoke.mjs <<'EOF'
