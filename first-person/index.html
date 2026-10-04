@@ -622,8 +622,12 @@ function blocked(x,z){
   return false;
 }
 function move(dt){
-  let f=joyY*-1+(keys.w?1:0)-(keys.s?1:0),r=joyX+(keys.d?1:0)-(keys.a?1:0),l=Math.hypot(f,r)||1;
-  f/=l;r/=l;const sp=(mobile?5.8:6.8)*dt,dx=(Math.sin(yaw)*f+Math.cos(yaw)*r)*sp,dz=(Math.cos(yaw)*f-Math.sin(yaw)*r)*sp;
+  let f=joyY*joyMag+(keys.w?1:0)+(keys.arrowup?1:0)-(keys.s?1:0)-(keys.arrowdown?1:0);
+  let r=joyX*joyMag+(keys.d?1:0)+(keys.arrowright?1:0)-(keys.a?1:0)-(keys.arrowleft?1:0);
+  const l=Math.hypot(f,r)||1;
+  if(l>1){f/=l;r/=l}
+  const sp=(mobile?5.8:6.8)*dt;
+  const dx=(Math.sin(yaw)*f+Math.cos(yaw)*r)*sp,dz=(Math.cos(yaw)*f-Math.sin(yaw)*r)*sp;
   const p=camera.position,nx=p.x+dx,nz=p.z+dz;
   if(!blocked(nx,p.z))p.x=nx;
   if(!blocked(p.x,nz))p.z=nz;
