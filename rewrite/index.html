@@ -118,10 +118,15 @@ box("desk",new BABYLON.Vector3(-8,1,9),new BABYLON.Vector3(5.2,2,1.25),woodMat);
 box("deskTop",new BABYLON.Vector3(-8,2.05,9),new BABYLON.Vector3(5.6,.14,1.5),brassMat);
 textSign("RECEPTION",new BABYLON.Vector3(-8,3.1,8.25));
 for(let z=-12;z<=12;z+=4){
- box("leftWing",new BABYLON.Vector3(-10.9,2,z),new BABYLON.Vector3(6,4,3.1),wallMat);
- box("rightWing",new BABYLON.Vector3(10.9,2,z),new BABYLON.Vector3(6,4,3.1),wallMat);
- box("leftDoor",new BABYLON.Vector3(-7.72,1.15,z),new BABYLON.Vector3(.12,2.3,1.45),woodMat);
- box("rightDoor",new BABYLON.Vector3(7.72,1.15,z),new BABYLON.Vector3(.12,2.3,1.45),woodMat);
+ const half=1.55, edge=1.35;
+ box("leftOuter",new BABYLON.Vector3(-13.7,2,z),new BABYLON.Vector3(.3,4,3.1),wallMat);
+ box("rightOuter",new BABYLON.Vector3(13.7,2,z),new BABYLON.Vector3(.3,4,3.1),wallMat);
+ box("leftBack",new BABYLON.Vector3(-10.9,2,z-1.4),new BABYLON.Vector3(5.6,4,.3),wallMat);
+ box("rightBack",new BABYLON.Vector3(10.9,2,z-1.4),new BABYLON.Vector3(5.6,4,.3),wallMat);
+ box("leftSideA",new BABYLON.Vector3(-12.15,2,z+1.55),new BABYLON.Vector3(3.1,4,.3),wallMat);
+ box("rightSideA",new BABYLON.Vector3(12.15,2,z+1.55),new BABYLON.Vector3(3.1,4,.3),wallMat);
+ box("leftDoor",new BABYLON.Vector3(-8.05,1.15,z),new BABYLON.Vector3(.12,2.3,1.45),woodMat);
+ box("rightDoor",new BABYLON.Vector3(8.05,1.15,z),new BABYLON.Vector3(.12,2.3,1.45),woodMat);
 }
 textSign("101",new BABYLON.Vector3(-7.35,2.55,-12));
 textSign("102",new BABYLON.Vector3(7.35,2.55,-12));
@@ -144,7 +149,15 @@ receptionist.head.isPickable=true;
 const guest=person("Guest",-2.2,8.2,guestMat);
 guest.body.isPickable=true;guest.head.isPickable=true;
 let guestState="waiting";
-let guestTarget=new BABYLON.Vector3(-2.2,0,8.2);
+const guestPath=[
+ new BABYLON.Vector3(-2.2,0,8.2),
+ new BABYLON.Vector3(0,0,8.2),
+ new BABYLON.Vector3(0,0,-12),
+ new BABYLON.Vector3(6.9,0,-12),
+ new BABYLON.Vector3(8.2,0,-12)
+];
+let guestStep=0;
+let guestTarget=guestPath[0];
 let task="Walk to the guest at reception";
 const taskEl=document.getElementById("task"),use=document.getElementById("use");
 function setTask(t){task=t;taskEl.textContent=t}
@@ -153,7 +166,7 @@ function nearGuest(){return distTo(guest.body)<2.15}
 function interact(){
  if(!started)return;
  if(guestState==="waiting"&&nearGuest()){
-   guestState="walking";guestTarget=new BABYLON.Vector3(6.9,0,-12);
+   guestState="walking";guestStep=1;guestTarget=guestPath[guestStep];
    setTask("Guest checked in • follow them toward Room 101");
    use.style.display="none";
  }else if(guestState==="room"&&distTo(guest.body)<2.5){
@@ -180,7 +193,12 @@ function updateGuest(){
  const p=guest.body.position;
  const target=new BABYLON.Vector3(guestTarget.x,p.y,guestTarget.z);
  const d=BABYLON.Vector3.Distance(p,target);
- if(d<.16){guest.body.position.x=guestTarget.x;guest.body.position.z=guestTarget.z;guest.head.position.x=guestTarget.x;guest.head.position.z=guestTarget.z;guestState="room";setTask("Guest reached Room 101 • return to reception");return}
+ if(d<.16){
+  guest.body.position.x=guestTarget.x;guest.body.position.z=guestTarget.z;
+  guest.head.position.x=guestTarget.x;guest.head.position.z=guestTarget.z;
+  if(guestStep<guestPath.length-1){guestStep++;guestTarget=guestPath[guestStep];return}
+  guestState="room";setTask("Guest reached Room 101 • return to reception");return
+}
  const dir=target.subtract(p).normalize().scale(.045);
  guest.body.position.addInPlace(dir);guest.head.position.addInPlace(dir);
 }
