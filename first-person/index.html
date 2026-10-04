@@ -538,8 +538,8 @@ function setJoyVector(dx,dy){
 }
 function joyReset(e){
   if(e&&joyPointerId!==null&&e.pointerId!==joyPointerId)return;
-  if(e)try{joy.releasePointerCapture(e.pointerId)}catch{}
-  joyPointerId=null;joyX=joyY=joyMag=0;stick.style.transform="translate(0,0)";
+  const pid=joyPointerId;joyPointerId=null;joyX=joyY=joyMag=0;
+  if(e)try{joy.releasePointerCapture(pid)}catch{}stick.style.transform="translate(0,0)";
 }
 function joyPointerStart(e){
   if(joyPointerId!==null)return;
@@ -580,8 +580,8 @@ function lookPointerMove(e){
 }
 function lookPointerEnd(e){
   if(e.pointerId!==lookPointerId)return;
-  try{look.releasePointerCapture(e.pointerId)}catch{}
-  lookPointerId=null;look._last=null;
+  const pid=lookPointerId;lookPointerId=null;look._last=null;
+  try{look.releasePointerCapture(pid)}catch{}
 }
 look.addEventListener("pointerdown",lookPointerStart,{passive:false});
 look.addEventListener("pointermove",lookPointerMove,{passive:false});
@@ -608,7 +608,6 @@ fallbackButtons.forEach(b=>{
   b.addEventListener("lostpointercapture",fallbackUp,{passive:false});
 });
 
-function blocked
 function blocked(x,z){
   if(x<-21.15||x>21.15||z<-16.15||z>16.15)return true;
   if(x>-16.8&&x<-9.5&&z>3.8&&z<6.7)return true;
