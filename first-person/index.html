@@ -438,6 +438,10 @@ function roomDoorPosition(roomId){
   const p=roomLayout[roomId]||roomLayout[101];
   return {x:p.side*5.0,z:p.z};
 }
+function roomInteriorPosition(roomId){
+  const p=roomLayout[roomId]||roomLayout[101];
+  return {x:p.side*7.2,z:p.z};
+}
 function faceGuest(g,targetX,targetZ){
   if(!g.mesh)return;
   g.mesh.rotation.y=Math.atan2(targetX-g.mesh.position.x,targetZ-g.mesh.position.z);
@@ -502,15 +506,15 @@ const zones=[
 function roomZone(){
   if(carrying==="luggage"){
     const g=guests.find(x=>x.state==="luggage");
-    if(g){const p=roomDoorPosition(g.room);return {pos:new THREE.Vector3(p.x,1,p.z),range:3,action:deliverLuggage,label:"🧳 DELIVER LUGGAGE"}}
+    if(g){const p=roomInteriorPosition(g.room);return {pos:new THREE.Vector3(p.x,1,p.z),range:1.55,action:deliverLuggage,label:"🧳 DELIVER LUGGAGE"}}
   }
   if(carrying==="roomservice"&&serviceTarget){
-    const p=roomDoorPosition(serviceTarget.room);
-    return {pos:new THREE.Vector3(p.x,1,p.z),range:3,action:deliverService,label:"🍽️ DELIVER ROOM SERVICE"};
+    const p=roomInteriorPosition(serviceTarget.room);
+    return {pos:new THREE.Vector3(p.x,1,p.z),range:1.55,action:deliverService,label:"🍽️ DELIVER ROOM SERVICE"};
   }
   if(carrying==="cleaning"&&cleaningTarget){
-    const p=roomDoorPosition(cleaningTarget.id);
-    return {pos:new THREE.Vector3(p.x,1,p.z),range:3,action:clean,label:"🧹 CLEAN ROOM "+cleaningTarget.id};
+    const p=roomInteriorPosition(cleaningTarget.id);
+    return {pos:new THREE.Vector3(p.x,1,p.z),range:1.55,action:clean,label:"🧹 CLEAN ROOM "+cleaningTarget.id};
   }
 return null}
 function nearest(){let best=null,bd=999;for(const z of zones){const d=camera.position.distanceTo(z.pos);if(d<z.range&&d<bd){if(z.name==="Reception"&&!guests.some(g=>g.state==="waiting"))continue;if(z.name==="Luggage"&&!luggage)continue;if(z.name==="Kitchen"&&(!serviceTarget||carrying))continue;if(z.name==="Housekeeping"&&(!cleaningTarget||carrying))continue;best=z;bd=d}}const rz=roomZone();if(rz){const d=camera.position.distanceTo(rz.pos);if(d<rz.range&&d<bd)best=rz}return best}
