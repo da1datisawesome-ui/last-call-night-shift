@@ -398,7 +398,8 @@ function setAudio(kind,value){
   const v=Math.max(0,Math.min(1,Number(value)));localStorage.setItem("lcn-"+kind,v);
   const g=kind==="master"?masterGain:kind==="music"?musicGain:sfxGain;if(g)g.gain.value=v;
 }
-\nfunction ui(){moneyEl.textContent="$"+money.toLocaleString();repEl.textContent="★ "+rep;taskEl.textContent=task;document.getElementById("controlsHint").textContent=carrying?"CARRYING: "+carrying.toUpperCase()+"  •  MOVE: left joystick  •  LOOK: right side":"MOVE: left joystick  •  LOOK: right side  •  WALK TO THE HIGHLIGHTED TASK"}
+
+function ui(){moneyEl.textContent="$"+money.toLocaleString();repEl.textContent="★ "+rep;taskEl.textContent=task;document.getElementById("controlsHint").textContent=carrying?"CARRYING: "+carrying.toUpperCase()+"  •  MOVE: left joystick  •  LOOK: right side":"MOVE: left joystick  •  LOOK: right side  •  WALK TO THE HIGHLIGHTED TASK"}
 function setTask(t){task=t;ui()}function toast(t){toastEl.textContent=t;toastEl.style.display="block";clearTimeout(toastEl._t);toastEl._t=setTimeout(()=>toastEl.style.display="none",1800)}
 function firstRoom(){return [...rooms.values()].find(r=>r.unlocked&&r.state==="available"&&!r.dirty)}
 function guestMesh(g){const group=new THREE.Group();group.position.set(-7.4,0,6.5);const suit=mat("#"+g.color.toString(16).padStart(6,"0"),.72);const skin=mat("#b87858",.86);const body=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.72,6,14),suit);body.position.y=1.02;const head=new THREE.Mesh(new THREE.SphereGeometry(.30,20,16),skin);head.position.y=1.78;group.add(body,head);scene.add(group);return group}
@@ -590,7 +591,8 @@ function frame(now){
    if(!started){started=true;startedAt=now;initAudio();if(audioCtx&&audioCtx.state==="suspended")audioCtx.resume().catch(()=>{});spawnGuest();setTask("🔑 CURRENT TASK: Check in Alex at reception");audioTone(660,.12,.16)}
    move(dt);camera.rotation.set(pitch,yaw,0,"YXZ");
    for(const g of guests){if(g.mixer&&(g.state==="walking"||g.state==="luggage"))g.mixer.update(dt);updateGuestWalk(g,dt)}
-   if(!controlsLearned&&startedAt&&now-startedAt>10000){controlsLearned=true;const hint=document.getElementById("controlsHint");if(hint){hint.style.transition="opacity .8s";hint.style.opacity="0";setTimeout(()=>hint.remove(),900)}}\n   hands.rotation.y=0;const z=nearest();
+   if(!controlsLearned&&startedAt&&now-startedAt>10000){controlsLearned=true;const hint=document.getElementById("controlsHint");if(hint){hint.style.transition="opacity .8s";hint.style.opacity="0";setTimeout(()=>hint.remove(),900)}}
+   hands.rotation.y=0;const z=nearest();
    if(z){prompt.textContent=z.label;prompt.style.display="block";use.style.display="block"}else{prompt.style.display="none";use.style.display="none"}
    if(now-lastSave>15000){lastSave=now;localStorage.setItem("lcn-save",JSON.stringify({money,rep,rooms:[...rooms.values()].map(r=>({id:r.id,unlocked:r.unlocked,state:r.state,dirty:r.dirty}))}))}
    tickGuests()
