@@ -17,6 +17,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Download detailed licensed 3D assets
+        run: |
+          set -e
+          mkdir -p godot/assets
+          curl -L --fail --retry 3 -o godot/assets/luggage.glb https://raw.githubusercontent.com/TheMarco/liminal/main/models/cc_by/luggage/luggage.glb
+          curl -L --fail --retry 3 -o godot/assets/cleaning_cart.glb https://raw.githubusercontent.com/TheMarco/liminal/main/models/cc_by/cleaning_cart/cleaning_cart.glb
+
+      - name: Record asset licenses
+        run: |
+          cat > godot/assets/LICENSES.md <<'EOF'
+          Third-party assets used by the Last Call test build:
+          - Luggage — Niels Philipsen / n.philipsen — CC BY 4.0
+            https://sketchfab.com/3d-models/luggage-9b266e1dcb7f430597a8689e5602ad7e
+          - Cleaning Cart — ap-school — CC BY 4.0
+            https://sketchfab.com/3d-models/cleaning-cart-3a494d6aa0bf4f278a90041a41bc46b0
+          Source project: https://github.com/TheMarco/liminal
+          EOF
+
       - name: Build Godot Web export
         run: |
           rm -rf godot/build
@@ -30,7 +48,7 @@ jobs:
           cp -R godot/build/. godot-test/
           touch godot-test/.nojekyll
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@github.com"
           git add godot-test
-          git commit -m "Publish Unity-path first-person test build" || echo "No changes to publish"
+          git commit -m "Publish detailed hotel first-person test build" || echo "No changes to publish"
           git push
