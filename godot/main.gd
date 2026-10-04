@@ -9,6 +9,7 @@ var look_pointer := -1
 var move_pointer := -1
 var move_origin := Vector2.ZERO
 var speed := 5.8
+var fixed_y := 1.58
 var guest_nodes: Array[Node3D] = []
 var task_label: Label
 
@@ -169,7 +170,7 @@ func _make_door(p,wood2,brass,num):
 
 func _build_player():
     player=CharacterBody3D.new()
-    player.position=Vector3(0,.9,-7.0)
+    player.position=Vector3(0,fixed_y,-6.2)
     add_child(player)
     var cs:=CollisionShape3D.new()
     var cap:=CapsuleShape3D.new()
@@ -179,8 +180,12 @@ func _build_player():
     cs.position.y=.85
     player.add_child(cs)
     camera=Camera3D.new()
-    camera.position=Vector3(0,1.58,0)
+    camera.position=Vector3(0,0,0)
     camera.current=true
+    camera.fov=74.0
+    camera.near=0.05
+    camera.far=180.0
+    camera.keep_aspect=Camera3D.KEEP_HEIGHT
     player.add_child(camera)
 
 func _build_guests():
@@ -306,10 +311,12 @@ func _physics_process(delta):
     var dir=basis*Vector3(input.x,0,-input.y)
     player.velocity.x=dir.x*speed
     player.velocity.z=dir.z*speed
-    if not player.is_on_floor():
-        player.velocity.y-=16.0*delta
-    else:
-        player.velocity.y=0
+    player.velocity.y=0.0
     player.move_and_slide()
+    # Keep the first-person camera at eye height even if a mobile/Web collision edge case occurs.
+    player.global_position.y=fixed_y
+    player.global_position.x=clamp(player.global_position.x,-8.0,8.0)
+    player.global_position.z=clamp(player.global_position.z,-9.0,9.0)
     player.rotation.y=deg_to_rad(yaw)
     camera.rotation.x=deg_to_rad(pitch)
+    camera.position=Vector3(0,0,0)
