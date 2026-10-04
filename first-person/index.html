@@ -1,19 +1,19 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Last Call: Night Shift</title><meta name="build-deploy" content="2026-10-04B" data-deploy="2026-10-04B">
+<title>Last Call: Night Shift</title><meta name="build-deploy" content="2026-10-04K" data-deploy="2026-10-04K">
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05080c;font-family:Inter,system-ui,-apple-system,sans-serif;touch-action:none}
 #game{position:fixed;inset:0}canvas{display:block;width:100%;height:100%}
 #hud{position:fixed;inset:0;color:#fff;pointer-events:none}
 .pill{position:absolute;top:max(10px,env(safe-area-inset-top));padding:10px 14px;border-radius:18px;background:#071521d9;border:1px solid #ffffff22;box-shadow:0 8px 28px #0008;backdrop-filter:blur(14px);font-weight:850}
 #money{left:12px}#rep{left:145px}#task{left:50%;transform:translateX(-50%);max-width:min(560px,46vw);min-width:240px;white-space:normal;text-align:center;line-height:1.25;padding:11px 18px}
-#menu{position:absolute;right:12px;top:max(10px,env(safe-area-inset-top));width:46px;height:46px;border:1px solid #ffffff25;border-radius:15px;background:#071521d9;color:#fff;font-size:22px;pointer-events:auto}
+#menu{position:absolute;z-index:20;right:12px;top:max(10px,env(safe-area-inset-top));width:46px;height:46px;border:1px solid #ffffff25;border-radius:15px;background:#071521d9;color:#fff;font-size:22px;pointer-events:auto}
 #cross{position:absolute;left:50%;top:50%;width:18px;height:18px;transform:translate(-50%,-50%);opacity:.85}
 #cross:before,#cross:after{content:"";position:absolute;background:#fff;box-shadow:0 0 8px #000}#cross:before{width:18px;height:2px;top:8px}#cross:after{width:2px;height:18px;left:8px}
 #prompt{position:absolute;left:50%;bottom:22%;transform:translateX(-50%);padding:12px 18px;border-radius:15px;background:#f6efe2;color:#102638;font-weight:950;box-shadow:0 10px 30px #0009;display:none}
-#use{position:absolute;right:22px;bottom:25px;width:82px;height:82px;border-radius:50%;border:2px solid #ffffff35;background:#0c344ddd;color:#fff;font-weight:950;pointer-events:auto;display:none;box-shadow:0 12px 30px #0009}
-#joy{position:absolute;left:20px;bottom:22px;width:132px;height:132px;border-radius:50%;background:#082235b8;border:2px solid #ffffff35;pointer-events:auto}
+#use{position:absolute;z-index:20;right:22px;bottom:25px;width:82px;height:82px;border-radius:50%;border:2px solid #ffffff35;background:#0c344ddd;color:#fff;font-weight:950;pointer-events:auto;display:none;box-shadow:0 12px 30px #0009}
+#joy{position:absolute;z-index:20;left:20px;bottom:22px;width:132px;height:132px;border-radius:50%;background:#082235b8;border:2px solid #ffffff35;pointer-events:auto}
 #stick{position:absolute;width:58px;height:58px;left:35px;top:35px;border-radius:50%;background:#e8edf0e8;box-shadow:0 8px 20px #0009}
 #look{position:absolute;right:0;top:0;width:58%;height:72%;pointer-events:auto}
 #panel{position:fixed;inset:0;z-index:50;background:#05090eeF;display:none;align-items:center;justify-content:center;padding:20px;pointer-events:auto}
@@ -529,7 +529,7 @@ function joyStart(e){joyActive=true;if(joy.setPointerCapture)joy.setPointerCaptu
 function joyEnd(){joyActive=false;joyX=joyY=0;stick.style.transform=""}
 joy.addEventListener("pointerdown",joyStart);joy.addEventListener("pointermove",e=>{if(joyActive)joyMove(e)});joy.addEventListener("pointerup",joyEnd);joy.addEventListener("pointercancel",joyEnd);joy.addEventListener("lostpointercapture",joyEnd);
 const look=document.getElementById("look");
-function lookStart(e){if(e.pointerType==="mouse"&&e.button!==0)return;lastLook={x:e.clientX,y:e.clientY};if(look.setPointerCapture)look.setPointerCapture(e.pointerId);e.preventDefault()}
+function lookStart(e){if(e.target!==look)return;if(e.pointerType==="mouse"&&e.button!==0)return;lastLook={x:e.clientX,y:e.clientY};if(look.setPointerCapture)look.setPointerCapture(e.pointerId);e.preventDefault()}
 function lookMove(e){if(!lastLook)return;const dx=e.clientX-lastLook.x,dy=e.clientY-lastLook.y;lastLook={x:e.clientX,y:e.clientY};yaw-=dx*.006;pitch=Math.max(-1.15,Math.min(1.15,pitch-dy*.0045))}
 function lookEnd(){lastLook=null}
 look.addEventListener("pointerdown",lookStart);look.addEventListener("pointermove",lookMove);look.addEventListener("pointerup",lookEnd);look.addEventListener("pointercancel",lookEnd);look.addEventListener("lostpointercapture",lookEnd);
