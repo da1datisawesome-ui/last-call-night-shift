@@ -20,7 +20,7 @@ jobs:
         run: |
           cat > /tmp/smoke.mjs <<'EOF'
           import { chromium } from 'playwright';
-          const browser = await chromium.launch({headless:true});
+          const browser = await chromium.launch({headless:true,args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
           const page = await browser.newPage({viewport:{width:844,height:390},deviceScaleFactor:1,isMobile:true});
           const errors=[];
           page.on('pageerror',e=>errors.push(String(e)));
