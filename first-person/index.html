@@ -35,7 +35,7 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 const ART={floor:"#6a4a34",wall:"#d8c6a9",wood:"#75421f",dark:"#1d130d",brass:"#c99b4c",fabric:"#6f4149",cream:"#eee5d6"};
-const BUILD="AA-FIRST-PERSON-HOTEL-2026-10-04F";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
+const BUILD="AA-FIRST-PERSON-HOTEL-2026-10-04G";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
 const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.04,140);camera.position.set(-8.6,1.68,5.2);camera.rotation.order="YXZ";
 const renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:"high-performance",precision:mobile?"mediump":"highp"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.25:1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.physicallyCorrectLights=true;renderer.info.autoReset=false;document.getElementById("game").appendChild(renderer.domElement);
 let mainLoopStarted=false;
@@ -184,6 +184,29 @@ function roomAccents(z,side){
   l.position.set(17.0*s,1.35,z-1.2);scene.add(l);
 }
 for(const p of Object.values(roomLayout))roomAccents(p.z,p.side);
+
+// Architectural presentation pass: layered corridor coves, door reveals, wall sconces,
+// framed art and floor inlays give the guest wing a finished hotel identity.
+function corridorDetail(z,side){
+  const s=side;
+  box("doorReveal",6.08*s,2.05,z,0.12,3.72,1.92,darkTrim,false);
+  box("doorHeader",6.15*s,3.82,z,0.22,.16,2.05,trimMat,false);
+  box("doorThreshold",6.18*s,.08,z,0.18,.10,2.12,M.brass,false);
+  box("wallSconceBack",7.02*s,2.38,z,0.08,.52,.36,darkTrim,false);
+  box("wallSconceGlow",7.08*s,2.40,z,.04,.30,.20,mat("#f6d9a6",.24,.02),false);
+  const L=new THREE.PointLight(0xffc68d,mobile?.32:.55,3.6);
+  L.position.set(7.12*s,2.38,z);scene.add(L);
+}
+for(const p of Object.values(roomLayout))corridorDetail(p.z,p.side);
+for(const z of [-9,-1,7,15]){
+  box("runnerInset",0,.012,z,8.4,.025,.045,M.brass,false);
+  box("runnerInset",0,.012,z,8.4,.025,.045,M.brass,false);
+}
+for(const z of [-9,-1,7,15]){
+  box("artFrame",-4.8,2.65,z,1.15,.92,.08,trimMat,false);
+  box("art",-4.76,2.65,z,1.00,.77,.025,mat(z%2?"#4c6972":"#755046",.62),false);
+}
+
 
 // Premium corridor dressing: continuous guest circulation, repeated architectural rhythm and layered practical lighting.
 const runnerMat=mat("#574039",.88,0);
