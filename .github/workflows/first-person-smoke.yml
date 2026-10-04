@@ -25,21 +25,28 @@ jobs:
           const errors=[];
           page.on('pageerror',e=>errors.push(String(e)));
           page.on('console',m=>{if(m.type()==='error') errors.push(m.text())});
-          await page.goto('http://127.0.0.1:8080/first-person/',{waitUntil:'networkidle',timeout:30000});
+          console.log('OPENING');
+          await page.goto('http://127.0.0.1:8080/first-person/',{waitUntil:'domcontentloaded',timeout:30000});
           const start=page.locator('#start');
           await start.waitFor({state:'visible',timeout:10000});
-          await page.waitForFunction(()=>{const b=document.querySelector('#start');return b && !b.disabled},null,{timeout:20000});
+          console.log('TITLE_VISIBLE');
+          await page.waitForFunction(()=>{const b=document.querySelector('#start');return b && !b.disabled},null,{timeout:30000});
+          console.log('START_ENABLED');
+          await page.screenshot({path:'/tmp/first-person-before.png',fullPage:false});
           await start.click();
-          await page.waitForTimeout(2500);
+          await page.waitForTimeout(3000);
           const result=await page.evaluate(()=>({
             titleHidden:getComputedStyle(document.querySelector('#title')).display==='none',
             canvas:!!document.querySelector('canvas'),
             hudVisible:getComputedStyle(document.querySelector('#hud')).display!=='none',
-            started:!!window.__lastCallStart
+            started:!!window.__lastCallStart,
+            status:document.querySelector('#assetStatus')?.textContent||''
           }));
+          await page.screenshot({path:'/tmp/first-person-smoke.png',fullPage:false});
+          console.log('RESULT',JSON.stringify(result));
+          console.log('PAGE_ERRORS',JSON.stringify(errors));
           if(errors.length) throw new Error('Browser errors: '+errors.join(' | '));
           if(!result.titleHidden || !result.canvas || !result.hudVisible || !result.started) throw new Error('Startup assertion failed: '+JSON.stringify(result));
-          await page.screenshot({path:'/tmp/first-person-smoke.png',fullPage:false});
           console.log('FIRST_PERSON_SMOKE_PASS',JSON.stringify(result));
           await browser.close();
           EOF
@@ -48,4 +55,4 @@ jobs:
         if: always()
         with:
           name: first-person-smoke-screenshot
-          path: /tmp/first-person-smoke.png
+          path: /tmp/first-person-before.png\n          path: /tmp/first-person-smoke.png
