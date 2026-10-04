@@ -1,0 +1,36 @@
+name: Build and publish Last Call test
+
+on:
+  push:
+    paths:
+      - 'godot/**'
+      - '.github/workflows/godot-web-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Godot Web export
+        run: |
+          rm -rf godot/build
+          mkdir -p godot/build
+          docker run --rm             -v "$PWD/godot:/project"             -w /project             barichello/godot-ci:4.4.1             godot --headless --path /project --export-release "Web" /project/build/index.html
+
+      - name: Publish build into GitHub Pages site
+        run: |
+          rm -rf godot-test
+          mkdir -p godot-test
+          cp -R godot/build/. godot-test/
+          touch godot-test/.nojekyll
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add godot-test
+          git commit -m "Publish Unity-path first-person test build" || echo "No changes to publish"
+          git push
