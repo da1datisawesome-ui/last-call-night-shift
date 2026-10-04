@@ -27,7 +27,7 @@ function B(n,x,y,z,w,h,d,m,hit=true){let q=BABYLON.MeshBuilder.CreateBox(n,{widt
 function Cc(n,x,y,z,r,h,m){let q=BABYLON.MeshBuilder.CreateCylinder(n,{diameter:r*2,height:h,tessellation:24},S);q.position.set(x,y,z);q.material=m;return q}
 function person(name,x,z,body){const root=new BABYLON.TransformNode(name,S);const torso=B("torso",0,1.05,0,.55,1.05,.34,body,false);torso.parent=root;const head=Cc("head",0,1.75,0,.22,.34,skin);head.parent=root;const a=B("leg",-.15,.42,0,.18,.75,.2,charcoal,false);a.parent=root;const b=a.clone("leg2");b.position.x=.15;b.parent=root;root.position.set(x,0,z);return root}
 function label(t,x,y,z){let p=B("label",x,y,z,1.6,.34,.04,charcoal,false);let d=new BABYLON.DynamicTexture("txt",{width:512,height:110},S,true);d.hasAlpha=true;d.drawText(t,24,74,"bold 54px Arial","#efe5ca","transparent",true);let m=new BABYLON.StandardMaterial("txtmat",S);m.diffuseTexture=d;p.material=m}
-function room(z,side,num){const x=side*6.2;B("wall",x,1.7,z,5.8,3.4,5.6,cream);B("door",side*3.72,1.15,z,.18,2.3,1.15,charcoal);label(String(num),side*3.6,2.5,z);B("bed",x+side*.45,.42,z,2.4,.45,3.1,linen);B("headboard",x+side*.45,1.2,z+1.48,2.4,1.45,.18,oak);B("desk",x-side*.6,.72,z-1.35,1.6,1.25,.65,oak);Cc("lamp",x+side*.8,1.55,z-1.35,.08,.6,brass)}
+function room(z,side,num){const x=side*6.55;B("outerwall",x,1.7,z,4.9,3.4,5.6,cream);B("doorframe",side*3.68,1.35,z,.22,2.7,1.35,charcoal);label(String(num),side*3.52,2.58,z);B("bed",x-side*.35,.42,z,2.4,.45,3.1,linen);B("headboard",x-side*.35,1.2,z+1.48,2.4,1.45,.18,oak);B("desk",x-side*.55,.72,z-1.35,1.6,1.25,.65,oak);Cc("lamp",x+side*.75,1.55,z-1.35,.08,.6,brass)}
 // New compact hotel composition: central spine, deep side rooms, reception vista, no broad empty map.
 B("base",0,-.2,0,15,.35,36,oak);B("runner",0,.01,0,3.7,.05,35,carpet,false);
 B("leftWing",-6.1,1.7,0,5.5,3.4,35,cream);B("rightWing",6.1,1.7,0,5.5,3.4,35,cream);
@@ -43,6 +43,8 @@ const path=[new BABYLON.Vector3(0,0,9),new BABYLON.Vector3(0,0,6),new BABYLON.Ve
 let state="waiting",pi=0,task="Head to reception.",near=false;
 function setTask(t){task=t;document.getElementById("task").textContent=t}
 const light=new BABYLON.HemisphericLight("fill",new BABYLON.Vector3(0,1,0),S);light.intensity=.45;
+S.fogMode=BABYLON.Scene.FOGMODE_EXP2;S.fogDensity=.012;S.fogColor=new BABYLON.Color3(.008,.012,.018);
+const pipeline=new BABYLON.DefaultRenderingPipeline("mobileQuality",true,S,[cam]);pipeline.samples=1;pipeline.fxaaEnabled=true;pipeline.imageProcessingEnabled=true;pipeline.imageProcessing.contrast=1.12;pipeline.imageProcessing.exposure=1.02;
 const key=new BABYLON.DirectionalLight("key",new BABYLON.Vector3(-.3,-1,.25),S);key.position.set(6,9,8);key.intensity=1.2;
 for(const p of [[-5,2,8],[5,2,8],[-5,2,0],[5,2,0],[-5,2,-8],[5,2,-8]]){const l=new BABYLON.PointLight("warm",new BABYLON.Vector3(p[0],p[1],p[2]),S);l.diffuse=new BABYLON.Color3(1,.78,.55);l.intensity=18;l.range=9}
 function dist(a,b){return BABYLON.Vector3.Distance(a,b)}
