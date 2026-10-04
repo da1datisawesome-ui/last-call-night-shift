@@ -12,6 +12,9 @@ var speed := 5.8
 var fixed_y := 1.58
 var guest_nodes: Array[Node3D] = []
 var task_label: Label
+var action_button: Button
+var action_mode := ""
+var guest_states := []
 
 func _ready():
     _build_environment()
@@ -189,53 +192,114 @@ func _build_player():
     player.add_child(camera)
 
 func _build_guests():
+    var starts=[Vector3(-1.2,0,-7.0),Vector3(0.8,0,-6.6),Vector3(1.8,0,-7.4)]
+    var rooms=[Vector3(-2.05,0,4.5),Vector3(2.05,0,4.5),Vector3(-2.05,0,.5)]
     for i in range(3):
-        guest_nodes.append(_make_guest(Vector3(-1.0,.0,5.0-i*4.0)))
+        var g=_make_guest(starts[i],i)
+        guest_nodes.append(g)
+        guest_states.append({"checked_in":false,"luggage":false,"target":rooms[i],"room":101+i})
 
-func _make_guest(pos):
+func _make_guest(pos,index):
     var root:=Node3D.new()
     root.position=pos
+    root.set_meta("guest_index",index)
     add_child(root)
-    var skin=mat(Color("#b97858"),.72)
-    var suit=mat(Color("#1c2730"),.65)
-    var shirt=mat(Color("#ece8dc"),.9)
+    var skin=mat(Color("#b97858"),.62)
+    var hair=mat(Color("#3a2924"),.72)
+    var suit=mat([Color("#26323b"),Color("#5b3d35"),Color("#2d3e34")][index],.48)
+    var shirt=mat(Color("#eee9df"),.88)
+    var tie=mat([Color("#8e3b32"),Color("#334e72"),Color("#8a6a2d")][index],.45)
+    var shoe=mat(Color("#201b19"),.35)
+    # Smooth, rounded character proportions rather than box primitives.
     var head:=CSGSphere3D.new()
-    head.radius=.23
-    head.height=.48
-    head.position=Vector3(0,1.75,0)
-    head.material=skin
-    root.add_child(head)
-    box_at(root,Vector3(0,1.05,0),Vector3(.62,.95,.36),suit)
-    cyl_at(root,Vector3(-.16,.45,0),.10,.82,suit)
-    cyl_at(root,Vector3(.16,.45,0),.10,.82,suit)
-    cyl_at(root,Vector3(-.40,1.05,0),.065,.72,shirt)
-    cyl_at(root,Vector3(.40,1.05,0),.065,.72,shirt)
+    head.radius=.27; head.height=.56; head.position=Vector3(0,1.78,0); head.material=skin; root.add_child(head)
+    var haircap:=CSGSphere3D.new()
+    haircap.radius=.285; haircap.height=.28; haircap.position=Vector3(0,2.02,0); haircap.material=hair; root.add_child(haircap)
+    var torso:=CSGCylinder3D.new()
+    torso.radius=.31; torso.height=.82; torso.sides=32; torso.position=Vector3(0,1.18,0); torso.material=suit; root.add_child(torso)
+    var collar:=CSGCylinder3D.new()
+    collar.radius=.13; collar.height=.09; collar.sides=32; collar.position=Vector3(0,1.56,-.02); collar.material=shirt; root.add_child(collar)
+    var tie_node:=CSGBox3D.new()
+    tie_node.size=Vector3(.075,.34,.035); tie_node.position=Vector3(0,1.38,-.28); tie_node.material=tie; root.add_child(tie_node)
+    for x in [-.15,.15]:
+        var arm:=CSGCylinder3D.new()
+        arm.radius=.105; arm.height=.72; arm.sides=24; arm.position=Vector3(x,1.18,0); arm.rotation.z=deg_to_rad(x*22); arm.material=shirt; root.add_child(arm)
+        var hand:=CSGSphere3D.new()
+        hand.radius=.105; hand.height=.21; hand.position=Vector3(x*1.45,.80,0); hand.material=skin; root.add_child(hand)
+    for x in [-.16,.16]:
+        var leg:=CSGCylinder3D.new()
+        leg.radius=.12; leg.height=.72; leg.sides=24; leg.position=Vector3(x,.55,0); leg.material=suit; root.add_child(leg)
+        var foot:=CSGSphere3D.new()
+        foot.radius=.14; foot.height=.30; foot.position=Vector3(x,.17,-.10); foot.material=shoe; root.add_child(foot)
     var name:=Label3D.new()
-    name.text="GUEST"
-    name.position=Vector3(0,2.15,0)
-    name.font_size=18
+    name.text=["ALEX","SAM","JORDAN"][index]
+    name.position=Vector3(0,2.35,0)
+    name.font_size=22
     name.modulate=Color("#f4eee2")
     root.add_child(name)
     return root
 
-func box_at(parent,pos,size,material):
-    var b:=CSGBox3D.new()
-    b.position=pos
-    b.size=size
-    b.material=material
-    parent.add_child(b)
-    return b
+func _guest_nearby():
+    var best=-1
+    var dist=999.0
+    for i in range(guest_nodes.size()):
+        var d=player.global_position.distance_to(guest_nodes[i].global_position)
+        if d<dist:
+            dist=d; best=i
+    return best if dist<2.5 else -1
 
-func cyl_at(parent,pos,r,h,material):
-    var c:=CSGCylinder3D.new()
-    c.position=pos
-    c.radius=r
-    c.height=h
-    c.sides=24
-    c.material=material
-    parent.add_child(c)
-    return c
+func _set_action(mode:String, label:String):
+    action_mode=mode
+    action_button.text=label
+    action_button.visible=true
 
+func _update_interaction():
+    if action_button==null:
+        return
+    var i=_guest_nearby()
+    if i<0:
+        action_button.visible=false
+        action_mode=""
+        task_label.text="TASK: Move to the arriving guests at reception"
+        return
+    if not guest_states[i].checked_in:
+        _set_action("checkin","CHECK IN")
+        task_label.text="TASK: Check in guest "+str(i+1)
+    elif not guest_states[i].luggage:
+        _set_action("luggage","COLLECT LUGGAGE")
+        task_label.text="TASK: Collect luggage from guest "+str(i+1)
+    else:
+        action_button.visible=false
+        task_label.text="TASK: Guest is walking to Room "+str(guest_states[i].room)
+
+func _do_action():
+    var i=_guest_nearby()
+    if i<0:
+        return
+    if action_mode=="checkin":
+        guest_states[i].checked_in=true
+        task_label.text="CHECKED IN • Room "+str(guest_states[i].room)+" assigned"
+        _set_action("luggage","COLLECT LUGGAGE")
+    elif action_mode=="luggage":
+        guest_states[i].luggage=true
+        action_button.visible=false
+        task_label.text="LUGGAGE COLLECTED • Guest heading to Room "+str(guest_states[i].room)
+
+func _move_guests(delta):
+    for i in range(guest_nodes.size()):
+        if i>=guest_states.size() or not guest_states[i].luggage:
+            continue
+        var g=guest_nodes[i]
+        var target:Vector3=guest_states[i].target
+        var p=g.global_position
+        var next=Vector3(target.x,p.y,target.z)
+        var d=p.distance_to(next)
+        if d>.15:
+            g.global_position=p+(next-p).normalized()*min(1.9*delta,d)
+            g.look_at(Vector3(target.x,p.y,target.z),Vector3.UP)
+        else:
+            guest_states[i].luggage=false
+            g.set_meta("arrived",true)
 func _load_detail_assets():
     _instance_glb("res://assets/luggage.glb",Vector3(-1.75,.42,-7.0),Vector3(.7,.7,.7))
     _instance_glb("res://assets/cleaning_cart.glb",Vector3(-7.1,.0,-5.8),Vector3(.9,.9,.9))
@@ -269,6 +333,14 @@ func _build_hud():
     task_label.position=Vector2(24,78)
     task_label.add_theme_font_size_override("font_size",15)
     layer.add_child(task_label)
+    action_button=Button.new()
+    action_button.text="CHECK IN"
+    action_button.position=Vector2(1030,510)
+    action_button.size=Vector2(190,64)
+    action_button.add_theme_font_size_override("font_size",20)
+    action_button.pressed.connect(_do_action)
+    action_button.visible=false
+    layer.add_child(action_button)
     var move:=Label.new()
     move.text="◉ MOVE\nDrag on LEFT"
     move.position=Vector2(40,610)
@@ -320,3 +392,5 @@ func _physics_process(delta):
     player.rotation.y=deg_to_rad(yaw)
     camera.rotation.x=deg_to_rad(pitch)
     camera.position=Vector3(0,0,0)
+    _update_interaction()
+    _move_guests(delta)
