@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Last Call: Night Shift — New Build</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07090c;font-family:system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none;color:#fff}
+#c{width:100%;height:100%;display:block}.screen{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,#253443 0,#090d12 52%,#030507 100%)}.panel{width:min(600px,88vw);padding:42px;border:1px solid #ffffff1c;border-radius:28px;background:#0b1118e8;box-shadow:0 35px 100px #000c}.eyebrow{font-size:11px;letter-spacing:.32em;color:#9eacb9}.title{font-size:clamp(48px,9vw,86px);font-weight:900;letter-spacing:.035em;line-height:.86;margin:12px 0}.copy{color:#aeb9c4;line-height:1.55;margin:20px 0 28px}.btn{width:100%;border:0;border-radius:14px;padding:16px;margin:6px 0;font-weight:800;font-size:15px;background:#eef2f5;color:#10151a}.btn.alt{background:#1a232d;color:#e8edf2}.hidden{display:none!important}
+#hud{position:fixed;inset:0;z-index:8;pointer-events:none}.top{position:absolute;left:18px;right:18px;top:15px;display:flex;justify-content:space-between;align-items:center}.pill{padding:9px 12px;border:1px solid #ffffff18;border-radius:12px;background:#070b10b8;backdrop-filter:blur(10px);font-size:12px}.task{position:absolute;top:62px;left:50%;transform:translateX(-50%);max-width:72vw}.hint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:11px;color:#aeb8c1;background:#05080cb8;padding:8px 11px;border-radius:10px;transition:opacity 1s}.use{position:absolute;right:25px;bottom:38px;width:74px;height:74px;border-radius:50%;display:none;place-items:center;background:#eef2f5;color:#111;font-weight:900;box-shadow:0 8px 30px #0009}
+#stick{position:fixed;left:24px;bottom:24px;width:138px;height:138px;border-radius:50%;z-index:9;border:1px solid #ffffff18;background:#ffffff09;display:none}.knob{position:absolute;width:60px;height:60px;left:39px;top:39px;border-radius:50%;background:#ffffff22;border:1px solid #ffffff2d}.lookzone{position:fixed;right:0;top:0;width:55%;height:100%;z-index:7;display:none}
+#pause{position:fixed;inset:0;z-index:30;background:#020508dd;display:none;place-items:center}.menu{width:min(400px,86vw);padding:28px;border-radius:22px;background:#101720;border:1px solid #ffffff18}.menu h2{margin-top:0}.row{display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #ffffff12;color:#cdd6de}
+</style></head><body>
+<canvas id="c"></canvas>
+<section id="title" class="screen"><div class="panel"><div class="eyebrow">A FIRST-PERSON HOTEL SIMULATION</div><div class="title">LAST CALL</div><div class="eyebrow">NIGHT SHIFT</div><div class="copy">A new mobile-first build. Work the reception desk, move through a believable hotel, and keep the night running.</div><button class="btn" id="play">START NIGHT 1</button><button class="btn alt" id="opt">OPTIONS</button><div style="font-size:11px;color:#687581;margin-top:18px">NEW RUNTIME · MOBILE PERFORMANCE BUILD</div></div></section>
+<div id="hud" class="hidden"><div class="top"><div class="pill">LAST CALL · 23:48</div><div class="pill" id="money">$120</div></div><div class="pill task" id="task">Head to reception.</div><div class="hint" id="hint">LEFT THUMB: MOVE · RIGHT SIDE: LOOK</div><div class="use" id="use">USE</div></div>
+<div id="stick"><div class="knob" id="knob"></div></div><div class="lookzone" id="look"></div>
+<div id="pause"><div class="menu"><h2>Night Shift</h2><div class="row"><span>Music</span><b>ON</b></div><div class="row"><span>Sound effects</span><b>ON</b></div><div class="row"><span>Ambience</span><b>ON</b></div><button class="btn" id="resume">RESUME</button></div></div>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script>
+(()=>{"use strict";
+const C=document.getElementById("c"),E=new BABYLON.Engine(C,true,{antialias:true,adaptToDeviceRatio:true,preserveDrawingBuffer:false,stencil:false},true);
+E.setHardwareScalingLevel(Math.min(1.35,Math.max(1,devicePixelRatio*.72)));
+const S=new BABYLON.Scene(E);S.clearColor=new BABYLON.Color4(.008,.012,.018,1);S.collisionsEnabled=true;S.gravity=new BABYLON.Vector3(0,-.55,0);
+const cam=new BABYLON.UniversalCamera("player",new BABYLON.Vector3(0,1.72,10.8),S);cam.checkCollisions=true;cam.applyGravity=true;cam.ellipsoid=new BABYLON.Vector3(.32,.84,.32);cam.minZ=.06;cam.maxZ=80;cam.speed=.12;cam.inertia=.18;S.activeCamera=cam;
+const col={};function M(n,h,r=.65,met=0){const m=new BABYLON.PBRMaterial(n,S);m.albedoColor=BABYLON.Color3.FromHexString(h);m.roughness=r;m.metallic=met;return col[n]=m}
+const oak=M("oak","#3a2b21",.62),cream=M("cream","#c9c1b4",.86),charcoal=M("charcoal","#151a20",.52),carpet=M("carpet","#1f2730",.98),brass=M("brass","#a88345",.25,.7),linen=M("linen","#ded9ce",.92),blue=M("uniform","#263e55",.68),skin=M("skin","#9b6b52",.82),green=M("plant","#355344",.9),red=M("accent","#6e3030",.55);
+function B(n,x,y,z,w,h,d,m,hit=true){let q=BABYLON.MeshBuilder.CreateBox(n,{width:w,height:h,depth:d},S);q.position.set(x,y,z);q.material=m;q.checkCollisions=hit;return q}
+function Cc(n,x,y,z,r,h,m){let q=BABYLON.MeshBuilder.CreateCylinder(n,{diameter:r*2,height:h,tessellation:24},S);q.position.set(x,y,z);q.material=m;return q}
+function person(name,x,z,body){const root=new BABYLON.TransformNode(name,S);const torso=B("torso",0,1.05,0,.55,1.05,.34,body,false);torso.parent=root;const head=Cc("head",0,1.75,0,.22,.34,skin);head.parent=root;const a=B("leg",-.15,.42,0,.18,.75,.2,charcoal,false);a.parent=root;const b=a.clone("leg2");b.position.x=.15;b.parent=root;root.position.set(x,0,z);return root}
+function label(t,x,y,z){let p=B("label",x,y,z,1.6,.34,.04,charcoal,false);let d=new BABYLON.DynamicTexture("txt",{width:512,height:110},S,true);d.hasAlpha=true;d.drawText(t,24,74,"bold 54px Arial","#efe5ca","transparent",true);let m=new BABYLON.StandardMaterial("txtmat",S);m.diffuseTexture=d;p.material=m}
+function room(z,side,num){const x=side*6.2;B("wall",x,1.7,z,5.8,3.4,5.6,cream);B("door",side*3.72,1.15,z,.18,2.3,1.15,charcoal);label(String(num),side*3.6,2.5,z);B("bed",x+side*.45,.42,z,2.4,.45,3.1,linen);B("headboard",x+side*.45,1.2,z+1.48,2.4,1.45,.18,oak);B("desk",x-side*.6,.72,z-1.35,1.6,1.25,.65,oak);Cc("lamp",x+side*.8,1.55,z-1.35,.08,.6,brass)}
+// New compact hotel composition: central spine, deep side rooms, reception vista, no broad empty map.
+B("base",0,-.2,0,15,.35,36,oak);B("runner",0,.01,0,3.7,.05,35,carpet,false);
+B("leftWing",-6.1,1.7,0,5.5,3.4,35,cream);B("rightWing",6.1,1.7,0,5.5,3.4,35,cream);
+B("rear",0,1.7,-17.7,15,3.4,.35,cream);B("front",0,1.7,17.7,15,3.4,.35,cream);
+[[ -13,-1,101],[-13,1,102],[-6,-1,103],[-6,1,104],[1,-1,105],[1,1,106],[8,-1,107],[8,1,108],[15,-1,109],[15,1,110]].forEach(a=>room(a[0],a[1],a[2]));
+for(let z=-15;z<=15;z+=6)B("ceiling",0,3.35,z,15,.16,5.8,charcoal,false);
+B("reception",0,.5,10.8,5.4,1.0,1.25,charcoal);B("counter",0,1.05,10.8,5.0,.14,1.35,brass);
+B("backwall",0,1.9,12.3,5.8,3.8,.22,charcoal);label("RECEPTION",0,2.65,12.16);
+B("lobbytable",0,.48,7.5,1.6,.2,1.0,oak);Cc("plant",-2.0,.7,7.3,.35,1.8,green);Cc("plant",2.0,.7,7.3,.35,1.8,green);
+const kitchenX=-7.0;B("kitchen",kitchenX,1.55,10.5,1.8,3.1,5.0,charcoal);B("counterK",kitchenX+.1,.9,10.5,1.4,.15,4.4,brass);label("KITCHEN",-7,2.65,8.0);
+const concierge=person("staff",0,9.5,blue);const guest=person("guest",0,9.0,red);guest.setEnabled(false);
+const path=[new BABYLON.Vector3(0,0,9),new BABYLON.Vector3(0,0,6),new BABYLON.Vector3(0,0,0),new BABYLON.Vector3(0,0,-6),new BABYLON.Vector3(-3.0,0,-6),new BABYLON.Vector3(-4.9,0,-6)];
+let state="waiting",pi=0,task="Head to reception.",near=false;
+function setTask(t){task=t;document.getElementById("task").textContent=t}
+const light=new BABYLON.HemisphericLight("fill",new BABYLON.Vector3(0,1,0),S);light.intensity=.45;
+const key=new BABYLON.DirectionalLight("key",new BABYLON.Vector3(-.3,-1,.25),S);key.position.set(6,9,8);key.intensity=1.2;
+for(const p of [[-5,2,8],[5,2,8],[-5,2,0],[5,2,0],[-5,2,-8],[5,2,-8]]){const l=new BABYLON.PointLight("warm",new BABYLON.Vector3(p[0],p[1],p[2]),S);l.diffuse=new BABYLON.Color3(1,.78,.55);l.intensity=18;l.range=9}
+function dist(a,b){return BABYLON.Vector3.Distance(a,b)}
+function startGuest(){guest.setEnabled(true);state="walking";pi=1;setTask("Welcome the guest at reception.");}
+function interact(){if(state==="waiting"){startGuest();return}if(state==="walking"&&dist(cam.position,guest.position)<2.4){state="escorted";setTask("Follow the guest to their room.");return}if(state==="escorted"&&dist(cam.position,guest.position)<2.8&&pi>=path.length-1){state="done";setTask("Night 1 · Guest settled. Next task incoming.");}}
+let moveX=0,moveY=0,lookX=0,lookY=0,lastX=0,lastY=0;
+const stick=document.getElementById("stick"),knob=document.getElementById("knob"),look=document.getElementById("look");
+stick.addEventListener("pointerdown",e=>{stick.setPointerCapture(e.pointerId);const r=stick.getBoundingClientRect();let f=(e)=>{let dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),l=Math.hypot(dx,dy),mx=55;if(l>mx){dx*=mx/l;dy*=mx/l}knob.style.transform=`translate(${dx}px,${dy}px)`;moveX=dx/mx;moveY=dy/mx};f(e);stick.onpointermove=f;stick.onpointerup=()=>{moveX=moveY=0;knob.style.transform="";stick.onpointermove=null}});
+look.addEventListener("pointerdown",e=>{lastX=e.clientX;lastY=e.clientY;look.setPointerCapture(e.pointerId);look.onpointermove=q=>{const dx=q.clientX-lastX,dy=q.clientY-lastY;lastX=q.clientX;lastY=q.clientY;cam.rotation.y+=dx*.004;cam.rotation.x=Math.max(-1.2,Math.min(1.2,cam.rotation.x+dy*.0025))}});
+document.getElementById("play").onclick=()=>{document.getElementById("title").classList.add("hidden");document.getElementById("hud").classList.remove("hidden");stick.style.display="block";look.style.display="block";setTimeout(()=>document.getElementById("hint").style.opacity="0",7000);};
+document.getElementById("use").onclick=interact;
+document.getElementById("opt").onclick=()=>document.getElementById("pause").style.display="grid";
+document.getElementById("resume").onclick=()=>document.getElementById("pause").style.display="none";
+window.addEventListener("keydown",e=>{if(e.key==="w")moveY=-1;if(e.key==="s")moveY=1;if(e.key==="a")moveX=-1;if(e.key==="d")moveX=1;if(e.key==="e")interact()});window.addEventListener("keyup",e=>{if("wasd".includes(e.key))moveX=moveY=0});
+let last=performance.now();
+E.runRenderLoop(()=>{const now=performance.now(),dt=Math.min(32,now-last);last=now;
+const f=cam.getDirection(BABYLON.Axis.Z),r=cam.getDirection(BABYLON.Axis.X);let v=f.scale(-moveY).add(r.scale(moveX));if(v.lengthSquared()>1)v.normalize();cam.cameraDirection=v.scale(cam.speed*dt/16);
+if(state==="waiting"&&dist(cam.position,guest.position)<2.5){near=true;document.getElementById("use").style.display="grid"}else if(state!=="done"&&dist(cam.position,guest.position)<2.7){near=true;document.getElementById("use").style.display="grid"}else{near=false;document.getElementById("use").style.display="none"}
+if(state==="walking"||state==="escorted"){const target=path[pi];const d=target.subtract(guest.position);if(d.length()<.18){pi++;if(pi>=path.length){pi=path.length-1;state="escorted";setTask("Guest is at Room 103. Interact to complete check-in.");} }else{d.normalize();guest.position.addInPlace(d.scale(.018*dt));guest.rotation.y=Math.atan2(d.x,d.z)}}
+S.render()});
+window.addEventListener("resize",()=>E.resize());
+})();
+</script></body></html>
