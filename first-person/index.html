@@ -487,7 +487,7 @@ function updateGuestWalk(g,dt){
   g.mesh.position.z+=dz/dist*step;
   faceGuest(g,t.x,t.z);
 }
-function spawnGuest(){if(guests.some(g=>g.state==="waiting"||g.state==="luggage"))return;const g=guests.find(x=>x.state==="idle");if(!g)return;g.state="waiting";g.room=null;g.mesh.position.set(-7.4,0,6.5);g.mesh.visible=true;setTask("🔑 CURRENT TASK: Check in "+g.name+" at reception")}
+function spawnGuest(){if(guests.some(g=>g.state==="waiting"||g.state==="luggage"||g.state==="walking"||g.state==="staying"||g.state==="service"||g.state==="checkout"))return;const g=guests.find(x=>x.state==="idle");if(!g)return;g.state="waiting";g.room=null;g.mesh.position.set(-7.4,0,6.5);g.mesh.visible=true;setTask("🔑 CURRENT TASK: Check in "+g.name+" at reception")}
 function checkIn(g){const r=firstRoom();if(!r){toast("No clean unlocked rooms available");return}r.state="occupied";r.guest=g;g.room=r.id;g.state="luggage";money+=100;rep++;luggage=box("luggage",-7.5,.55,5,.7,1,.5,M.blue);setTask("🧳 CURRENT TASK: Pick up luggage for Room "+r.id+" at reception");toast("+$100 • Guest checked in");ui()}
 function pickupLuggage(){if(!luggage)return;carrying="luggage";scene.remove(luggage);luggage=null;setTask("🧳 CURRENT TASK: Walk to Room "+guests.find(g=>g.state==="luggage").room+" and deliver the luggage")}
 function deliverLuggage(){const g=guests.find(x=>x.state==="luggage"&&x.room);if(!g||carrying!=="luggage")return;carrying=null;g.mesh.visible=true;beginGuestWalk(g);setTask("Guest walking to Room "+g.room);toast("Luggage delivered • guest walking to room")}
