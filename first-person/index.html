@@ -35,9 +35,9 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 const ART={floor:"#6a4a34",wall:"#d8c6a9",wood:"#75421f",dark:"#1d130d",brass:"#c99b4c",fabric:"#6f4149",cream:"#eee5d6"};
-const BUILD="AA-FIRST-PERSON-HOTEL-2026-10-04M";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
+const BUILD="AA-FIRST-PERSON-HOTEL-2026-10-04P";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
 const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.04,140);camera.position.set(-8.6,1.68,5.2);camera.rotation.order="YXZ";
-const renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:"high-performance",precision:mobile?"mediump":"highp",stencil:false,depth:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.15:1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!mobile;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.physicallyCorrectLights=true;renderer.info.autoReset=false;document.getElementById("game").appendChild(renderer.domElement);
+const renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:"high-performance",precision:mobile?"mediump":"highp",stencil:false,depth:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.0:1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!mobile;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.physicallyCorrectLights=true;renderer.info.autoReset=false;document.getElementById("game").appendChild(renderer.domElement);
 let mainLoopStarted=false;
 const runtimeError=(e)=>{
   console.error("LAST CALL runtime error",e);
@@ -67,7 +67,7 @@ const trimMat=mat("#9a7651",.36,.18), darkTrim=mat("#33251d",.3,.35), mirrorMat=
 box("floor",0,-.1,0,44,.2,34,M.floor,false);box("ceiling",0,4.2,0,44,.15,34,M.dark,false);
 box("north",0,2.1,-17,44,4.2,.3,M.wall);box("south",0,2.1,17,44,4.2,.3,M.wall);box("westA",-22,2.1,-6.25,.3,4.2,21.5,M.wall);box("westB",-22,2.1,13.75,.3,4.2,6.5,M.wall);box("east",22,2.1,0,.3,4.2,34,M.wall);
 for(let x=-20;x<=20;x+=4){box("trim",x,.42,-16.8,3.3,.16,.08,M.wood,false);box("trim",x,.42,16.8,3.3,.16,.08,M.wood,false)}
-for(let x=-18;x<=18;x+=9){box("beam",x,4.02,0,4.7,.18,.2,M.dark,false);{const L=new THREE.PointLight(0xffd4a4,2.5,10);L.position.set(x,3.55,0);scene.add(L)}box("ceilingFixture",x,3.94,0,1.25,.08,.35,M.brass,false);box("ceilingGlow",x,3.89,0,.9,.035,.18,mat("#fff1d5",.2),false)}
+for(let x=-18;x<=18;x+=9){box("beam",x,4.02,0,4.7,.18,.2,M.dark,false);if(!mobile){const L=new THREE.PointLight(0xffd4a4,2.5,10);L.position.set(x,3.55,0);scene.add(L)}box("ceilingFixture",x,3.94,0,1.25,.08,.35,M.brass,false);const glow=mat("#fff1d5",.2);glow.emissive=new THREE.Color("#fff1d5");glow.emissiveIntensity=1.8;box("ceilingGlow",x,3.89,0,.9,.035,.18,glow,false)}
 for(const x of [-19,-7,5,17]){box("wallSconce",x,2.65,-16.72,.28,.65,.1,M.brass,false);{const q=new THREE.PointLight(0xffc88f,1.25,5);q.position.set(x,2.7,-16.2);scene.add(q)}}
 
 function label(t,x,y,z,size=.38){const c=document.createElement("canvas");c.width=512;c.height=128;const g=c.getContext("2d");g.font="900 48px system-ui";g.textAlign="center";g.textBaseline="middle";g.fillStyle="#fff";g.shadowColor="#000";g.shadowBlur=12;g.fillText(t,256,64);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false}));s.position.set(x,y,z);s.scale.set(size*4,size,1);scene.add(s)}
@@ -521,41 +521,32 @@ return null}
 function nearest(){let best=null,bd=999;for(const z of zones){const d=camera.position.distanceTo(z.pos);if(d<z.range&&d<bd){if(z.name==="Reception"&&!guests.some(g=>g.state==="waiting"))continue;if(z.name==="Luggage"&&!luggage)continue;if(z.name==="Kitchen"&&(!serviceTarget||carrying))continue;if(z.name==="Housekeeping"&&(!cleaningTarget||carrying))continue;best=z;bd=d}}const rz=roomZone();if(rz){const d=camera.position.distanceTo(rz.pos);if(d<rz.range&&d<bd)best=rz}return best}
 
 // Manual movement and collision
-const keys={};let joyX=0,joyY=0,yaw=0,pitch=0,lastLook=null,joyActive=false;
+const keys={};let joyX=0,joyY=0,yaw=0,pitch=0,joyPointerId=null,lookPointerId=null,joyTouchId=null,lookTouchId=null;
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(e.key==="Escape")openMenu()});addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
-const joy=document.getElementById("joy"),stick=document.getElementById("stick");
-function joyPoint(e){return e.touches?.[0]||e.changedTouches?.[0]||e}
-function joyMove(e){const p=joyPoint(e),r=joy.getBoundingClientRect(),x=p.clientX-r.left-r.width/2,y=p.clientY-r.top-r.height/2,m=Math.min(54,Math.hypot(x,y)),ang=Math.atan2(y,x);joyX=Math.cos(ang)*m/54;joyY=Math.sin(ang)*m/54;stick.style.transform="translate("+joyX*46+"px,"+joyY*46+"px)"}
-function joyStart(e){joyActive=true;joyMove(e);e.preventDefault();if(e.pointerId!=null&&joy.setPointerCapture)joy.setPointerCapture(e.pointerId)}
-function joyEnd(){joyActive=false;joyX=joyY=0;stick.style.transform=""}
-if(mobile){
-  joy.addEventListener("touchstart",joyStart,{passive:false});
-  joy.addEventListener("touchmove",joyMove,{passive:false});
-  joy.addEventListener("touchend",joyEnd,{passive:false});
-  joy.addEventListener("touchcancel",joyEnd,{passive:false});
+const joy=document.getElementById("joy"),stick=document.getElementById("stick"),look=document.getElementById("look");
+function pointForTouch(list,id){for(const t of list||[]){if(t.identifier===id)return t}return null}
+function setJoyFromPoint(p){if(!p)return;const r=joy.getBoundingClientRect(),x=p.clientX-r.left-r.width/2,y=p.clientY-r.top-r.height/2,dist=Math.hypot(x,y),m=Math.min(54,dist),ang=Math.atan2(y,x);joyX=dist?Math.cos(ang)*m/54:0;joyY=dist?Math.sin(ang)*m/54:0;stick.style.transform="translate("+joyX*46+"px,"+joyY*46+"px)"}
+function joyReset(){joyPointerId=null;joyTouchId=null;joyX=joyY=0;stick.style.transform=""}
+function joyPointerStart(e){if(joyPointerId!==null)return;joyPointerId=e.pointerId;setJoyFromPoint(e);e.preventDefault();joy.setPointerCapture?.(e.pointerId)}
+function joyPointerMove(e){if(e.pointerId!==joyPointerId)return;setJoyFromPoint(e);e.preventDefault()}
+function joyPointerEnd(e){if(e.pointerId!==joyPointerId)return;joyReset()}
+function joyTouchStart(e){if(joyTouchId!==null)return;const t=e.changedTouches[0];if(!t)return;joyTouchId=t.identifier;setJoyFromPoint(t);e.preventDefault()}
+function joyTouchMove(e){const t=pointForTouch(e.touches,joyTouchId)||pointForTouch(e.changedTouches,joyTouchId);if(!t)return;setJoyFromPoint(t);e.preventDefault()}
+function joyTouchEnd(e){if(pointForTouch(e.changedTouches,joyTouchId)){joyReset();e.preventDefault()}}
+function lookPointerStart(e){if(e.pointerType==="mouse"&&e.button!==0)return;if(lookPointerId!==null)return;lookPointerId=e.pointerId;look.setPointerCapture?.(e.pointerId);look._last={x:e.clientX,y:e.clientY};e.preventDefault()}
+function lookPointerMove(e){if(e.pointerId!==lookPointerId||!look._last)return;const dx=e.clientX-look._last.x,dy=e.clientY-look._last.y;look._last={x:e.clientX,y:e.clientY};yaw-=dx*.006;pitch=Math.max(-1.15,Math.min(1.15,pitch-dy*.0045));e.preventDefault()}
+function lookPointerEnd(e){if(e.pointerId===lookPointerId){lookPointerId=null;look._last=null}}
+function lookTouchStart(e){if(lookTouchId!==null)return;const t=e.changedTouches[0];if(!t)return;lookTouchId=t.identifier;look._last={x:t.clientX,y:t.clientY};e.preventDefault()}
+function lookTouchMove(e){const t=pointForTouch(e.touches,lookTouchId)||pointForTouch(e.changedTouches,lookTouchId);if(!t||!look._last)return;const dx=t.clientX-look._last.x,dy=t.clientY-look._last.y;look._last={x:t.clientX,y:t.clientY};yaw-=dx*.006;pitch=Math.max(-1.15,Math.min(1.15,pitch-dy*.0045));e.preventDefault()}
+function lookTouchEnd(e){if(pointForTouch(e.changedTouches,lookTouchId)){lookTouchId=null;look._last=null;e.preventDefault()}}
+if(window.PointerEvent){
+  joy.addEventListener("pointerdown",joyPointerStart,{passive:false});joy.addEventListener("pointermove",joyPointerMove,{passive:false});joy.addEventListener("pointerup",joyPointerEnd);joy.addEventListener("pointercancel",joyPointerEnd);joy.addEventListener("lostpointercapture",joyPointerEnd);
+  look.addEventListener("pointerdown",lookPointerStart,{passive:false});look.addEventListener("pointermove",lookPointerMove,{passive:false});look.addEventListener("pointerup",lookPointerEnd);look.addEventListener("pointercancel",lookPointerEnd);look.addEventListener("lostpointercapture",lookPointerEnd);
 }else{
-  joy.addEventListener("pointerdown",joyStart,{passive:false});
-  joy.addEventListener("pointermove",e=>{if(joyActive)joyMove(e)},{passive:false});
-  joy.addEventListener("pointerup",joyEnd);
-  joy.addEventListener("pointercancel",joyEnd);
-  joy.addEventListener("lostpointercapture",joyEnd);
+  joy.addEventListener("touchstart",joyTouchStart,{passive:false});joy.addEventListener("touchmove",joyTouchMove,{passive:false});joy.addEventListener("touchend",joyTouchEnd,{passive:false});joy.addEventListener("touchcancel",joyTouchEnd,{passive:false});
+  look.addEventListener("touchstart",lookTouchStart,{passive:false});look.addEventListener("touchmove",lookTouchMove,{passive:false});look.addEventListener("touchend",lookTouchEnd,{passive:false});look.addEventListener("touchcancel",lookTouchEnd,{passive:false});
 }
-const look=document.getElementById("look");
-function lookStart(e){const p=joyPoint(e);if(e.target!==look)return;if(e.pointerType==="mouse"&&e.button!==0)return;lastLook={x:p.clientX,y:p.clientY};if(e.pointerId!=null&&look.setPointerCapture)look.setPointerCapture(e.pointerId);e.preventDefault()}
-function lookMove(e){if(!lastLook)return;const p=joyPoint(e),dx=p.clientX-lastLook.x,dy=p.clientY-lastLook.y;lastLook={x:p.clientX,y:p.clientY};yaw-=dx*.006;pitch=Math.max(-1.15,Math.min(1.15,pitch-dy*.0045));e.preventDefault()}
-function lookEnd(){lastLook=null}
-if(mobile){
-  look.addEventListener("touchstart",lookStart,{passive:false});
-  look.addEventListener("touchmove",lookMove,{passive:false});
-  look.addEventListener("touchend",lookEnd,{passive:false});
-  look.addEventListener("touchcancel",lookEnd,{passive:false});
-}else{
-  look.addEventListener("pointerdown",lookStart,{passive:false});
-  look.addEventListener("pointermove",lookMove,{passive:false});
-  look.addEventListener("pointerup",lookEnd);
-  look.addEventListener("pointercancel",lookEnd);
-  look.addEventListener("lostpointercapture",lookEnd);
-}
+
 function blocked(x,z){
   if(x<-21.15||x>21.15||z<-16.15||z>16.15)return true;
   if(x>-16.8&&x<-9.5&&z>3.8&&z<6.7)return true;
@@ -609,7 +600,7 @@ function frame(now){
  mainLoopStarted=true;
  const raw=now-last,dt=Math.min(.04,raw/1000);last=now;frameCount++;
  try{
-  if(mobile&&frameCount%30===0){frameEma=frameEma*.8+raw*.2;const dpr=frameEma>26?0.85:frameEma>22?0.95:1.1;const current=renderer.getPixelRatio();if(Math.abs(current-dpr)>.05){renderer.setPixelRatio(dpr);renderer.setSize(innerWidth,innerHeight,false)}}
+  if(mobile&&frameCount%30===0){frameEma=frameEma*.8+raw*.2;const dpr=frameEma>25?0.78:frameEma>20?0.88:1.0;const current=renderer.getPixelRatio();if(Math.abs(current-dpr)>.05){renderer.setPixelRatio(dpr);renderer.setSize(innerWidth,innerHeight,false)}}
   if(started||window.__lastCallStart){
    if(!started){started=true;startedAt=now;initAudio();if(audioCtx&&audioCtx.state==="suspended")audioCtx.resume().catch(()=>{});spawnGuest();setTask("🔑 CURRENT TASK: Check in Alex at reception");audioTone(660,.12,.16)}
    move(dt);camera.rotation.set(pitch,yaw,0,"YXZ");
