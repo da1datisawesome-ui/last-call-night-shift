@@ -35,9 +35,23 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 const ART={floor:"#6a4a34",wall:"#d8c6a9",wood:"#75421f",dark:"#1d130d",brass:"#c99b4c",fabric:"#6f4149",cream:"#eee5d6"};
-const BUILD="AA-FIRST-PERSON-HOTEL-2026-10-04C";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
+const BUILD="AA-FIRST-PERSON-HOTEL-2026-10-04D";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
 const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.04,140);camera.position.set(-13,1.68,8);camera.rotation.order="YXZ";
 const renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:"high-performance",precision:mobile?"mediump":"highp"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.25:1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.physicallyCorrectLights=true;renderer.info.autoReset=false;document.getElementById("game").appendChild(renderer.domElement);
+let mainLoopStarted=false;
+const runtimeError=(e)=>{
+  console.error("LAST CALL runtime error",e);
+  const s=document.getElementById("assetStatus");
+  if(s){s.textContent="";s.style.display="none"}
+};
+addEventListener("error",e=>runtimeError(e.error||e.message));
+addEventListener("unhandledrejection",e=>runtimeError(e.reason));
+function emergencyRender(){
+  if(mainLoopStarted)return;
+  try{renderer.render(scene,camera)}catch(e){runtimeError(e)}
+  requestAnimationFrame(emergencyRender)
+}
+requestAnimationFrame(emergencyRender);
 const envLight=new THREE.HemisphereLight(0xffead0,0x172331,mobile?2.35:2.4);scene.add(envLight);
 scene.add(new THREE.AmbientLight(0xffd8bd,mobile?0.38:0.45));
 const sun=new THREE.DirectionalLight(0xffd5a3,3.1);sun.position.set(-18,14,12);sun.castShadow=true;sun.shadow.mapSize.set(mobile?512:1024,mobile?512:1024);sun.castShadow=true;sun.shadow.camera.left=-30;sun.shadow.camera.right=30;sun.shadow.camera.top=30;sun.shadow.camera.bottom=-25;scene.add(sun);
@@ -459,7 +473,7 @@ document.getElementById("menu").onclick=openMenu;document.getElementById("close"
 let lastCheckoutId=0;
 function tickGuests(){for(const g of guests){if(g.state==="staying"&&g.walkServiceAt&&performance.now()>=g.walkServiceAt){g.walkServiceAt=0;g.state="service";serviceTarget=g;setTask("🍽️ CURRENT TASK: Collect room service in the kitchen, then deliver to Room "+g.room)}}const g=guests.find(x=>x.state==="checkout");if(g&&g.id!==lastCheckoutId){lastCheckoutId=g.id;finishCheckout()}if(!guests.some(x=>x.state==="waiting"||x.state==="luggage"||x.state==="walking")&&guests.some(x=>x.state==="idle"))spawnGuest()}
 let started=!!window.__lastCallStart,startedHandled=false;
-let last=performance.now(),frameCount=0,frameEma=16.7;function frame(now){const raw=now-last;const dt=Math.min(.04,raw/1000);last=now;frameCount++;if(mobile&&frameCount%30===0){frameEma=frameEma*.8+raw*.2;const dpr=frameEma>24?1.0:frameEma>20?1.1:1.25;const current=renderer.getPixelRatio();if(Math.abs(current-dpr)>.05){renderer.setPixelRatio(dpr);renderer.setSize(innerWidth,innerHeight,false)}}if(started||window.__lastCallStart){if(!started){started=true;spawnGuest();setTask("🔑 CURRENT TASK: Check in Alex at reception")}move(dt);camera.rotation.set(pitch,yaw,0,"YXZ");for(const g of guests){if(g.mixer&&(g.state==="walking"||g.state==="luggage"))g.mixer.update(dt);updateGuestWalk(g,dt)}hands.rotation.y=0;const z=nearest();if(z){prompt.textContent=z.label;prompt.style.display="block";use.style.display="block"}else{prompt.style.display="none";use.style.display="none"}if(now-lastSave>15000){lastSave=now;localStorage.setItem("lcn-save",JSON.stringify({money,rep,rooms:[...rooms.values()].map(r=>({id:r.id,unlocked:r.unlocked,state:r.state,dirty:r.dirty}))}))}tickGuests()}renderer.render(scene,camera);if(frameCount%60===0)renderer.info.reset();requestAnimationFrame(frame)}requestAnimationFrame(frame);
+let last=performance.now(),frameCount=0,frameEma=16.7;function frame(now){mainLoopStarted=true;const raw=now-last;const dt=Math.min(.04,raw/1000);last=now;frameCount++;if(mobile&&frameCount%30===0){frameEma=frameEma*.8+raw*.2;const dpr=frameEma>24?1.0:frameEma>20?1.1:1.25;const current=renderer.getPixelRatio();if(Math.abs(current-dpr)>.05){renderer.setPixelRatio(dpr);renderer.setSize(innerWidth,innerHeight,false)}}if(started||window.__lastCallStart){if(!started){started=true;spawnGuest();setTask("🔑 CURRENT TASK: Check in Alex at reception")}move(dt);camera.rotation.set(pitch,yaw,0,"YXZ");for(const g of guests){if(g.mixer&&(g.state==="walking"||g.state==="luggage"))g.mixer.update(dt);updateGuestWalk(g,dt)}hands.rotation.y=0;const z=nearest();if(z){prompt.textContent=z.label;prompt.style.display="block";use.style.display="block"}else{prompt.style.display="none";use.style.display="none"}if(now-lastSave>15000){lastSave=now;localStorage.setItem("lcn-save",JSON.stringify({money,rep,rooms:[...rooms.values()].map(r=>({id:r.id,unlocked:r.unlocked,state:r.state,dirty:r.dirty}))}))}tickGuests()}renderer.render(scene,camera);if(frameCount%60===0)renderer.info.reset();requestAnimationFrame(frame)}requestAnimationFrame(frame);
 addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 ui();
 </script></body></html>
