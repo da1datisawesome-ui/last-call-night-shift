@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Last Call — Night Shift</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#17191b;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none}
+#game{width:100%;height:100%;display:block}
+#title{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:linear-gradient(135deg,#201b18,#5b4635)}
+.card{width:min(610px,88vw);padding:40px;border:1px solid #d0a36b55;border-radius:24px;background:#f6f0e7ee;box-shadow:0 30px 100px #0008}
+.kicker{font-size:11px;letter-spacing:.25em;font-weight:900;color:#86603b}.brand{font-size:clamp(48px,9vw,84px);font-weight:950;line-height:.88;color:#211d1a;margin:12px 0 4px}.gold{color:#b07a3e}.copy{color:#61584f;line-height:1.5;margin:22px 0}.btn{width:100%;border:0;border-radius:12px;padding:17px;margin:5px 0;font-weight:900;background:#b9793c;color:white;font-size:15px}.btn.alt{background:#e6ddd0;color:#332b25}
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none}.top{position:absolute;top:18px;left:18px;right:18px;display:flex;justify-content:space-between}.pill{background:#171717cc;color:#fff;border:1px solid #d8ad6a66;border-radius:12px;padding:10px 14px;font-size:12px;font-weight:900;backdrop-filter:blur(8px)}#task{position:absolute;top:72px;right:18px;width:min(360px,45vw);padding:16px;background:#171717d9;color:#fff;border-left:4px solid #d28b42;border-radius:8px}#use{position:absolute;right:28px;bottom:30px;width:84px;height:84px;border-radius:50%;display:none;place-items:center;background:#c37d3e;color:white;font-weight:950;border:3px solid #f1c58d;box-shadow:0 12px 35px #0008}
+#stick{position:fixed;z-index:20;left:25px;bottom:25px;width:145px;height:145px;border-radius:50%;display:none;background:#ffffff16;border:1px solid #ffffff66;box-shadow:0 8px 30px #0005}.knob{position:absolute;left:42px;top:42px;width:61px;height:61px;border-radius:50%;background:#bd7b40dd;border:2px solid #f4d0a0;box-shadow:0 5px 18px #0007}#look{position:fixed;z-index:15;right:0;top:0;width:62%;height:100%;display:none}
+#pause{position:fixed;inset:0;z-index:60;display:none;place-items:center;background:#0007;backdrop-filter:blur(6px)}.menu{width:min(420px,88vw);padding:28px;border-radius:20px;background:#f5efe7}.menu h2{margin:0 0 16px}.row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #ddd3c8}
+.hidden{display:none!important}
+</style></head><body>
+<canvas id="game"></canvas>
+<section id="title"><div class="card"><div class="kicker">FIRST-PERSON HOTEL SIMULATION</div><div class="brand">LAST CALL</div><div class="brand gold" style="font-size:clamp(25px,5vw,44px);letter-spacing:.14em">NIGHT SHIFT</div><div class="copy">A premium, hands-on hotel shift. Walk the property, serve guests and keep rooms running. No horror — just a busy hotel after dark.</div><button class="btn" id="start">START NIGHT 1</button><button class="btn alt" id="opts">OPTIONS</button></div></section>
+<div id="hud" class="hidden"><div class="top"><div class="pill">11:52 AM · NIGHT 1</div><div class="pill" id="cash">$1,124</div></div><div id="task">Your shift is ready. Walk to the reception desk.</div><div id="use">INTERACT</div></div>
+<div id="stick"><div class="knob" id="knob"></div></div><div id="look"></div>
+<div id="pause"><div class="menu"><h2>Night Shift</h2><div class="row"><span>Music</span><b>ON</b></div><div class="row"><span>Sound effects</span><b>ON</b></div><div class="row"><span>Hotel ambience</span><b>ON</b></div><button class="btn" id="resume">RESUME</button></div></div>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script>
+(()=>{"use strict";
+const canvas=document.getElementById("game"),engine=new BABYLON.Engine(canvas,true,{antialias:true,preserveDrawingBuffer:false,stencil:false,adaptToDeviceRatio:true},true);
+engine.setHardwareScalingLevel(Math.min(1.15,Math.max(1,devicePixelRatio*.62)));
+const scene=new BABYLON.Scene(engine);scene.collisionsEnabled=true;scene.gravity=new BABYLON.Vector3(0,-.85,0);scene.clearColor=new BABYLON.Color4(.055,.06,.065,1);
+const cam=new BABYLON.UniversalCamera("player",new BABYLON.Vector3(0,1.68,12.8),scene);
+cam.checkCollisions=true;cam.applyGravity=true;cam.ellipsoid=new BABYLON.Vector3(.34,.82,.34);cam.minZ=.04;cam.maxZ=90;cam.speed=.31;cam.inertia=.04;cam.angularSensibility=999999;scene.activeCamera=cam;
+const M={};
+function mat(n,c,r=.7,met=0){let m=new BABYLON.PBRMaterial(n,scene);m.albedoColor=BABYLON.Color3.FromHexString(c);m.roughness=r;m.metallic=met;return M[n]=m}
+const marble=mat("Carrara marble","#d9d2c5",.38),walnut=mat("Walnut","#5a3825",.5),darkwood=mat("Dark walnut","#302018",.48),brass=mat("Brushed brass","#b68143",.27,.8),wall=mat("Warm plaster","#d9cfc0",.9),cream=mat("Cream paint","#eee5d7",.9),carpet=mat("Hotel carpet","#403e3a",1),navy=mat("Uniform navy","#1f3442",.56),navy2=mat("Uniform trim","#35566a",.48),skin=mat("Skin","#c88365",.72),skin2=mat("Skin shadow","#9f604c",.8),linen=mat("Linen","#e7dfd2",.96),sheet=mat("Deep blue bedding","#263e50",.78),green=mat("Plant green","#31563c",.88),leaf=mat("Leaf","#527c51",.82),glass=mat("Bottle glass","#9bbcc1",.18),red=mat("Guest red","#8d493e",.68),gold=mat("Gold","#c49a54",.23,.82),black=mat("Rubber","#181919",.82),chrome=mat("Chrome","#b7b8b3",.2,.82),plastic=mat("Plastic","#dce0db",.72),blue=mat("Cleaning blue","#275a87",.5);
+function box(n,p,s,m,coll=true){let q=BABYLON.MeshBuilder.CreateBox(n,{width:s[0],height:s[1],depth:s[2]},scene);q.position.copyFrom(p);q.material=m;q.checkCollisions=coll;return q}
+function cyl(n,p,d,h,m,coll=false){let q=BABYLON.MeshBuilder.CreateCylinder(n,{diameter:d,height:h,tessellation:24},scene);q.position.copyFrom(p);q.material=m;q.checkCollisions=coll;return q}
+function sph(n,p,d,m){let q=BABYLON.MeshBuilder.CreateSphere(n,{diameter:d,segments:20},scene);q.position.copyFrom(p);q.material=m;return q}
+function tor(n,p,diam,thick,m,rot){let q=BABYLON.MeshBuilder.CreateTorus(n,{diameter:diam,thickness:thick,tessellation:28},scene);q.position.copyFrom(p);q.rotation=rot||BABYLON.Vector3.Zero();q.material=m;return q}
+function txt(n,text,w,h){let t=new BABYLON.DynamicTexture(n,{width:1024,height:256},scene,true);t.hasAlpha=true;t.drawText(text,42,170,"bold 112px Arial","#f6e7cf","transparent",true);let m=new BABYLON.StandardMaterial(n+"mat",scene);m.diffuseTexture=t;m.emissiveColor=new BABYLON.Color3(.18,.13,.08);return m}
+function framedArt(p,scale=.9){box("artFrame",p,new BABYLON.Vector3(1.3*scale,1.65*scale,.09),darkwood,false);let a=box("art",new BABYLON.Vector3(p.x,p.y,p.z-.055),new BABYLON.Vector3(1.12*scale,1.47*scale,.025),cream,false);let stripe=box("artStripe",new BABYLON.Vector3(p.x-.18*scale,p.y,p.z-.075),new BABYLON.Vector3(.25*scale,1.35*scale,.018),gold,false);return a}
+function lamp(x,z){cyl("lampBase",new BABYLON.Vector3(x,.93,z),.45,.08,brass);cyl("lampStem",new BABYLON.Vector3(x,1.24,z),.07,.6,brass);let shade=box("lampShade",new BABYLON.Vector3(x,1.58,z),new BABYLON.Vector3(.55,.28,.55),cream,false);let light=new BABYLON.PointLight("lampLight",new BABYLON.Vector3(x,1.55,z),scene);light.diffuse=new BABYLON.Color3(1,.72,.42);light.intensity=7;light.range=5}
+function bed(x,z){box("bedBase",new BABYLON.Vector3(x,.36,z),new BABYLON.Vector3(2.45,.38,3.0),darkwood);box("mattress",new BABYLON.Vector3(x,.62,z-.02),new BABYLON.Vector3(2.35,.38,2.86),linen);box("runner",new BABYLON.Vector3(x,.84,z-.75),new BABYLON.Vector3(2.38,.055,1.12),sheet,false);box("headboard",new BABYLON.Vector3(x,1.35,z+1.35),new BABYLON.Vector3(2.45,1.55,.13),darkwood);for(let dx of [-.63,.63])box("pillow",new BABYLON.Vector3(x+dx,.87,z+.78),new BABYLON.Vector3(1.0,.18,.58),linen,false)}
+function chair(x,z){box("chairSeat",new BABYLON.Vector3(x,.62,z),new BABYLON.Vector3(1.1,.16,1.05),green);box("chairBack",new BABYLON.Vector3(x,.98,z+.43),new BABYLON.Vector3(1.1,.82,.12),green);for(let dx of [-.42,.42])for(let dz of [-.38,.38])cyl("chairLeg",new BABYLON.Vector3(x+dx,.3,z+dz),.07,.62,wood)}
+function table(x,z){box("tableTop",new BABYLON.Vector3(x,.83,z),new BABYLON.Vector3(1.4,.12,.72),walnut);for(let dx of [-.55,.55])for(let dz of [-.25,.25])cyl("tableLeg",new BABYLON.Vector3(x+dx,.42,z+dz),.055,.78,brass)}
+function luggage(x,z){box("case",new BABYLON.Vector3(x,.48,z),new BABYLON.Vector3(.72,.88,.35),new BABYLON.PBRMaterial("luggageMat",scene),false);M.luggageMat.albedoColor=BABYLON.Color3.FromHexString("#d2a82c");M.luggageMat.roughness=.55;cyl("wheel",new BABYLON.Vector3(x-.22,.09,z-.17),.11,.06,black);cyl("wheel",new BABYLON.Vector3(x+.22,.09,z-.17),.11,.06,black);box("handle",new BABYLON.Vector3(x,.98,z),new BABYLON.Vector3(.05,.34,.05),chrome,false)}
+function plant(x,z){cyl("pot",new BABYLON.Vector3(x,.45,z),.62,.65,darkwood);for(let i=0;i<8;i++){let a=i*Math.PI/4;let leafm=sph("leaf",new BABYLON.Vector3(x+Math.cos(a)*.24,.9+Math.sin(i)*.12,z+Math.sin(a)*.24),.42,leaf);leafm.scaling.y=1.7}}
+function cleaningCart(x,z){box("cartBody",new BABYLON.Vector3(x,.72,z),new BABYLON.Vector3(1.45,.9,.72),black);box("cartTray",new BABYLON.Vector3(x,.99,z),new BABYLON.Vector3(1.35,.12,.66),chrome);for(let dx of [-.55,.55]){cyl("wheel",new BABYLON.Vector3(x+dx,.25,z-.35),.16,.12,black);cyl("wheel",new BABYLON.Vector3(x+dx,.25,z+.35),.16,.12,black)}box("handle",new BABYLON.Vector3(x,1.32,z+.28),new BABYLON.Vector3(1.2,.06,.06),chrome);for(let i=0;i<4;i++){let b=box("supplyBottle",new BABYLON.Vector3(x-.42+i*.28,1.18,z),new BABYLON.Vector3(.18,.38,.18),[blue,plastic,brass,green][i],false);b.rotation.z=(i%2?.12:-.08)}for(let i=0;i<3;i++)box("foldedTowel",new BABYLON.Vector3(x+.25,1.2+i*.13,z-.2),new BABYLON.Vector3(.48,.11,.35),linen,false)}
+function vacuum(x,z){cyl("vacuumBody",new BABYLON.Vector3(x,.55,z),.48,.72,black);cyl("vacuumTop",new BABYLON.Vector3(x,.98,z),.18,.3,blue);let hose=tor("hose",new BABYLON.Vector3(x,.95,z),.7,.06,black,new BABYLON.Vector3(Math.PI/2,0,0));hose.scaling.x=1.8;box("vacuumHandle",new BABYLON.Vector3(x+.55,1.35,z),new BABYLON.Vector3(.05,.9,.05),black,false)}
+function person(n,x,z,body){let root=new BABYLON.TransformNode(n,scene);root.position.set(x,0,z);let t=box("torso",new BABYLON.Vector3(0,1.06,0),new BABYLON.Vector3(.58,1.02,.34),body,false);t.parent=root;let h=sph("head",new BABYLON.Vector3(0,1.77,0),.45,skin);h.parent=root;for(let dx of [-.16,.16]){let l=box("leg",new BABYLON.Vector3(dx,.42,0),new BABYLON.Vector3(.18,.78,.2),navy,false);l.parent=root}for(let dx of [-.38,.38]){let a=box("arm",new BABYLON.Vector3(dx,1.05,0),new BABYLON.Vector3(.14,.72,.16),body,false);a.parent=root}return root}
+function room(x,z,num){box("roomWall",new BABYLON.Vector3(x,1.7,z),new BABYLON.Vector3(5.05,3.4,5.1),wall);let side=x<0?1:-1;box("doorFrame",new BABYLON.Vector3(side*3.52,1.45,z),new BABYLON.Vector3(.18,2.9,1.45),darkwood);box("door",new BABYLON.Vector3(side*3.42,1.42,z),new BABYLON.Vector3(.10,2.68,1.18),walnut);let plaque=box("roomPlaque",new BABYLON.Vector3(side*3.31,2.18,z),new BABYLON.Vector3(.05,.34,.62),gold,false);let m=txt("room"+num,""+num);plaque.material=m;bed(x,z);chair(x-side*.65,z-1.35);table(x+side*.72,z-1.2);lamp(x+side*.72,z-1.2);framedArt(new BABYLON.Vector3(x+side*1.3,1.85,z+1.8),.72);luggage(x+side*.75,z+.45);plant(x-side*1.25,z+1.0)}
+// Hotel shell and corridor
+box("floor",new BABYLON.Vector3(0,-.22,0),new BABYLON.Vector3(15.8,.4,37.5),marble);
+box("runner",new BABYLON.Vector3(0,.005,0),new BABYLON.Vector3(4.05,.045,36.8),carpet,false);
+box("leftShell",-new BABYLON.Vector3(6.25,1.75,0),new BABYLON.Vector3(5.9,3.5,37.5),wall);
+box("rightShell",new BABYLON.Vector3(6.25,1.75,0),new BABYLON.Vector3(5.9,3.5,37.5),wall);
+box("back",new BABYLON.Vector3(0,1.75,-18.5),new BABYLON.Vector3(15.8,3.5,.35),wall);
+box("front",new BABYLON.Vector3(0,1.75,18.5),new BABYLON.Vector3(15.8,3.5,.35),wall);
+for(let z of [-14,-7,0,7,14]){box("trimL",new BABYLON.Vector3(-3.33,.7,z),new BABYLON.Vector3(.08,1.4,5.0),darkwood,false);box("trimR",new BABYLON.Vector3(3.33,.7,z),new BABYLON.Vector3(.08,1.4,5.0),darkwood,false)}
+for(let z of [-14,-7,0,7,14]){room(-6.25,z,101+[-14,-7,0,7,14].indexOf(z)*2);room(6.25,z,102+[-14,-7,0,7,14].indexOf(z)*2)}
+// Reception
+box("reception",new BABYLON.Vector3(0,.62,11.4),new BABYLON.Vector3(6.2,1.25,1.45),walnut);
+box("receptionCap",new BABYLON.Vector3(0,1.32,11.4),new BABYLON.Vector3(6.45,.16,1.58),marble);
+box("frontGold",new BABYLON.Vector3(0,.7,10.65),new BABYLON.Vector3(5.7,.09,.06),brass,false);
+box("deskScreen",new BABYLON.Vector3(-.9,1.58,11.25),new BABYLON.Vector3(1.05,.72,.08),black,false);
+box("deskScreen2",new BABYLON.Vector3(-.9,1.58,11.15),new BABYLON.Vector3(.88,.5,.025),glass,false);
+for(let x of [-2.2,2.2])lamp(x,11.55);plant(-3.7,10.5);plant(3.7,10.5);
+framedArt(new BABYLON.Vector3(-4.7,1.9,9.5),.7);framedArt(new BABYLON.Vector3(4.7,1.9,9.5),.7);
+// Service/kitchen and housekeeping staging
+box("kitchenWall",new BABYLON.Vector3(-5.9,1.7,10.1),new BABYLON.Vector3(4.9,3.4,4.8),cream);
+box("kitchenCounter",new BABYLON.Vector3(-5.8,.75,9.95),new BABYLON.Vector3(3.9,1.0,.75),marble);
+box("kitchenWood",new BABYLON.Vector3(-5.8,1.3,9.55),new BABYLON.Vector3(3.9,.09,.08),brass,false);
+for(let i=0;i<5;i++)cyl("canister",new BABYLON.Vector3(-7.1+i*.55,1.25,9.7),.18,.55,[red,blue,green,brass,plastic][i],false);
+cleaningCart(5.4,7.1);vacuum(4.5,5.5);box("linenStack",new BABYLON.Vector3(5.6,.75,5.7),new BABYLON.Vector3(1.1,1.1,.9),linen);box("linenBand",new BABYLON.Vector3(5.6,1.02,5.25),new BABYLON.Vector3(1.0,.1,.08),gold,false);
+// ceiling coffers
+for(let z=-16;z<=16;z+=4){box("ceilingBeam",new BABYLON.Vector3(0,3.38,z),new BABYLON.Vector3(15.5,.16,.12),darkwood,false);for(let x of [-4,0,4]){let l=new BABYLON.PointLight("ceilingWarm",new BABYLON.Vector3(x,3.15,z),scene);l.diffuse=new BABYLON.Color3(1,.76,.5);l.intensity=18;l.range=8}}
+// Viewmodel arms
+const vm=new BABYLON.TransformNode("viewModel",scene);vm.parent=cam;
+let armL=box("viewArmL",new BABYLON.Vector3(-.48,-.46,.72),new BABYLON.Vector3(.22,.72,.22),skin,false);armL.parent=vm;armL.rotation.z=-.38;
+let armR=box("viewArmR",new BABYLON.Vector3(.48,-.46,.72),new BABYLON.Vector3(.22,.72,.22),skin,false);armR.parent=vm;armR.rotation.z=.38;
+let handL=sph("handL",new BABYLON.Vector3(-.48,-.83,.73),.27,skin);handL.parent=vm;let handR=sph("handR",new BABYLON.Vector3(.48,-.83,.73),.27,skin);handR.parent=vm;
+// Lighting
+let hemi=new BABYLON.HemisphericLight("ambient",new BABYLON.Vector3(0,1,0),scene);hemi.intensity=.72;hemi.diffuse=new BABYLON.Color3(1,.94,.84);hemi.groundColor=new BABYLON.Color3(.18,.18,.18);
+let sun=new BABYLON.DirectionalLight("windowFill",new BABYLON.Vector3(.2,-1,.2),scene);sun.intensity=.45;sun.diffuse=new BABYLON.Color3(1,.82,.62);
+scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=.002;scene.fogColor=new BABYLON.Color3(.12,.12,.12);
+const pipe=new BABYLON.DefaultRenderingPipeline("quality",true,scene,[cam]);pipe.fxaaEnabled=true;pipe.samples=1;pipe.imageProcessingEnabled=true;pipe.imageProcessing.contrast=1.08;pipe.imageProcessing.exposure=1.04;
+let mx=0,my=0,lookId=null,lastX=0,lastY=0;
+const stick=document.getElementById("stick"),knob=document.getElementById("knob"),look=document.getElementById("look");
+stick.addEventListener("pointerdown",e=>{e.preventDefault();stick.setPointerCapture(e.pointerId);let r=stick.getBoundingClientRect();const move=q=>{let dx=q.clientX-r.left-r.width/2,dy=q.clientY-r.top-r.height/2,L=57,len=Math.hypot(dx,dy);if(len>L){dx*=L/len;dy*=L/len}knob.style.transform=`translate(${dx}px,${dy}px)`;mx=dx/L;my=dy/L};move(e);stick.onpointermove=move;stick.onpointerup=()=>{mx=my=0;knob.style.transform="";stick.onpointermove=null}});
+look.addEventListener("pointerdown",e=>{e.preventDefault();lookId=e.pointerId;lastX=e.clientX;lastY=e.clientY;look.setPointerCapture(e.pointerId)});
+look.addEventListener("pointermove",e=>{if(e.pointerId!==lookId)return;e.preventDefault();let dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;cam.rotation.y+=dx*.006;cam.rotation.x=Math.max(-1.2,Math.min(1.2,cam.rotation.x+dy*.003))});
+look.addEventListener("pointerup",e=>{if(e.pointerId===lookId)lookId=null});
+let keys={};addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=1;if(e.key.toLowerCase()==="e")interact()});addEventListener("keyup",e=>keys[e.key.toLowerCase()]=0);
+let guest=person("guest",0,9.7,red),state="waiting",step=0;
+const path=[new BABYLON.Vector3(0,0,9.7),new BABYLON.Vector3(0,0,7.5),new BABYLON.Vector3(0,0,2.5),new BABYLON.Vector3(0,0,-4),new BABYLON.Vector3(-2.5,0,-7),new BABYLON.Vector3(-3.7,0,-7)];
+guest.setEnabled(false);
+function task(t){document.getElementById("task").textContent=t}
+function interact(){let d=BABYLON.Vector3.Distance(cam.position,guest.position);if(state==="waiting"&&d<4){guest.setEnabled(true);state="walking";step=1;task("Guest arriving. Meet them at reception.");}else if(state==="walking"&&d<3){state="escorted";task("Escort the guest through the corridor to Room 103.");}else if(state==="escorted"&&step>=path.length-1&&d<3){state="done";task("Room 103 checked in. $35 earned.");document.getElementById("cash").textContent="$1,159";}}
+document.getElementById("start").onclick=()=>{document.getElementById("title").classList.add("hidden");document.getElementById("hud").classList.remove("hidden");stick.style.display="block";look.style.display="block";task("Walk to reception and greet the arriving guest.")};
+document.getElementById("opts").onclick=()=>document.getElementById("pause").style.display="grid";document.getElementById("resume").onclick=()=>document.getElementById("pause").style.display="none";
+document.getElementById("use").onclick=interact;
+let last=performance.now();
+engine.runRenderLoop(()=>{let now=performance.now(),dt=Math.min(32,now-last);last=now;
+let f=cam.getDirection(BABYLON.Axis.Z),r=cam.getDirection(BABYLON.Axis.X),sx=mx,sy=my;if(keys.w)sy=-1;if(keys.s)sy=1;if(keys.a)sx=-1;if(keys.d)sx=1;let v=f.scale(-sy).add(r.scale(sx));if(v.lengthSquared()>1)v.normalize();cam.cameraDirection=v.scale(cam.speed*dt/16);
+if(state==="walking"||state==="escorted"){let t=path[step],d=t.subtract(guest.position);if(d.length()<.14){if(step<path.length-1)step++;else task("Guest reached Room 103. Interact to finish.");}else{d.normalize();guest.position.addInPlace(d.scale(.055*dt));guest.rotation.y=Math.atan2(d.x,d.z)}}
+let near=BABYLON.Vector3.Distance(cam.position,guest.position)<3.2;document.getElementById("use").style.display=(state!=="done"&&near)?"grid":"none";
+scene.render()});
+addEventListener("resize",()=>engine.resize());
+})();
+</script></body></html>
