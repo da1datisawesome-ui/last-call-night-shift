@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Last Call: Night Shift — Mobile Rewrite</title>
+<style>
+html,body,#renderCanvas{width:100%;height:100%;margin:0;overflow:hidden;background:#08090d;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none}
+#renderCanvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none;color:#fff}
+#brand{position:absolute;top:18px;left:20px;font-weight:800;letter-spacing:.12em;font-size:13px;text-shadow:0 2px 8px #000}
+#task{position:absolute;left:50%;top:18px;transform:translateX(-50%);max-width:82vw;padding:10px 16px;border-radius:14px;background:rgba(10,12,18,.72);backdrop-filter:blur(8px);font-size:14px;text-align:center}
+#use{position:absolute;right:24px;bottom:28px;border:0;border-radius:999px;width:82px;height:82px;background:rgba(255,255,255,.16);color:#fff;font-weight:800;letter-spacing:.08em;display:none;pointer-events:auto;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+#lookHint{position:absolute;right:22px;bottom:118px;font-size:11px;opacity:.62}
+#menu{position:absolute;right:18px;top:16px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(10,12,18,.68);color:#fff;font-size:18px;pointer-events:auto}
+#menuPanel{position:absolute;inset:0;background:rgba(3,5,9,.86);display:none;align-items:center;justify-content:center;pointer-events:auto}
+.card{width:min(390px,86vw);padding:28px;border:1px solid rgba(255,255,255,.12);border-radius:22px;background:rgba(20,23,31,.96);box-shadow:0 20px 80px #000}
+.card h1{margin:0 0 8px;font-size:26px}.card p{opacity:.7;font-size:13px;line-height:1.5}
+.card button{width:100%;padding:13px;margin-top:10px;border:0;border-radius:12px;background:#eee;color:#111;font-weight:800}
+#start{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 38%,#293242,#08090d 65%);pointer-events:auto}
+.startCard{width:min(440px,84vw);text-align:center}.startCard h1{font-size:42px;line-height:.95;margin:0;letter-spacing:-.04em}.startCard h1 span{display:block;font-size:14px;letter-spacing:.3em;opacity:.65;margin-top:14px}.startCard p{opacity:.68;line-height:1.5}.startCard button{margin-top:14px;width:100%;padding:16px;border:0;border-radius:14px;font-size:16px;font-weight:850}
+#status{font-size:11px;opacity:.55;margin-top:10px}
+@media(orientation:portrait){#startCard{}}
+</style>
+</head>
+<body>
+<canvas id="renderCanvas"></canvas>
+<div id="hud">
+  <div id="brand">LAST CALL</div>
+  <div id="task">Start your shift</div>
+  <button id="menu">☰</button>
+  <div id="lookHint">DRAG RIGHT SIDE TO LOOK</div>
+  <button id="use">USE</button>
+</div>
+<div id="start">
+  <div class="startCard">
+    <h1>LAST CALL<span>NIGHT SHIFT</span></h1>
+    <p>A clean mobile-first rewrite built on the Babylon.js game engine. Walk the hotel, handle the desk, and keep the night moving.</p>
+    <button id="play">START SHIFT</button>
+    <div id="status">Loading game engine…</div>
+  </div>
+</div>
+<div id="menuPanel">
+  <div class="card">
+    <h1>Night Shift</h1>
+    <p>Left thumb: move. Right side: look. Walk to an active guest or station and press USE.</p>
+    <button id="resume">RESUME</button>
+  </div>
+</div>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script>
+(function(){
+"use strict";
+const canvas=document.getElementById("renderCanvas");
+const engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,adaptToDeviceRatio:true});
+engine.setHardwareScalingLevel(Math.min(1.35,window.devicePixelRatio>2?1.15:1));
+const scene=new BABYLON.Scene(engine);
+scene.clearColor=new BABYLON.Color4(.025,.03,.045,1);
+scene.collisionsEnabled=true;
+scene.gravity=new BABYLON.Vector3(0,-0.22,0);
+
+const camera=new BABYLON.VirtualJoysticksCamera("PlayerCamera",new BABYLON.Vector3(0,1.72,9.2),scene);
+camera.attachControl(canvas,true);
+camera.minZ=.08; camera.maxZ=100;
+camera.applyGravity=true; camera.checkCollisions=true;
+camera.ellipsoid=new BABYLON.Vector3(.42,.88,.42);
+camera.speed=.18;
+camera.angularSensibility=2800;
+camera.inertia=.18;
+
+function mat(name,color,rough=.8,metal=0){
+ const m=new BABYLON.PBRMaterial(name,scene);
+ m.albedoColor=BABYLON.Color3.FromHexString(color);
+ m.roughness=rough;m.metallic=metal;
+ return m;
+}
+const floorMat=mat("Warm carpet","#343640",.98);
+const wallMat=mat("Hotel walls","#b6b2a9",.92);
+const trimMat=mat("Dark trim","#22242a",.72,.05);
+const woodMat=mat("Walnut","#563c2b",.65);
+const brassMat=mat("Brass","#b08a46",.34,.7);
+const fabricMat=mat("Seat fabric","#5d3940",1);
+const glassMat=mat("Glass","#71869b",.12,.1);glassMat.alpha=.28;
+const skinMat=mat("Skin","#b87958",.9);
+const uniformMat=mat("Uniform","#273746",.72);
+const guestMat=mat("Guest outfit","#6a4d39",.8);
+
+function box(name,pos,size,material,collide=true){
+ const m=BABYLON.MeshBuilder.CreateBox(name,{width:size.x,height:size.y,depth:size.z},scene);
+ m.position=pos;m.material=material;m.checkCollisions=collide;m.isPickable=true;return m;
+}
+function cyl(name,pos,diam,height,material,collide=true){
+ const m=BABYLON.MeshBuilder.CreateCylinder(name,{diameter:diam,height},scene);
+ m.position=pos;m.material=material;m.checkCollisions=collide;return m;
+}
+function sphere(name,pos,diam,material){
+ const m=BABYLON.MeshBuilder.CreateSphere(name,{diameter:diam,segments:16},scene);
+ m.position=pos;m.material=material;return m;
+}
+function textSign(text,pos){
+ const plane=BABYLON.MeshBuilder.CreatePlane("sign",{width:2.5,height:.48},scene);
+ plane.position=pos;plane.billboardMode=BABYLON.Mesh.BILLBOARDMODE_Y;
+ const dt=new BABYLON.DynamicTexture("signText",{width:1024,height:196},scene,true);
+ dt.hasAlpha=true;dt.drawText(text,24,130,"bold 86px Arial","white","transparent",true);
+ const sm=new BABYLON.StandardMaterial("signMat",scene);sm.diffuseTexture=dt;sm.emissiveColor=new BABYLON.Color3(.25,.25,.25);plane.material=sm;
+ return plane;
+}
+
+box("floor",new BABYLON.Vector3(0,-.08,0),new BABYLON.Vector3(28,.16,34),floorMat,false);
+box("ceiling",new BABYLON.Vector3(0,4.2,0),new BABYLON.Vector3(28,.16,34),trimMat,false);
+box("northWall",new BABYLON.Vector3(0,2,-17),new BABYLON.Vector3(28,4,0.3),wallMat);
+box("southWall",new BABYLON.Vector3(0,2,17),new BABYLON.Vector3(28,4,0.3),wallMat);
+box("westWall",new BABYLON.Vector3(-14,2,0),new BABYLON.Vector3(.3,4,34),wallMat);
+box("eastWall",new BABYLON.Vector3(14,2,0),new BABYLON.Vector3(.3,4,34),wallMat);
+
+// Central reception and corridor: deliberate open route, with solid room wings on both sides.
+box("desk",new BABYLON.Vector3(-8,1,9),new BABYLON.Vector3(5.2,2,1.25),woodMat);
+box("deskTop",new BABYLON.Vector3(-8,2.05,9),new BABYLON.Vector3(5.6,.14,1.5),brassMat);
+textSign("RECEPTION",new BABYLON.Vector3(-8,3.1,8.25));
+for(let z=-12;z<=12;z+=4){
+ box("leftWing",new BABYLON.Vector3(-10.9,2,z),new BABYLON.Vector3(6,4,3.1),wallMat);
+ box("rightWing",new BABYLON.Vector3(10.9,2,z),new BABYLON.Vector3(6,4,3.1),wallMat);
+ box("leftDoor",new BABYLON.Vector3(-7.72,1.15,z),new BABYLON.Vector3(.12,2.3,1.45),woodMat);
+ box("rightDoor",new BABYLON.Vector3(7.72,1.15,z),new BABYLON.Vector3(.12,2.3,1.45),woodMat);
+}
+textSign("101",new BABYLON.Vector3(-7.35,2.55,-12));
+textSign("102",new BABYLON.Vector3(7.35,2.55,-12));
+textSign("103",new BABYLON.Vector3(-7.35,2.55,-4));
+textSign("104",new BABYLON.Vector3(7.35,2.55,-4));
+textSign("105",new BABYLON.Vector3(-7.35,2.55,4));
+textSign("106",new BABYLON.Vector3(7.35,2.55,4));
+textSign("107",new BABYLON.Vector3(-7.35,2.55,12));
+
+function person(name,x,z,bodyMat){
+ const body=cyl(name+"Body",new BABYLON.Vector3(x,1.02,z),.62,1.55,bodyMat,false);
+ const head=sphere(name+"Head",new BABYLON.Vector3(x,1.98,z),.58,skinMat);
+ body.parent=null;head.parent=null;
+ return {body,head};
+}
+const receptionist=person("Receptionist",-6.8,7.25,uniformMat);
+receptionist.body.isPickable=true;
+receptionist.head.isPickable=true;
+
+const guest=person("Guest",-2.2,8.2,guestMat);
+guest.body.isPickable=true;guest.head.isPickable=true;
+let guestState="waiting";
+let guestTarget=new BABYLON.Vector3(-2.2,0,8.2);
+let task="Walk to the guest at reception";
+const taskEl=document.getElementById("task"),use=document.getElementById("use");
+function setTask(t){task=t;taskEl.textContent=t}
+function distTo(mesh){return BABYLON.Vector3.Distance(camera.position,mesh.position)}
+function nearGuest(){return distTo(guest.body)<2.15}
+function interact(){
+ if(!started)return;
+ if(guestState==="waiting"&&nearGuest()){
+   guestState="walking";guestTarget=new BABYLON.Vector3(6.9,0,-12);
+   setTask("Guest checked in • follow them toward Room 101");
+   use.style.display="none";
+ }else if(guestState==="room"&&distTo(guest.body)<2.5){
+   setTask("Guest is settled • next: return to reception");
+ }
+}
+use.addEventListener("pointerdown",e=>{e.preventDefault();interact()});
+canvas.addEventListener("pointerdown",e=>{
+ if(e.pointerType==="mouse"&&e.button===0 && e.clientX<innerWidth*.45)interact();
+});
+
+let started=false;
+document.getElementById("play").onclick=()=>{
+ started=true;
+ document.getElementById("start").style.display="none";
+ setTask("Walk to the guest at reception");
+ try{camera.attachControl(canvas,true)}catch{}
+};
+document.getElementById("menu").onclick=()=>document.getElementById("menuPanel").style.display="flex";
+document.getElementById("resume").onclick=()=>document.getElementById("menuPanel").style.display="none";
+
+function updateGuest(){
+ if(guestState!=="walking")return;
+ const p=guest.body.position;
+ const target=new BABYLON.Vector3(guestTarget.x,p.y,guestTarget.z);
+ const d=BABYLON.Vector3.Distance(p,target);
+ if(d<.16){guest.body.position.x=guestTarget.x;guest.body.position.z=guestTarget.z;guest.head.position.x=guestTarget.x;guest.head.position.z=guestTarget.z;guestState="room";setTask("Guest reached Room 101 • return to reception");return}
+ const dir=target.subtract(p).normalize().scale(.045);
+ guest.body.position.addInPlace(dir);guest.head.position.addInPlace(dir);
+}
+
+scene.onBeforeRenderObservable.add(()=>{
+ if(started){
+   updateGuest();
+   const n=nearGuest();
+   use.style.display=(guestState==="waiting"&&n)?"block":"none";
+ }
+});
+
+const hemi=new BABYLON.HemisphericLight("ambient",new BABYLON.Vector3(0,1,0),scene);
+hemi.intensity=.72;
+const key=new BABYLON.DirectionalLight("key",new BABYLON.Vector3(-.25,-1,.2),scene);
+key.position=new BABYLON.Vector3(4,10,8);key.intensity=1.2;
+const warm=new BABYLON.PointLight("deskLight",new BABYLON.Vector3(-8,3.5,9),scene);
+warm.diffuse=new BABYLON.Color3(1,.72,.48);warm.intensity=18;warm.range=12;
+
+document.getElementById("status").textContent="Babylon.js engine ready";
+engine.runRenderLoop(()=>scene.render());
+window.addEventListener("resize",()=>engine.resize());
+})();
+</script>
+</body>
+</html>
