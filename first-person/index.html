@@ -35,7 +35,7 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 const ART={floor:"#6a4a34",wall:"#d8c6a9",wood:"#75421f",dark:"#1d130d",brass:"#c99b4c",fabric:"#6f4149",cream:"#eee5d6"};
-const BUILD="AA-FIRST-PERSON-HOTEL-2026-10-04D";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
+const BUILD="AA-FIRST-PERSON-HOTEL-2026-10-04E";const mobile=matchMedia("(max-width:900px), (pointer:coarse)").matches;const scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,mobile?28:32,mobile?68:90);
 const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.04,140);camera.position.set(-13,1.68,8);camera.rotation.order="YXZ";
 const renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:"high-performance",precision:mobile?"mediump":"highp"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.25:1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.physicallyCorrectLights=true;renderer.info.autoReset=false;document.getElementById("game").appendChild(renderer.domElement);
 let mainLoopStarted=false;
@@ -62,7 +62,8 @@ function normalTexture(kind){const s=256,cv=document.createElement("canvas");cv.
 function detailMat(c,rough,metal,tex,kind){const o=mat(c,rough,metal,tex);o.normalMap=normalTexture(kind);o.normalScale.set(.22,.22);return o}
 function box(n,x,y,z,w,h,d,m,sh=false){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.name=n;o.position.set(x,y,z);o.castShadow=sh&&!mobile;o.receiveShadow=true;o.updateMatrix();o.matrixAutoUpdate=false;scene.add(o);return o}
 function cyl(n,x,y,z,r,h,m){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,12),m);o.name=n;o.position.set(x,y,z);o.castShadow=false;o.receiveShadow=true;o.updateMatrix();o.matrixAutoUpdate=false;scene.add(o);return o}
-const M={floor:detailMat("#594036",.9,0,texture("carpet"),"carpet"),wall:detailMat("#b8a184",.78,0,texture("wall"),"wall"),wood:detailMat("#6b3e23",.42,0,texture("wood"),"wood"),dark:mat(ART.dark,.38),brass:mat(ART.brass,.18,.82),fabric:mat(ART.fabric,.82),cream:mat(ART.cream,.76),glass:new THREE.MeshPhysicalMaterial({color:0x6b9bb2,roughness:.08,metalness:.05,transmission:.42,transparent:true,opacity:.72,ior:1.45,envMapIntensity:1}),green:mat("#315c3b",.78),blue:mat("#294f6a",.45)};
+const M={floor:detailMat("#594036",.9,0,texture("carpet"),"carpet"),wall:detailMat("#b8a184",.78,0,texture("wall"),"wall"),wood:detailMat("#6b3e23",.42,0,texture("wood"),"wood"),dark:mat(ART.dark,.38),brass:mat(ART.brass,.18,.82),fabric:mat(ART.fabric,.82),cream:mat(ART.cream,.76),glass:new THREE.MeshPhysicalMaterial({color:0x6b9bb2,roughness:.08,metalness:.05,transmission:.42,transparent:true,opacity:.72,ior:1.45,envMapIntensity:1}),green:mat("#315c3b",.78),blue:mat("#294f6a",.45)}
+const trimMat=mat("#9a7651",.36,.18), darkTrim=mat("#33251d",.3,.35), mirrorMat=new THREE.MeshPhysicalMaterial({color:0x8aa4ad,metalness:.65,roughness:.08,envMapIntensity:1.2});;
 box("floor",0,-.1,0,44,.2,34,M.floor,false);box("ceiling",0,4.2,0,44,.15,34,M.dark,false);
 box("north",0,2.1,-17,44,4.2,.3,M.wall);box("south",0,2.1,17,44,4.2,.3,M.wall);box("westA",-22,2.1,-6.25,.3,4.2,21.5,M.wall);box("westB",-22,2.1,13.75,.3,4.2,6.5,M.wall);box("east",22,2.1,0,.3,4.2,34,M.wall);
 for(let x=-20;x<=20;x+=4){box("trim",x,.42,-16.8,3.3,.16,.08,M.wood,false);box("trim",x,.42,16.8,3.3,.16,.08,M.wood,false)}
@@ -230,7 +231,6 @@ label("NIGHT SHIFT",0,2.55,-16.25,.34);
 
 // High-detail architectural dressing: layered wall mouldings, inset lighting, framed mirrors,
  // timber transitions and repeated hotel-signage elements create depth at walking height.
-const trimMat=mat("#9a7651",.36,.18), darkTrim=mat("#33251d",.3,.35), mirrorMat=new THREE.MeshPhysicalMaterial({color:0x8aa4ad,metalness:.65,roughness:.08,envMapIntensity:1.2});
 for(let z=-15;z<=15;z+=5){
   for(const x of[-20.95,20.95]){
     box("verticalWallTrim",x,2.0,z,.10,3.35,.10,trimMat,false);
