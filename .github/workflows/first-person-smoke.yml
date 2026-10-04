@@ -2,6 +2,8 @@ name: First Person Smoke Test
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.github/smoke-result.json'
   workflow_dispatch:
 jobs:
   first-person:
@@ -25,29 +27,40 @@ jobs:
           const errors=[];
           page.on('pageerror',e=>errors.push(String(e)));
           page.on('console',m=>{if(m.type()==='error') errors.push(m.text())});
-          console.log('OPENING');
-          await page.goto('http://127.0.0.1:8080/first-person/',{waitUntil:'domcontentloaded',timeout:30000});
-          const start=page.locator('#start');
-          await start.waitFor({state:'visible',timeout:10000});
-          console.log('TITLE_VISIBLE');
-          await page.waitForFunction(()=>{const b=document.querySelector('#start');return b && !b.disabled},null,{timeout:30000});
-          console.log('START_ENABLED');
-          await page.screenshot({path:'/tmp/first-person-before.png',fullPage:false});
-          await start.click();
-          await page.waitForTimeout(3000);
-          const result=await page.evaluate(()=>({
-            titleHidden:getComputedStyle(document.querySelector('#title')).display==='none',
-            canvas:!!document.querySelector('canvas'),
-            hudVisible:getComputedStyle(document.querySelector('#hud')).display!=='none',
-            started:!!window.__lastCallStart,
-            status:document.querySelector('#assetStatus')?.textContent||''
-          }));
-          await page.screenshot({path:'/tmp/first-person-smoke.png',fullPage:false});
-          console.log('RESULT',JSON.stringify(result));
-          console.log('PAGE_ERRORS',JSON.stringify(errors));
-          if(errors.length) throw new Error('Browser errors: '+errors.join(' | '));
-          if(!result.titleHidden || !result.canvas || !result.hudVisible || !result.started) throw new Error('Startup assertion failed: '+JSON.stringify(result));
-          console.log('FIRST_PERSON_SMOKE_PASS',JSON.stringify(result));
+          let result={};
+          let failure=null;
+          try{
+            console.log('OPENING');
+            await page.goto('http://127.0.0.1:8080/first-person/',{waitUntil:'domcontentloaded',timeout:30000});
+            const start=page.locator('#start');
+            await start.waitFor({state:'visible',timeout:10000});
+            console.log('TITLE_VISIBLE');
+            await page.waitForFunction(()=>{const b=document.querySelector('#start');return b && !b.disabled},null,{timeout:30000});
+            console.log('START_ENABLED');
+            await page.screenshot({path:'/tmp/first-person-before.png',fullPage:false});
+            await start.click();
+            await page.waitForTimeout(3000);
+            result=await page.evaluate(()=>({
+              titleHidden:getComputedStyle(document.querySelector('#title')).display==='none',
+              canvas:!!document.querySelector('canvas'),
+              hudVisible:getComputedStyle(document.querySelector('#hud')).display!=='none',
+              started:!!window.__lastCallStart,
+              status:document.querySelector('#assetStatus')?.textContent||''
+            }));
+            await page.screenshot({path:'/tmp/first-person-smoke.png',fullPage:false});
+            console.log('RESULT',JSON.stringify(result));
+            console.log('PAGE_ERRORS',JSON.stringify(errors));
+            if(errors.length) throw new Error('Browser errors: '+errors.join(' | '));
+            if(!result.titleHidden || !result.canvas || !result.hudVisible || !result.started) throw new Error('Startup assertion failed: '+JSON.stringify(result));
+            console.log('FIRST_PERSON_SMOKE_PASS',JSON.stringify(result));
+          }catch(e){failure=String(e)}
+          const diagnostic={result,errors,failure};
+          const body=Buffer.from(JSON.stringify(diagnostic,null,2)).toString('base64');
+          const api='https://api.github.com/repos/da1datisawesome-ui/last-call-night-shift/contents/.github/smoke-result.json';
+          const get=await fetch(api,{headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json'}});
+          const existing=get.ok?await get.json():null;
+          await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'Record first-person smoke test result',content:body,branch:'main',sha:existing?.sha})});
+          if(failure) throw new Error(failure);
           await browser.close();
           EOF
           node /tmp/smoke.mjs
